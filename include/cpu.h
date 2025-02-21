@@ -44,9 +44,8 @@ public:
   [[nodiscard]] u8 get_sp() const;
   [[nodiscard]] u8 get_status() const;
   [[nodiscard]] u8 get_remaining_cycles() const;
-  void set_flag(Flag flag, bool value);
   [[nodiscard]] bool get_flag(Flag flag) const;
-  [[nodiscard]] u64 get_total_cycles() const { return cycles; }
+  void set_flag(Flag flag, bool value);
 
 private:
   using InstructionHandler = void (CPU::*)(Memory &);
@@ -85,11 +84,11 @@ private:
 
   // Internal methods
   void update_zero_and_negative_flags(u8 value);
-  [[nodiscard]] u8 read_byte(const Memory &memory, u16 address);
-  void write_byte(Memory &memory, u16 address, u8 value);
   void push_stack(Memory &memory, u8 value);
-  [[nodiscard]] bool check_page_cross(u16 addr1, u16 addr2);
+  void write_byte(Memory &memory, u16 address, u8 value);
+  [[nodiscard]] u8 read_byte(const Memory &memory, u16 address);
   [[nodiscard]] u8 pull_stack(const Memory &memory);
+  [[nodiscard]] bool check_page_cross(u16 addr1, u16 addr2);
 
   // Addressing modes
   [[nodiscard]] u16 addr_zero_page(const Memory &memory);
