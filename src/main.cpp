@@ -1,5 +1,4 @@
-#include "../include/cpu6502.h"
-#include "memory.h"
+#include "../include/cpu.h"
 #include <iomanip>
 #include <iostream>
 

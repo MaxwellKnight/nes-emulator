@@ -1,4 +1,4 @@
-#include "../include/cpu6502.h"
+#include "../include/cpu.h"
 #include <stdexcept>
 
 namespace nes {
