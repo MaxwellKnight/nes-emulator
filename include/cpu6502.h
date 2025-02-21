@@ -2,7 +2,7 @@
 #include "memory.h"
 #include <cstdint>
 
-namespace cpu6502 {
+namespace nes {
 class CPU {
 public:
   enum class Opcode : u8 {
@@ -71,4 +71,4 @@ private:
   // Cycle cost for each opcode
   [[nodiscard]] u8 get_opcode_cycles(Opcode opcode) const;
 };
-} // namespace cpu6502
+} // namespace nes

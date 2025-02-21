@@ -3,7 +3,7 @@
 #include <iomanip>
 #include <iostream>
 
-void print_cpu_state(const cpu6502::CPU &cpu) {
+void print_cpu_state(const nes::CPU &cpu) {
   std::cout << "CPU State:\n";
   std::cout << "A:  0x" << std::hex << std::setw(2) << std::setfill('0')
             << static_cast<int>(cpu.get_accumulator()) << '\n';
@@ -16,7 +16,7 @@ void print_cpu_state(const cpu6502::CPU &cpu) {
 }
 
 int main() {
-  using namespace cpu6502;
+  using namespace nes;
   CPU cpu;
   Memory mem;
 

@@ -1,8 +1,8 @@
 #include "../include/memory.h"
 
-using cpu6502::Memory;
-using cpu6502::u16;
-using cpu6502::u8;
+using nes::Memory;
+using nes::u16;
+using nes::u8;
 
 void Memory::write(u16 address, u8 value) { memory[address] = value; }
 

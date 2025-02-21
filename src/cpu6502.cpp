@@ -1,7 +1,7 @@
 #include "../include/cpu6502.h"
 #include <stdexcept>
 
-namespace cpu6502 {
+namespace nes {
 
 void CPU::reset() {
   A = 0;
@@ -154,4 +154,4 @@ u16 CPU::addr_indirect_y(const Memory &memory) {
   return effective_addr + Y;
 }
 
-} // namespace cpu6502
+} // namespace nes
