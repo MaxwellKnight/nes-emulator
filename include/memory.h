@@ -13,9 +13,9 @@ struct Memory {
   static constexpr std::size_t MEMORY_SIZE = 0x10000; // 64KB (65536 bytes)
   std::array<u8, MEMORY_SIZE> memory{};
 
-  [[nodiscard]] u8 read(u16 address) const;
   void write(u16 address, u8 value);
-  [[nodiscard]] u16 read_word(u16 address) const;
   void write_word(u16 address, u16 value);
+  [[nodiscard]] u8 read(u16 address) const;
+  [[nodiscard]] u16 read_word(u16 address) const;
 };
 } // namespace nes
