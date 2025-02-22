@@ -3,9 +3,9 @@
 namespace nes {
 
 Bus::Bus() {}
-void Bus::write(u16 address, u8 value) { memory[address] = value; }
+void Bus::write(u16 address, u8 value) { ram[address] = value; }
 
-u8 Bus::read(u16 address) const { return memory[address]; }
+u8 Bus::read(u16 address) const { return ram[address]; }
 
 u16 Bus::read_word(u16 address) const {
   u8 low = read(address);
