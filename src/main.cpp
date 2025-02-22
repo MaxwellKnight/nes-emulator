@@ -1,7 +1,10 @@
+#include "../include/bus.h"
 #include "../include/cpu.h"
+#include <cassert>
 #include <iomanip>
 #include <iostream>
 
+namespace {
 void print_cpu_state(const nes::CPU &cpu, const char *label = nullptr) {
   if (label) {
     std::cout << label << ":\n";
@@ -23,76 +26,143 @@ void print_cpu_state(const nes::CPU &cpu, const char *label = nullptr) {
             << static_cast<int>(cpu.get_remaining_cycles()) << "\n\n";
 }
 
-void execute_instruction(nes::CPU &cpu, nes::Memory &mem) {
+void execute_instruction(nes::CPU &cpu) {
   int initial_cycles = cpu.get_remaining_cycles();
-  std::cout << "Starting execution at PC: 0x" << std::hex << cpu.get_pc()
+  std::cout << "Executing instruction at PC: 0x" << std::hex << cpu.get_pc()
             << " with " << std::dec << initial_cycles << " cycles\n";
-
   do {
-    cpu.clock(mem);
+    cpu.clock();
   } while (cpu.get_remaining_cycles() > 0);
-
   std::cout << "Instruction complete\n\n";
 }
+} // namespace
 
-int main() {
-  using namespace nes;
-  CPU cpu;
-  Memory mem;
+class CPUTester {
+public:
+  void test_initialization() {
+    std::cout << "Testing CPU initialization...\n";
+    print_cpu_state(cpu, "Initial state");
 
-  try {
-    // Setup test program in memory first
-    std::cout << "Setting up test program in memory...\n";
-    mem.write(0xFFFC, 0xA9); // LDA Immediate
-    mem.write(0xFFFD, 0x42); // Value 0x42
-    mem.write(0xFFFE, 0xAA); // TAX
-    mem.write(0xFFFF, 0x85); // STA Zero Page
-    mem.write(0x0000, 0x20); // Zero Page address 0x20
-    mem.write(0x0001, 0xA5); // LDA Zero Page
-    mem.write(0x0002, 0x20); // Same Zero Page address
+    // Verify initial state
+    assert(cpu.get_accumulator() == 0x00 && "A should be 0");
+    assert(cpu.get_x() == 0x00 && "X should be 0");
+    assert(cpu.get_y() == 0x00 && "Y should be 0");
+    assert(cpu.get_sp() == 0xFF && "SP should be 0xFF");
+    assert(cpu.get_pc() == 0xFFFC && "PC should be 0xFFFC");
+    assert((cpu.get_status() & 0x30) == 0x30 &&
+           "UNUSED and BREAK flags should be set");
+  }
 
-    // Initialize CPU
-    cpu.reset();
-    print_cpu_state(cpu, "Initial CPU State");
+  void test_lda_immediate() {
+    std::cout << "Testing LDA Immediate...\n";
 
-    // Test 1: LDA Immediate
-    std::cout << "\nTest 1: LDA Immediate (0x42)\n";
-    std::cout << "Reading from PC: 0x" << std::hex << cpu.get_pc()
-              << " value: 0x" << static_cast<int>(mem.read(cpu.get_pc()))
-              << "\n";
-    execute_instruction(cpu, mem);
+    // Setup test program
+    bus.write(0xFFFC,
+              static_cast<nes::u8>(nes::Opcode::LDA_IM)); // LDA Immediate
+    bus.write(0xFFFD, 0x42);                              // Value to load
+
+    print_cpu_state(cpu, "Before LDA #$42");
+    execute_instruction(cpu);
     print_cpu_state(cpu, "After LDA #$42");
 
-    // Test 2: TAX
-    std::cout << "\nTest 2: TAX\n";
-    std::cout << "Reading from PC: 0x" << std::hex << cpu.get_pc()
-              << " value: 0x" << static_cast<int>(mem.read(cpu.get_pc()))
-              << "\n";
-    execute_instruction(cpu, mem);
+    // Verify results
+    assert(cpu.get_accumulator() == 0x42 && "A should be 0x42");
+    assert(cpu.get_pc() == 0xFFFE && "PC should be 0xFFFE");
+    assert(!cpu.get_flag(nes::Flag::ZERO) && "Zero flag should be clear");
+    assert(!cpu.get_flag(nes::Flag::NEGATIVE) &&
+           "Negative flag should be clear");
+  }
+
+  void test_tax() {
+    std::cout << "Testing TAX...\n";
+
+    // Setup: First load a value into A
+    bus.write(0xFFFC, static_cast<nes::u8>(nes::Opcode::LDA_IM));
+    bus.write(0xFFFD, 0x42);
+    execute_instruction(cpu);
+
+    // Then do TAX
+    bus.write(0xFFFE, static_cast<nes::u8>(nes::Opcode::TAX));
+    print_cpu_state(cpu, "Before TAX");
+    execute_instruction(cpu);
     print_cpu_state(cpu, "After TAX");
 
-    // Test 3: STA Zero Page
-    std::cout << "\nTest 3: STA Zero Page (to 0x20)\n";
-    std::cout << "Reading from PC: 0x" << std::hex << cpu.get_pc()
-              << " value: 0x" << static_cast<int>(mem.read(cpu.get_pc()))
-              << "\n";
-    execute_instruction(cpu, mem);
+    // Verify results
+    assert(cpu.get_x() == 0x42 && "X should be 0x42");
+    assert(cpu.get_accumulator() == 0x42 && "A should still be 0x42");
+    assert(!cpu.get_flag(nes::Flag::ZERO) && "Zero flag should be clear");
+    assert(!cpu.get_flag(nes::Flag::NEGATIVE) &&
+           "Negative flag should be clear");
+  }
+
+  void test_lda_zero_page() {
+    std::cout << "Testing LDA Zero Page...\n";
+
+    // Setup: Store value in zero page first
+    bus.write(0x0042, 0x37); // Value in zero page
+
+    // Then load it using zero page addressing
+    bus.write(0xFFFC, static_cast<nes::u8>(nes::Opcode::LDA_ZP));
+    bus.write(0xFFFD, 0x42); // Zero page address
+
+    print_cpu_state(cpu, "Before LDA $42");
+    execute_instruction(cpu);
+    print_cpu_state(cpu, "After LDA $42");
+
+    // Verify results
+    assert(cpu.get_accumulator() == 0x37 && "A should be 0x37");
+    assert(!cpu.get_flag(nes::Flag::ZERO) && "Zero flag should be clear");
+    assert(!cpu.get_flag(nes::Flag::NEGATIVE) &&
+           "Negative flag should be clear");
+  }
+
+  void test_sta_zero_page() {
+    std::cout << "Testing STA Zero Page...\n";
+
+    // Setup: First load a value into A
+    bus.write(0xFFFC, static_cast<nes::u8>(nes::Opcode::LDA_IM));
+    bus.write(0xFFFD, 0x42);
+    execute_instruction(cpu);
+
+    // Then store it to zero page
+    bus.write(0xFFFE, static_cast<nes::u8>(nes::Opcode::STA_ZP));
+    bus.write(0xFFFF, 0x20);
+
+    print_cpu_state(cpu, "Before STA $20");
+    execute_instruction(cpu);
     print_cpu_state(cpu, "After STA $20");
-    std::cout << "Value at 0x20: 0x" << std::hex
-              << static_cast<int>(mem.read(0x20)) << "\n\n";
 
-    // Test 4: LDA Zero Page
-    std::cout << "\nTest 4: LDA Zero Page (from 0x20)\n";
-    std::cout << "Reading from PC: 0x" << std::hex << cpu.get_pc()
-              << " value: 0x" << static_cast<int>(mem.read(cpu.get_pc()))
-              << "\n";
-    execute_instruction(cpu, mem);
-    print_cpu_state(cpu, "After LDA $20");
+    // Verify results
+    assert(bus.read(0x20) == 0x42 && "Memory at $20 should be 0x42");
+    assert(cpu.get_accumulator() == 0x42 && "A should still be 0x42");
+  }
 
+  void run_all_tests() {
+    test_initialization();
+    cpu.reset();
+    test_lda_immediate();
+    cpu.reset();
+    test_tax();
+    cpu.reset();
+    test_lda_zero_page();
+    cpu.reset();
+    test_sta_zero_page();
+
+    std::cout << "\nAll tests completed successfully!\n";
+  }
+
+private:
+  nes::Bus bus;
+  nes::CPU cpu;
+};
+
+int main() {
+  try {
+    CPUTester tester;
+    tester.run_all_tests();
   } catch (const std::exception &e) {
     std::cerr << "Error: " << e.what() << std::endl;
     return 1;
   }
-
   return 0;
 }

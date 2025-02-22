@@ -1,8 +1,6 @@
 #include "../include/memory.h"
 
-using nes::Memory;
-using nes::u16;
-using nes::u8;
+namespace nes {
 
 void Memory::write(u16 address, u8 value) { memory[address] = value; }
 
@@ -18,3 +16,5 @@ void Memory::write_word(u16 address, u16 value) {
   write(address, value & 0xFF);
   write(address + 1, (value >> 8) & 0xFF);
 }
+
+} // namespace nes

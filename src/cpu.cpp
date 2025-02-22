@@ -3,12 +3,8 @@
 
 namespace nes {
 
-CPU::CPU() {
-  init_instruction_table();
+CPU::CPU(Bus &bus_ref) : bus(bus_ref) {
   reset();
-}
-
-void CPU::init_instruction_table() {
   instruction_table = {{static_cast<u8>(Opcode::LDA_IM),
                         {&CPU::lda_immediate, 2, "LDA Immediate"}},
                        {static_cast<u8>(Opcode::LDA_ZP),
@@ -41,9 +37,9 @@ void CPU::reset() {
   cycles = 0;
 }
 
-void CPU::clock(Memory &memory) {
+void CPU::clock() {
   if (cycles == 0) {
-    u8 opcode = read_byte(memory, PC++);
+    u8 opcode = read_byte(PC++);
     set_flag(Flag::UNUSED, true);
 
     auto it = instruction_table.find(opcode);
@@ -52,82 +48,82 @@ void CPU::clock(Memory &memory) {
     }
 
     cycles = it->second.cycles;
-    (this->*it->second.handler)(memory);
+    (this->*it->second.handler)();
   }
   cycles--;
 }
 
 // Instruction Handlers
-void CPU::lda_immediate(Memory &memory) {
-  A = read_byte(memory, PC++);
+void CPU::lda_immediate() {
+  A = read_byte(PC++);
   update_zero_and_negative_flags(A);
 }
 
-void CPU::lda_zero_page(Memory &memory) {
-  u16 addr = addr_zero_page(memory);
-  A = read_byte(memory, addr);
+void CPU::lda_zero_page() {
+  u16 addr = addr_zero_page();
+  A = read_byte(addr);
   update_zero_and_negative_flags(A);
 }
 
-void CPU::lda_absolute(Memory &memory) {
-  u16 addr = addr_absolute(memory);
-  A = read_byte(memory, addr);
+void CPU::lda_absolute() {
+  u16 addr = addr_absolute();
+  A = read_byte(addr);
   update_zero_and_negative_flags(A);
 }
 
-void CPU::lda_absolute_x(Memory &memory) {
-  u16 base_addr = addr_absolute(memory);
-  u16 addr = addr_absolute_x(memory);
+void CPU::lda_absolute_x() {
+  u16 base_addr = addr_absolute();
+  u16 addr = addr_absolute_x();
   if (check_page_cross(base_addr, addr)) {
     cycles++;
   }
-  A = read_byte(memory, addr);
+  A = read_byte(addr);
   update_zero_and_negative_flags(A);
 }
 
-void CPU::lda_absolute_y(Memory &memory) {
-  u16 base_addr = addr_absolute(memory);
-  u16 addr = addr_absolute_y(memory);
+void CPU::lda_absolute_y() {
+  u16 base_addr = addr_absolute();
+  u16 addr = addr_absolute_y();
   if (check_page_cross(base_addr, addr)) {
     cycles++;
   }
-  A = read_byte(memory, addr);
+  A = read_byte(addr);
   update_zero_and_negative_flags(A);
 }
 
-void CPU::lda_zero_page_x(Memory &memory) {
-  u16 addr = addr_zero_page_x(memory);
-  A = read_byte(memory, addr);
+void CPU::lda_zero_page_x() {
+  u16 addr = addr_zero_page_x();
+  A = read_byte(addr);
   update_zero_and_negative_flags(A);
 }
 
-void CPU::lda_indirect_x(Memory &memory) {
-  u16 addr = addr_indirect_x(memory);
-  A = read_byte(memory, addr);
+void CPU::lda_indirect_x() {
+  u16 addr = addr_indirect_x();
+  A = read_byte(addr);
   update_zero_and_negative_flags(A);
 }
 
-void CPU::lda_indirect_y(Memory &memory) {
-  u8 zp_addr = read_byte(memory, PC++);
-  u16 addr = addr_indirect_y(memory, zp_addr);
+void CPU::lda_indirect_y() {
+  u8 zp_addr = read_byte(PC++);
+  u16 addr = addr_indirect_y(zp_addr);
   if (check_page_cross(addr - Y, addr)) {
     cycles++;
   }
-  A = read_byte(memory, addr);
+  A = read_byte(addr);
   update_zero_and_negative_flags(A);
 }
 
-void CPU::sta_zero_page(Memory &memory) {
-  u16 addr = addr_zero_page(memory);
-  write_byte(memory, addr, A);
+void CPU::sta_zero_page() {
+  u16 addr = addr_zero_page();
+  write_byte(addr, A);
 }
 
-void CPU::tax(Memory &memory) {
+void CPU::tax() {
   X = A;
   update_zero_and_negative_flags(X);
 }
 
-void CPU::txa(Memory &memory) {
+void CPU::txa() {
   A = X;
   update_zero_and_negative_flags(A);
 }
@@ -159,61 +155,55 @@ void CPU::update_zero_and_negative_flags(u8 value) {
   set_flag(Flag::NEGATIVE, (value & 0x80) != 0);
 }
 
-u8 CPU::read_byte(const Memory &memory, u16 address) {
-  return memory.read(address);
-}
+u8 CPU::read_byte(u16 address) { return bus.read(address); }
 
-void CPU::write_byte(Memory &memory, u16 address, u8 value) {
-  memory.write(address, value);
-}
+void CPU::write_byte(u16 address, u8 value) { bus.write(address, value); }
 
-void CPU::push_stack(Memory &memory, u8 value) {
-  write_byte(memory, 0x0100 + SP, value);
+void CPU::push_stack(u8 value) {
+  write_byte(0x0100 + SP, value);
   SP--;
 }
 
-u8 CPU::pull_stack(const Memory &memory) {
+u8 CPU::pull_stack() {
   SP++;
-  return read_byte(memory, 0x0100 + SP);
+  return read_byte(0x0100 + SP);
 }
 
 // Addressing modes
-u16 CPU::addr_zero_page(const Memory &memory) {
-  return read_byte(memory, PC++);
-}
+u16 CPU::addr_zero_page() { return read_byte(PC++); }
 
-u16 CPU::addr_zero_page_x(const Memory &memory) {
-  u8 zp_addr = read_byte(memory, PC++);
+u16 CPU::addr_zero_page_x() {
+  u8 zp_addr = read_byte(PC++);
   return static_cast<u16>((zp_addr + X) & 0xFF);
 }
 
-u16 CPU::addr_absolute(const Memory &memory) {
-  u16 addr_low = read_byte(memory, PC++);
-  u16 addr_high = read_byte(memory, PC++);
+u16 CPU::addr_absolute() {
+  u16 addr_low = read_byte(PC++);
+  u16 addr_high = read_byte(PC++);
   return (addr_high << 8) | addr_low;
 }
 
-u16 CPU::addr_absolute_x(const Memory &memory) {
-  u16 base_addr = addr_absolute(memory);
+u16 CPU::addr_absolute_x() {
+  u16 base_addr = addr_absolute();
   return base_addr + X;
 }
 
-u16 CPU::addr_absolute_y(const Memory &memory) {
-  u16 base_addr = addr_absolute(memory);
+u16 CPU::addr_absolute_y() {
+  u16 base_addr = addr_absolute();
   return base_addr + Y;
 }
 
-u16 CPU::addr_indirect_x(const Memory &memory) {
-  u8 zp_addr = read_byte(memory, PC++);
+u16 CPU::addr_indirect_x() {
+  u8 zp_addr = read_byte(PC++);
   zp_addr += X;
-  u16 effective_addr_low = read_byte(memory, zp_addr);
-  u16 effective_addr_high = read_byte(memory, static_cast<u16>(zp_addr + 1));
+  u16 effective_addr_low = read_byte(zp_addr);
+  u16 effective_addr_high = read_byte(static_cast<u16>(zp_addr + 1));
   return (effective_addr_high << 8) | effective_addr_low;
 }
 
-u16 CPU::addr_indirect_y(const Memory &memory, u8 zp_addr) {
-  u16 effective_addr_low = read_byte(memory, zp_addr);
-  u16 effective_addr_high = read_byte(memory, static_cast<u16>(zp_addr + 1));
+u16 CPU::addr_indirect_y(u8 zp_addr) {
+  u16 effective_addr_low = read_byte(zp_addr);
+  u16 effective_addr_high = read_byte(static_cast<u16>(zp_addr + 1));
   return ((effective_addr_high << 8) | effective_addr_low) + Y;
 }
 
