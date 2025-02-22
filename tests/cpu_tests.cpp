@@ -160,3 +160,115 @@ TEST_F(CPUTest, LDXZeroPage) {
   EXPECT_FALSE(cpu.get_flag(nes::Flag::ZERO));
   EXPECT_FALSE(cpu.get_flag(nes::Flag::NEGATIVE));
 }
+
+TEST_F(CPUTest, LDYImmediate) {
+  bus.write(0xFFFC, static_cast<nes::u8>(nes::Opcode::LDY_IM));
+  bus.write(0xFFFD, 0x42);
+
+  execute_instruction();
+
+  EXPECT_EQ(cpu.get_y(), 0x42);
+  EXPECT_EQ(cpu.get_pc(), 0xFFFE);
+  EXPECT_FALSE(cpu.get_flag(nes::Flag::ZERO));
+  EXPECT_FALSE(cpu.get_flag(nes::Flag::NEGATIVE));
+  // Verify C and V flags are unaffected
+  EXPECT_EQ(cpu.get_flag(nes::Flag::CARRY), false);
+  EXPECT_EQ(cpu.get_flag(nes::Flag::OVERFLOW_), false);
+}
+
+TEST_F(CPUTest, LDYImmediateZeroFlag) {
+  bus.write(0xFFFC, static_cast<nes::u8>(nes::Opcode::LDY_IM));
+  bus.write(0xFFFD, 0x00);
+  execute_instruction();
+
+  EXPECT_EQ(cpu.get_y(), 0x00);
+  EXPECT_TRUE(cpu.get_flag(nes::Flag::ZERO));
+  EXPECT_FALSE(cpu.get_flag(nes::Flag::NEGATIVE));
+}
+
+TEST_F(CPUTest, LDYImmediateNegativeFlag) {
+  bus.write(0xFFFC, static_cast<nes::u8>(nes::Opcode::LDY_IM));
+  bus.write(0xFFFD, 0x80);
+  execute_instruction();
+
+  EXPECT_EQ(cpu.get_y(), 0x80);
+  EXPECT_FALSE(cpu.get_flag(nes::Flag::ZERO));
+  EXPECT_TRUE(cpu.get_flag(nes::Flag::NEGATIVE));
+}
+
+TEST_F(CPUTest, LDYZeroPage) {
+  bus.write(0x42, 0x37);
+  bus.write(0xFFFC, static_cast<nes::u8>(nes::Opcode::LDY_ZP));
+  bus.write(0xFFFD, 0x42);
+  execute_instruction();
+
+  EXPECT_EQ(cpu.get_y(), 0x37);
+  EXPECT_FALSE(cpu.get_flag(nes::Flag::ZERO));
+  EXPECT_FALSE(cpu.get_flag(nes::Flag::NEGATIVE));
+}
+
+TEST_F(CPUTest, LDYZeroPageX) {
+  // First set X register
+  bus.write(0xFFFC, static_cast<nes::u8>(nes::Opcode::LDX_IM));
+  bus.write(0xFFFD, 0x02);
+  execute_instruction();
+
+  // Then test LDY zero page X
+  bus.write(0x44, 0x37); // Target address: 0x42 + 0x02 = 0x44
+  bus.write(0xFFFE, static_cast<nes::u8>(nes::Opcode::LDY_XZP));
+  bus.write(0xFFFF, 0x42);
+  execute_instruction();
+
+  EXPECT_EQ(cpu.get_y(), 0x37);
+  EXPECT_FALSE(cpu.get_flag(nes::Flag::ZERO));
+  EXPECT_FALSE(cpu.get_flag(nes::Flag::NEGATIVE));
+}
+
+TEST_F(CPUTest, LDYAbsolute) {
+  bus.write(0x4242, 0x37);
+  bus.write(0xFFFC, static_cast<nes::u8>(nes::Opcode::LDY_ABS));
+  bus.write(0xFFFD, 0x42);
+  bus.write(0xFFFE, 0x42);
+  execute_instruction();
+
+  EXPECT_EQ(cpu.get_y(), 0x37);
+  EXPECT_FALSE(cpu.get_flag(nes::Flag::ZERO));
+  EXPECT_FALSE(cpu.get_flag(nes::Flag::NEGATIVE));
+}
+
+TEST_F(CPUTest, LDYAbsoluteX) {
+  // First set X register
+  bus.write(0xFFFC, static_cast<nes::u8>(nes::Opcode::LDX_IM));
+  bus.write(0xFFFD, 0x02);
+  execute_instruction();
+
+  // Then test LDY absolute X
+  bus.write(0x4244, 0x37); // Target address: 0x4242 + 0x02 = 0x4244
+  bus.write(0xFFFE, static_cast<nes::u8>(nes::Opcode::LDY_XABS));
+  bus.write(0xFFFF, 0x42);
+  bus.write(0x0000, 0x42);
+  execute_instruction();
+
+  EXPECT_EQ(cpu.get_y(), 0x37);
+  EXPECT_FALSE(cpu.get_flag(nes::Flag::ZERO));
+  EXPECT_FALSE(cpu.get_flag(nes::Flag::NEGATIVE));
+}
+
+TEST_F(CPUTest, LDYAbsoluteXPageCross) {
+  // First set X register
+  bus.write(0xFFFC, static_cast<nes::u8>(nes::Opcode::LDX_IM));
+  bus.write(0xFFFD, 0xFF); // X = 0xFF to force page cross
+  execute_instruction();
+
+  // Then test LDY absolute X with page cross
+  bus.write(0x4341, 0x37); // Write to 0x4242 + 0xFF = 0x4341
+  bus.write(0xFFFE, static_cast<nes::u8>(nes::Opcode::LDY_XABS));
+  bus.write(0xFFFF, 0x42);
+  bus.write(0x0000, 0x42);
+  execute_instruction();
+
+  EXPECT_EQ(cpu.get_y(), 0x37);
+  EXPECT_FALSE(cpu.get_flag(nes::Flag::ZERO));
+  EXPECT_FALSE(cpu.get_flag(nes::Flag::NEGATIVE));
+  EXPECT_EQ(cpu.get_remaining_cycles(), 0);
+}

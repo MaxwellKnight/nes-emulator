@@ -19,6 +19,11 @@ enum class Opcode : u8 {
   LDX_YABS = 0xBE, // LDX Y-Index Absolute
   LDX_ZP = 0xA6,   // LDX Zero Page
   LDX_YZP = 0xB6,  // LDX Y-Index Zero Page
+  LDY_IM = 0xA0,   // LDY Immediate
+  LDY_ABS = 0xAC,  // LDY Absolute
+  LDY_XABS = 0xBC, // LDY X-Index Absolute
+  LDY_ZP = 0xA4,   // LDY Zero Page
+  LDY_XZP = 0xB4,  // LDY X-Index Zero Page
   STA_ZP = 0x85,   // STA Zero Page
   TAX = 0xAA,      // Transfer A to X
   TXA = 0x8A       // Transfer X to A
@@ -89,6 +94,13 @@ private:
   void ldx_absolute_y();
   void ldx_zero_page();
   void ldx_zero_page_y();
+
+  // LDY
+  void ldy_immediate();
+  void ldy_absolute();
+  void ldy_absolute_x();
+  void ldy_zero_page();
+  void ldy_zero_page_x();
 
   void sta_zero_page();
   void tax();

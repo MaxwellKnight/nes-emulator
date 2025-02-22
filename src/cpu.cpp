@@ -32,21 +32,22 @@ CPU::CPU(Bus &bus_ref) : bus(bus_ref) {
                         {&CPU::ldx_zero_page, 3, "LDX Zero Page"}},
                        {static_cast<u8>(Opcode::LDX_YZP),
                         {&CPU::ldx_zero_page, 4, "LDX Zero Page,Y"}},
+                       // LDX
+                       {static_cast<u8>(Opcode::LDY_IM),
+                        {&CPU::ldy_immediate, 2, "LDX Immediate"}},
+                       {static_cast<u8>(Opcode::LDY_ABS),
+                        {&CPU::ldy_absolute, 4, "LDX Absolute"}},
+                       {static_cast<u8>(Opcode::LDY_XABS),
+                        {&CPU::ldy_absolute_x, 4, "LDX Absolute,X"}},
+                       {static_cast<u8>(Opcode::LDY_ZP),
+                        {&CPU::ldy_zero_page, 3, "LDX Zero Page"}},
+                       {static_cast<u8>(Opcode::LDY_XZP),
+                        {&CPU::ldy_zero_page_x, 4, "LDX Zero Page,X"}},
                        //
                        {static_cast<u8>(Opcode::STA_ZP),
                         {&CPU::sta_zero_page, 3, "STA Zero Page"}},
                        {static_cast<u8>(Opcode::TAX), {&CPU::tax, 2, "TAX"}},
                        {static_cast<u8>(Opcode::TXA), {&CPU::txa, 2, "TXA"}}};
-}
-
-void CPU::reset() {
-  A = 0;
-  X = 0;
-  Y = 0;
-  SP = 0xFF;
-  status = static_cast<u8>(Flag::UNUSED) | static_cast<u8>(Flag::BREAK);
-  PC = 0xFFFC;
-  cycles = 0;
 }
 
 void CPU::clock() {
@@ -65,7 +66,59 @@ void CPU::clock() {
   cycles--;
 }
 
+void CPU::reset() {
+  A = 0;
+  X = 0;
+  Y = 0;
+  SP = 0xFF;
+  status = static_cast<u8>(Flag::UNUSED) | static_cast<u8>(Flag::BREAK);
+  PC = 0xFFFC;
+  cycles = 0;
+}
+
+// Getters
+u8 CPU::get_accumulator() const { return A; }
+u8 CPU::get_x() const { return X; }
+u8 CPU::get_y() const { return Y; }
+u16 CPU::get_pc() const { return PC; }
+u8 CPU::get_sp() const { return SP; }
+u8 CPU::get_status() const { return status; }
+u8 CPU::get_remaining_cycles() const { return cycles; }
+
+// Flag operations
+void CPU::set_flag(Flag flag, bool value) {
+  if (value) {
+    status |= static_cast<u8>(flag);
+  } else {
+    status &= ~static_cast<u8>(flag);
+  }
+}
+
+bool CPU::get_flag(Flag flag) const {
+  return (status & static_cast<u8>(flag)) != 0;
+}
+
+void CPU::update_zero_and_negative_flags(u8 value) {
+  set_flag(Flag::ZERO, value == 0);
+  set_flag(Flag::NEGATIVE, (value & 0x80) != 0);
+}
+
+u8 CPU::read_byte(u16 address) { return bus.read(address); }
+
+void CPU::write_byte(u16 address, u8 value) { bus.write(address, value); }
+
+void CPU::push_stack(u8 value) {
+  write_byte(0x0100 + SP, value);
+  SP--;
+}
+
+u8 CPU::pull_stack() {
+  SP++;
+  return read_byte(0x0100 + SP);
+}
+
 // Instruction Handlers
+// LDX
 void CPU::lda_immediate() {
   A = read_byte(PC++);
   update_zero_and_negative_flags(A);
@@ -125,6 +178,7 @@ void CPU::lda_indirect_y() {
   update_zero_and_negative_flags(A);
 }
 
+// LDX
 void CPU::ldx_immediate() {
   X = read_byte(PC++);
   update_zero_and_negative_flags(X);
@@ -162,6 +216,41 @@ void CPU::ldx_zero_page_y() {
   update_zero_and_negative_flags(X);
 }
 
+// LDY
+void CPU::ldy_immediate() {
+  Y = read_byte(PC++);
+  update_zero_and_negative_flags(Y);
+}
+
+void CPU::ldy_zero_page() {
+  u16 addr = addr_zero_page();
+  Y = read_byte(addr);
+  update_zero_and_negative_flags(Y);
+}
+
+void CPU::ldy_absolute() {
+  u16 addr = addr_absolute();
+  Y = read_byte(addr);
+  update_zero_and_negative_flags(Y);
+}
+
+void CPU::ldy_zero_page_x() {
+  u16 addr = addr_zero_page_x();
+  Y = read_byte(addr);
+  update_zero_and_negative_flags(Y);
+}
+
+void CPU::ldy_absolute_x() {
+  u16 base_addr = addr_absolute();
+  u16 addr = base_addr + X;
+  if (check_page_cross(base_addr, addr)) {
+    cycles++;
+  }
+  Y = read_byte(addr);
+  update_zero_and_negative_flags(Y);
+}
+
+//
 void CPU::sta_zero_page() {
   u16 addr = addr_zero_page();
   write_byte(addr, A);
@@ -175,47 +264,6 @@ void CPU::tax() {
 void CPU::txa() {
   A = X;
   update_zero_and_negative_flags(A);
-}
-
-// Getters
-u8 CPU::get_accumulator() const { return A; }
-u8 CPU::get_x() const { return X; }
-u8 CPU::get_y() const { return Y; }
-u16 CPU::get_pc() const { return PC; }
-u8 CPU::get_sp() const { return SP; }
-u8 CPU::get_status() const { return status; }
-u8 CPU::get_remaining_cycles() const { return cycles; }
-
-// Flag operations
-void CPU::set_flag(Flag flag, bool value) {
-  if (value) {
-    status |= static_cast<u8>(flag);
-  } else {
-    status &= ~static_cast<u8>(flag);
-  }
-}
-
-bool CPU::get_flag(Flag flag) const {
-  return (status & static_cast<u8>(flag)) != 0;
-}
-
-void CPU::update_zero_and_negative_flags(u8 value) {
-  set_flag(Flag::ZERO, value == 0);
-  set_flag(Flag::NEGATIVE, (value & 0x80) != 0);
-}
-
-u8 CPU::read_byte(u16 address) { return bus.read(address); }
-
-void CPU::write_byte(u16 address, u8 value) { bus.write(address, value); }
-
-void CPU::push_stack(u8 value) {
-  write_byte(0x0100 + SP, value);
-  SP--;
-}
-
-u8 CPU::pull_stack() {
-  SP++;
-  return read_byte(0x0100 + SP);
 }
 
 // Addressing modes
