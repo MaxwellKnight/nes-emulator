@@ -1,7 +1,6 @@
 #pragma once
 #include "bus.h"
 #include "memory.h"
-#include <functional>
 #include <string>
 #include <unordered_map>
 
@@ -15,6 +14,11 @@ enum class Opcode : u8 {
   LDA_XZP = 0xB5,  // LDA X-Index Zero Page
   LDA_XZPI = 0xA1, // LDA X-Index Zero Page Indirect
   LDA_YZPI = 0xB1, // LDA Y-Index Zero Page Indirect
+  LDX_IM = 0xA2,   // LDX Immediate
+  LDX_ABS = 0xAE,  // LDX Absolute
+  LDX_YABS = 0xBE, // LDX Y-Index Absolute
+  LDX_ZP = 0xA6,   // LDX Zero Page
+  LDX_YZP = 0xB6,  // LDX Y-Index Zero Page
   STA_ZP = 0x85,   // STA Zero Page
   TAX = 0xAA,      // Transfer A to X
   TXA = 0x8A       // Transfer X to A
@@ -69,6 +73,7 @@ private:
   std::unordered_map<u8, Instruction> instruction_table;
 
   // Instruction handlers
+  // LDA
   void lda_immediate();
   void lda_zero_page();
   void lda_absolute();
@@ -77,6 +82,14 @@ private:
   void lda_zero_page_x();
   void lda_indirect_x();
   void lda_indirect_y();
+
+  // LDX
+  void ldx_immediate();
+  void ldx_absolute();
+  void ldx_absolute_y();
+  void ldx_zero_page();
+  void ldx_zero_page_y();
+
   void sta_zero_page();
   void tax();
   void txa();
@@ -91,6 +104,7 @@ private:
 
   // Addressing modes
   [[nodiscard]] u16 addr_zero_page();
+  [[nodiscard]] u16 addr_zero_page_y();
   [[nodiscard]] u16 addr_zero_page_x();
   [[nodiscard]] u16 addr_absolute();
   [[nodiscard]] u16 addr_absolute_x();

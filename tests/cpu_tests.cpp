@@ -26,14 +26,11 @@ TEST_F(CPUTest, Initialization) {
 }
 
 TEST_F(CPUTest, LDAImmediate) {
-  // Setup
   bus.write(0xFFFC, static_cast<nes::u8>(nes::Opcode::LDA_IM));
   bus.write(0xFFFD, 0x42);
 
-  // Execute
   execute_instruction();
 
-  // Verify
   EXPECT_EQ(cpu.get_accumulator(), 0x42);
   EXPECT_EQ(cpu.get_pc(), 0xFFFE);
   EXPECT_FALSE(cpu.get_flag(nes::Flag::ZERO));
@@ -88,7 +85,6 @@ TEST_F(CPUTest, LDAZeroPage) {
 }
 
 TEST_F(CPUTest, STAZeroPage) {
-  // Setup: Load value into A first
   bus.write(0xFFFC, static_cast<nes::u8>(nes::Opcode::LDA_IM));
   bus.write(0xFFFD, 0x42);
   execute_instruction();
@@ -118,6 +114,49 @@ TEST_F(CPUTest, TXA) {
 
   EXPECT_EQ(cpu.get_accumulator(), 0x42);
   EXPECT_EQ(cpu.get_x(), 0x42);
+  EXPECT_FALSE(cpu.get_flag(nes::Flag::ZERO));
+  EXPECT_FALSE(cpu.get_flag(nes::Flag::NEGATIVE));
+}
+
+TEST_F(CPUTest, LDXImmediate) {
+  bus.write(0xFFFC, static_cast<nes::u8>(nes::Opcode::LDX_IM));
+  bus.write(0xFFFD, 0x42);
+
+  execute_instruction();
+
+  EXPECT_EQ(cpu.get_x(), 0x42);
+  EXPECT_EQ(cpu.get_pc(), 0xFFFE);
+  EXPECT_FALSE(cpu.get_flag(nes::Flag::ZERO));
+  EXPECT_FALSE(cpu.get_flag(nes::Flag::NEGATIVE));
+}
+
+TEST_F(CPUTest, LDXImmediateZeroFlag) {
+  bus.write(0xFFFC, static_cast<nes::u8>(nes::Opcode::LDX_IM));
+  bus.write(0xFFFD, 0x00);
+  execute_instruction();
+
+  EXPECT_EQ(cpu.get_x(), 0x00);
+  EXPECT_TRUE(cpu.get_flag(nes::Flag::ZERO));
+  EXPECT_FALSE(cpu.get_flag(nes::Flag::NEGATIVE));
+}
+
+TEST_F(CPUTest, LDXImmediateNegativeFlag) {
+  bus.write(0xFFFC, static_cast<nes::u8>(nes::Opcode::LDX_IM));
+  bus.write(0xFFFD, 0x80);
+  execute_instruction();
+
+  EXPECT_EQ(cpu.get_x(), 0x80);
+  EXPECT_FALSE(cpu.get_flag(nes::Flag::ZERO));
+  EXPECT_TRUE(cpu.get_flag(nes::Flag::NEGATIVE));
+}
+
+TEST_F(CPUTest, LDXZeroPage) {
+  bus.write(0x42, 0x37);
+  bus.write(0xFFFC, static_cast<nes::u8>(nes::Opcode::LDX_ZP));
+  bus.write(0xFFFD, 0x42);
+  execute_instruction();
+
+  EXPECT_EQ(cpu.get_x(), 0x37);
   EXPECT_FALSE(cpu.get_flag(nes::Flag::ZERO));
   EXPECT_FALSE(cpu.get_flag(nes::Flag::NEGATIVE));
 }

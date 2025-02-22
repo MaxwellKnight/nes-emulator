@@ -21,6 +21,18 @@ CPU::CPU(Bus &bus_ref) : bus(bus_ref) {
                         {&CPU::lda_indirect_x, 6, "LDA (Indirect,X)"}},
                        {static_cast<u8>(Opcode::LDA_YZPI),
                         {&CPU::lda_indirect_y, 5, "LDA (Indirect),Y"}},
+                       // LDX
+                       {static_cast<u8>(Opcode::LDX_IM),
+                        {&CPU::ldx_immediate, 2, "LDX Immediate"}},
+                       {static_cast<u8>(Opcode::LDX_ABS),
+                        {&CPU::ldx_absolute, 4, "LDX Absolute"}},
+                       {static_cast<u8>(Opcode::LDX_YABS),
+                        {&CPU::ldx_absolute_y, 4, "LDX Absolute,Y"}},
+                       {static_cast<u8>(Opcode::LDX_ZP),
+                        {&CPU::ldx_zero_page, 3, "LDX Zero Page"}},
+                       {static_cast<u8>(Opcode::LDX_YZP),
+                        {&CPU::ldx_zero_page, 4, "LDX Zero Page,Y"}},
+                       //
                        {static_cast<u8>(Opcode::STA_ZP),
                         {&CPU::sta_zero_page, 3, "STA Zero Page"}},
                        {static_cast<u8>(Opcode::TAX), {&CPU::tax, 2, "TAX"}},
@@ -113,6 +125,43 @@ void CPU::lda_indirect_y() {
   update_zero_and_negative_flags(A);
 }
 
+void CPU::ldx_immediate() {
+  X = read_byte(PC++);
+  update_zero_and_negative_flags(X);
+}
+
+void CPU::ldx_zero_page() {
+  u16 addr = addr_zero_page();
+  X = read_byte(addr);
+  update_zero_and_negative_flags(X);
+}
+
+void CPU::ldx_absolute() {
+  u16 addr = addr_absolute();
+  X = read_byte(addr);
+  update_zero_and_negative_flags(X);
+}
+
+void CPU::ldx_absolute_y() {
+  u16 base_addr = addr_absolute();
+  u16 addr = addr_absolute_y();
+  if (check_page_cross(base_addr, addr)) {
+    cycles++;
+  }
+  X = read_byte(addr);
+  update_zero_and_negative_flags(X);
+}
+
+void CPU::ldx_zero_page_y() {
+  u8 zp_addr = read_byte(PC++);
+  u16 addr = addr_indirect_y(zp_addr);
+  if (check_page_cross(addr - Y, addr)) {
+    cycles++;
+  }
+  X = read_byte(addr);
+  update_zero_and_negative_flags(X);
+}
+
 void CPU::sta_zero_page() {
   u16 addr = addr_zero_page();
   write_byte(addr, A);
@@ -175,6 +224,11 @@ u16 CPU::addr_zero_page() { return read_byte(PC++); }
 u16 CPU::addr_zero_page_x() {
   u8 zp_addr = read_byte(PC++);
   return static_cast<u16>((zp_addr + X) & 0xFF);
+}
+
+u16 CPU::addr_zero_page_y() {
+  u8 zp_addr = read_byte(PC++);
+  return static_cast<u16>((zp_addr + Y) & 0xFF);
 }
 
 u16 CPU::addr_absolute() {
