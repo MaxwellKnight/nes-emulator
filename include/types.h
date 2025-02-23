@@ -66,8 +66,11 @@ enum class Opcode : u8 {
   STY_XZP = 0x94, // STY Zero Page X-Index
   //
   TAX = 0xAA, // Transfer A to X
+  TXA = 0x8A, // Transfer X to A
   TAY = 0xA8, // Transfer A to Y
-  TXA = 0x8A  // Transfer X to A
+  TSX = 0xBA, // Transfer Stack Pointer to Index X
+  TXS = 0x9A, // Transfer Index X to Stack Pointer
+  TYA = 0x98, // Transfer Index X to A
 };
 
 enum class Flag : u8 {

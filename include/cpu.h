@@ -17,8 +17,8 @@ public:
   [[nodiscard]] u8 get_status() const;
   [[nodiscard]] u8 get_remaining_cycles() const;
   [[nodiscard]] bool get_flag(Flag flag) const;
-  [[nodiscard]] std::shared_ptr<Bus> get_bus() const;
   void set_flag(Flag flag, bool value);
+  void set_sp(u8 sp);
   void print_cpu_state() const;
 
 private:
@@ -81,12 +81,13 @@ private:
   void tax();
   void tay();
   void txa();
+  void tsx();
+  void txs();
+  void tya();
 
   // Internal methods
-  void push_stack(u8 value);
   void write_byte(u16 address, u8 value);
   void update_zero_and_negative_flags(u8 value);
-  [[nodiscard]] u8 pull_stack();
   [[nodiscard]] u8 read_byte(const u16 address);
   [[nodiscard]] bool check_page_cross(u16 addr1, u16 addr2);
 

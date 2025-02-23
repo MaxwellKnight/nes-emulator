@@ -748,3 +748,160 @@ TEST_F(CPUTest, sty_zero_page_x_wrap) {
   EXPECT_EQ(cpu.get_y(), 0x37);    // Y register should be unchanged
   EXPECT_EQ(cpu.get_remaining_cycles(), 0);
 }
+
+// TSX
+TEST_F(CPUTest, tsx) {
+  // Set up a specific stack pointer value
+  cpu.reset(); // This sets SP to 0xFF
+
+  // Execute TSX
+  bus.write(0xFFFC, (nes::u8)nes::Opcode::TSX);
+  execute_cycles(2); // TSX takes 2 cycles
+
+  EXPECT_EQ(cpu.get_x(), 0xFF); // X should now equal SP
+  EXPECT_EQ(cpu.get_remaining_cycles(), 0);
+}
+
+TEST_F(CPUTest, tsx_zero_value) {
+  // Set stack pointer directly to 0x00
+  cpu.set_sp(0x00);
+
+  // Transfer stack pointer to X
+  bus.write(0xFFFC, (nes::u8)nes::Opcode::TSX);
+  execute_cycles(2); // TSX takes 2 cycles
+
+  // Verify results
+  EXPECT_EQ(cpu.get_x(), 0x00);
+  EXPECT_TRUE(cpu.get_flag(nes::Flag::ZERO));
+  EXPECT_FALSE(cpu.get_flag(nes::Flag::NEGATIVE));
+  EXPECT_EQ(cpu.get_remaining_cycles(), 0);
+}
+
+TEST_F(CPUTest, tsx_negative_value) {
+  // Set stack pointer to a negative value (bit 7 set)
+  cpu.set_sp(0x80);
+
+  // Transfer stack pointer to X
+  bus.write(0xFFFC, (nes::u8)nes::Opcode::TSX);
+  execute_cycles(2); // TSX takes 2 cycles
+
+  // Verify results
+  EXPECT_EQ(cpu.get_x(), 0x80);
+  EXPECT_FALSE(cpu.get_flag(nes::Flag::ZERO));
+  EXPECT_TRUE(cpu.get_flag(nes::Flag::NEGATIVE));
+  EXPECT_EQ(cpu.get_remaining_cycles(), 0);
+}
+
+TEST_F(CPUTest, txa_zero_value) {
+  // Load 0 into X
+  bus.write(0xFFFC, (nes::u8)nes::Opcode::LDX_IM);
+  bus.write(0xFFFD, 0x00);
+  execute_cycles(2);
+
+  bus.write(0xFFFE, (nes::u8)nes::Opcode::TXA);
+  execute_cycles(2);
+
+  EXPECT_EQ(cpu.get_accumulator(), 0x00);
+  EXPECT_EQ(cpu.get_x(), 0x00);
+  EXPECT_TRUE(cpu.get_flag(nes::Flag::ZERO));
+  EXPECT_FALSE(cpu.get_flag(nes::Flag::NEGATIVE));
+  EXPECT_EQ(cpu.get_remaining_cycles(), 0);
+}
+
+TEST_F(CPUTest, txa_negative_value) {
+  // Load negative value into X
+  bus.write(0xFFFC, (nes::u8)nes::Opcode::LDX_IM);
+  bus.write(0xFFFD, 0x80); // Negative value (bit 7 set)
+  execute_cycles(2);
+
+  bus.write(0xFFFE, (nes::u8)nes::Opcode::TXA);
+  execute_cycles(2);
+
+  EXPECT_EQ(cpu.get_accumulator(), 0x80);
+  EXPECT_EQ(cpu.get_x(), 0x80);
+  EXPECT_FALSE(cpu.get_flag(nes::Flag::ZERO));
+  EXPECT_TRUE(cpu.get_flag(nes::Flag::NEGATIVE));
+  EXPECT_EQ(cpu.get_remaining_cycles(), 0);
+}
+
+// TXS Tests
+TEST_F(CPUTest, txs) {
+  // First set X register
+  bus.write(0xFFFC, (nes::u8)nes::Opcode::LDX_IM);
+  bus.write(0xFFFD, 0x42);
+  execute_cycles(2);
+
+  // Then transfer X to SP
+  bus.write(0xFFFE, (nes::u8)nes::Opcode::TXS);
+  execute_cycles(2); // TXS takes 2 cycles
+
+  EXPECT_EQ(cpu.get_sp(), 0x42);
+  EXPECT_EQ(cpu.get_x(), 0x42); // X should remain unchanged
+  // TXS doesn't affect any flags
+  EXPECT_EQ(cpu.get_remaining_cycles(), 0);
+}
+
+TEST_F(CPUTest, txs_zero_value) {
+  // Load 0 into X
+  bus.write(0xFFFC, (nes::u8)nes::Opcode::LDX_IM);
+  bus.write(0xFFFD, 0x00);
+  execute_cycles(2);
+
+  bus.write(0xFFFE, (nes::u8)nes::Opcode::TXS);
+  execute_cycles(2);
+
+  EXPECT_EQ(cpu.get_sp(), 0x00);
+  EXPECT_EQ(cpu.get_x(), 0x00);
+  // TXS doesn't affect any flags
+  EXPECT_EQ(cpu.get_remaining_cycles(), 0);
+}
+
+// TYA
+TEST_F(CPUTest, tya) {
+  // First set Y register
+  bus.write(0xFFFC, (nes::u8)nes::Opcode::LDY_IM);
+  bus.write(0xFFFD, 0x42);
+  execute_cycles(2);
+
+  // Then transfer Y to A
+  bus.write(0xFFFE, (nes::u8)nes::Opcode::TYA);
+  execute_cycles(2); // TYA takes 2 cycles
+
+  EXPECT_EQ(cpu.get_accumulator(), 0x42);
+  EXPECT_EQ(cpu.get_y(), 0x42); // Y should remain unchanged
+  EXPECT_FALSE(cpu.get_flag(nes::Flag::ZERO));
+  EXPECT_FALSE(cpu.get_flag(nes::Flag::NEGATIVE));
+  EXPECT_EQ(cpu.get_remaining_cycles(), 0);
+}
+
+TEST_F(CPUTest, tya_zero_value) {
+  // Load 0 into Y
+  bus.write(0xFFFC, (nes::u8)nes::Opcode::LDY_IM);
+  bus.write(0xFFFD, 0x00);
+  execute_cycles(2);
+
+  bus.write(0xFFFE, (nes::u8)nes::Opcode::TYA);
+  execute_cycles(2);
+
+  EXPECT_EQ(cpu.get_accumulator(), 0x00);
+  EXPECT_EQ(cpu.get_y(), 0x00);
+  EXPECT_TRUE(cpu.get_flag(nes::Flag::ZERO));
+  EXPECT_FALSE(cpu.get_flag(nes::Flag::NEGATIVE));
+  EXPECT_EQ(cpu.get_remaining_cycles(), 0);
+}
+
+TEST_F(CPUTest, tya_negative_value) {
+  // Load negative value into Y
+  bus.write(0xFFFC, (nes::u8)nes::Opcode::LDY_IM);
+  bus.write(0xFFFD, 0x80); // Negative value (bit 7 set)
+  execute_cycles(2);
+
+  bus.write(0xFFFE, (nes::u8)nes::Opcode::TYA);
+  execute_cycles(2);
+
+  EXPECT_EQ(cpu.get_accumulator(), 0x80);
+  EXPECT_EQ(cpu.get_y(), 0x80);
+  EXPECT_FALSE(cpu.get_flag(nes::Flag::ZERO));
+  EXPECT_TRUE(cpu.get_flag(nes::Flag::NEGATIVE));
+  EXPECT_EQ(cpu.get_remaining_cycles(), 0);
+}

@@ -47,6 +47,9 @@ CPU::CPU(Bus &bus_ref) : bus(bus_ref) {
                        //
                        {(u8)Opcode::TAX, {&CPU::tax, 2, "TAX"}},
                        {(u8)Opcode::TAY, {&CPU::tay, 2, "TAY"}},
+                       {(u8)Opcode::TSX, {&CPU::tsx, 2, "TSX"}},
+                       {(u8)Opcode::TYA, {&CPU::tya, 2, "TYA"}},
+                       {(u8)Opcode::TXS, {&CPU::txs, 2, "TXS"}},
                        {(u8)Opcode::TXA, {&CPU::txa, 2, "TXA"}}};
 }
 
@@ -80,16 +83,6 @@ void CPU::reset() {
 u8 CPU::read_byte(u16 address) { return bus.read(address); }
 void CPU::write_byte(u16 address, u8 value) { bus.write(address, value); }
 
-void CPU::push_stack(u8 value) {
-  write_byte(0x0100 + SP, value);
-  SP--;
-}
-
-u8 CPU::pull_stack() {
-  SP++;
-  return read_byte(0x0100 + SP);
-}
-
 // Getters
 u8 CPU::get_accumulator() const { return A; }
 u8 CPU::get_x() const { return X; }
@@ -98,6 +91,9 @@ u16 CPU::get_pc() const { return PC; }
 u8 CPU::get_sp() const { return SP; }
 u8 CPU::get_status() const { return status; }
 u8 CPU::get_remaining_cycles() const { return cycles; }
+
+// Setters
+void CPU::set_sp(u8 sp) { SP = sp; }
 
 // Flag operations
 bool CPU::get_flag(Flag flag) const { return (status & (u8)(flag)) != 0; }
@@ -329,6 +325,18 @@ void CPU::tay() {
 
 void CPU::txa() {
   A = X;
+  update_zero_and_negative_flags(A);
+}
+
+void CPU::tsx() {
+  X = SP;
+  update_zero_and_negative_flags(X);
+}
+
+void CPU::txs() { SP = X; }
+
+void CPU::tya() {
+  A = Y;
   update_zero_and_negative_flags(A);
 }
 
