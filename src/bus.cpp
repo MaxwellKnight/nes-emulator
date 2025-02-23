@@ -31,7 +31,7 @@ u8 Bus::read(u16 address) const {
 u16 Bus::read_word(u16 address) const {
   u8 low = read(address);
   u8 high = read(address + 1);
-  return static_cast<u16>(low) | (static_cast<u16>(high) << 8);
+  return (u16)(low) | ((u16)(high) << 8);
 }
 
 void Bus::write_word(u16 address, u16 value) {

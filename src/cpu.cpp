@@ -1,5 +1,5 @@
 #include "../include/cpu.h"
-#include <stdexcept>
+#include <string>
 
 namespace nes {
 
