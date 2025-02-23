@@ -5,49 +5,32 @@ namespace nes {
 
 CPU::CPU(Bus &bus_ref) : bus(bus_ref) {
   reset();
-  instruction_table = {{static_cast<u8>(Opcode::LDA_IM),
-                        {&CPU::lda_immediate, 2, "LDA Immediate"}},
-                       {static_cast<u8>(Opcode::LDA_ZP),
-                        {&CPU::lda_zero_page, 3, "LDA Zero Page"}},
-                       {static_cast<u8>(Opcode::LDA_ABS),
-                        {&CPU::lda_absolute, 4, "LDA Absolute"}},
-                       {static_cast<u8>(Opcode::LDA_XABS),
-                        {&CPU::lda_absolute_x, 4, "LDA Absolute,X"}},
-                       {static_cast<u8>(Opcode::LDA_YABS),
-                        {&CPU::lda_absolute_y, 4, "LDA Absolute,Y"}},
-                       {static_cast<u8>(Opcode::LDA_XZP),
-                        {&CPU::lda_zero_page_x, 4, "LDA Zero Page,X"}},
-                       {static_cast<u8>(Opcode::LDA_XZPI),
-                        {&CPU::lda_indirect_x, 6, "LDA (Indirect,X)"}},
-                       {static_cast<u8>(Opcode::LDA_YZPI),
-                        {&CPU::lda_indirect_y, 5, "LDA (Indirect),Y"}},
-                       // LDX
-                       {static_cast<u8>(Opcode::LDX_IM),
-                        {&CPU::ldx_immediate, 2, "LDX Immediate"}},
-                       {static_cast<u8>(Opcode::LDX_ABS),
-                        {&CPU::ldx_absolute, 4, "LDX Absolute"}},
-                       {static_cast<u8>(Opcode::LDX_YABS),
-                        {&CPU::ldx_absolute_y, 4, "LDX Absolute,Y"}},
-                       {static_cast<u8>(Opcode::LDX_ZP),
-                        {&CPU::ldx_zero_page, 3, "LDX Zero Page"}},
-                       {static_cast<u8>(Opcode::LDX_YZP),
-                        {&CPU::ldx_zero_page, 4, "LDX Zero Page,Y"}},
-                       // LDX
-                       {static_cast<u8>(Opcode::LDY_IM),
-                        {&CPU::ldy_immediate, 2, "LDX Immediate"}},
-                       {static_cast<u8>(Opcode::LDY_ABS),
-                        {&CPU::ldy_absolute, 4, "LDX Absolute"}},
-                       {static_cast<u8>(Opcode::LDY_XABS),
-                        {&CPU::ldy_absolute_x, 4, "LDX Absolute,X"}},
-                       {static_cast<u8>(Opcode::LDY_ZP),
-                        {&CPU::ldy_zero_page, 3, "LDX Zero Page"}},
-                       {static_cast<u8>(Opcode::LDY_XZP),
-                        {&CPU::ldy_zero_page_x, 4, "LDX Zero Page,X"}},
-                       //
-                       {static_cast<u8>(Opcode::STA_ZP),
-                        {&CPU::sta_zero_page, 3, "STA Zero Page"}},
-                       {static_cast<u8>(Opcode::TAX), {&CPU::tax, 2, "TAX"}},
-                       {static_cast<u8>(Opcode::TXA), {&CPU::txa, 2, "TXA"}}};
+  instruction_table = {
+      {static_cast<u8>(Opcode::LDA_IM), {&CPU::lda_immediate, 2, "LDA"}},
+      {static_cast<u8>(Opcode::LDA_ZP), {&CPU::lda_zero_page, 3, "LDA"}},
+      {static_cast<u8>(Opcode::LDA_ABS), {&CPU::lda_absolute, 4, "LDA"}},
+      {static_cast<u8>(Opcode::LDA_XABS), {&CPU::lda_absolute_x, 4, "LDA"}},
+      {static_cast<u8>(Opcode::LDA_YABS), {&CPU::lda_absolute_y, 4, "LDA"}},
+      {static_cast<u8>(Opcode::LDA_XZP), {&CPU::lda_zero_page_x, 4, "LDA"}},
+      {static_cast<u8>(Opcode::LDA_XZPI), {&CPU::lda_indirect_x, 6, "LDA"}},
+      {static_cast<u8>(Opcode::LDA_YZPI), {&CPU::lda_indirect_y, 5, "LDA"}},
+      // LDX
+      {static_cast<u8>(Opcode::LDX_IM), {&CPU::ldx_immediate, 2, "LDX"}},
+      {static_cast<u8>(Opcode::LDX_ABS), {&CPU::ldx_absolute, 4, "LDX"}},
+      {static_cast<u8>(Opcode::LDX_YABS), {&CPU::ldx_absolute_y, 4, "LDX"}},
+      {static_cast<u8>(Opcode::LDX_ZP), {&CPU::ldx_zero_page, 3, "LDX"}},
+      {static_cast<u8>(Opcode::LDX_YZP), {&CPU::ldx_zero_page, 4, "LDX"}},
+      // LDY
+      {static_cast<u8>(Opcode::LDY_IM), {&CPU::ldy_immediate, 2, "LDY"}},
+      {static_cast<u8>(Opcode::LDY_ABS), {&CPU::ldy_absolute, 4, "LDY"}},
+      {static_cast<u8>(Opcode::LDY_XABS), {&CPU::ldy_absolute_x, 4, "LDY"}},
+      {static_cast<u8>(Opcode::LDY_ZP), {&CPU::ldy_zero_page, 3, "LDY"}},
+      {static_cast<u8>(Opcode::LDY_XZP), {&CPU::ldy_zero_page_x, 4, "LDY"}},
+      //
+      {static_cast<u8>(Opcode::STA_ZP),
+       {&CPU::sta_zero_page, 3, "STA Zero Page"}},
+      {static_cast<u8>(Opcode::TAX), {&CPU::tax, 2, "TAX"}},
+      {static_cast<u8>(Opcode::TXA), {&CPU::txa, 2, "TXA"}}};
 }
 
 void CPU::clock() {

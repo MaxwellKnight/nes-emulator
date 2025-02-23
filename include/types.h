@@ -59,7 +59,7 @@ using InstructionHandler = void (CPU::*)();
 struct Instruction {
   InstructionHandler handler;
   u8 cycles;
-  std::string name;
+  const char *name;
 };
 
 } // namespace nes

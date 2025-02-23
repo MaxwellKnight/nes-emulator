@@ -21,7 +21,7 @@ void print_cpu_state(const nes::CPU &cpu) {
 
 int main() {
   nes::Bus bus;
-  nes::CPU cpu(bus);
+  nes::CPU cpu{bus};
 
   cpu.reset();
   print_cpu_state(cpu);
