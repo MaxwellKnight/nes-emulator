@@ -40,6 +40,10 @@ CPU::CPU(Bus &bus_ref) : bus(bus_ref) {
                        {(u8)Opcode::STX_ABS, {&CPU::stx_absolute, 4, "STX"}},
                        {(u8)Opcode::STX_ZP, {&CPU::stx_zero_page, 3, "STX"}},
                        {(u8)Opcode::STX_YZP, {&CPU::stx_zero_page_y, 4, "STX"}},
+                       // STY
+                       {(u8)Opcode::STY_ABS, {&CPU::sty_absolute, 4, "STY"}},
+                       {(u8)Opcode::STY_ZP, {&CPU::sty_zero_page, 3, "STY"}},
+                       {(u8)Opcode::STY_XZP, {&CPU::sty_zero_page_x, 4, "STY"}},
                        //
                        {(u8)Opcode::TAX, {&CPU::tax, 2, "TAX"}},
                        {(u8)Opcode::TXA, {&CPU::txa, 2, "TXA"}}};
@@ -294,6 +298,22 @@ void CPU::stx_absolute() {
 void CPU::stx_zero_page_y() {
   u16 addr = addr_zero_page_y();
   write_byte(addr, X);
+}
+
+// STY
+void CPU::sty_zero_page() {
+  u16 addr = addr_zero_page();
+  write_byte(addr, Y);
+}
+
+void CPU::sty_absolute() {
+  u16 addr = addr_absolute();
+  write_byte(addr, Y);
+}
+
+void CPU::sty_zero_page_x() {
+  u16 addr = addr_zero_page_x();
+  write_byte(addr, Y);
 }
 
 void CPU::tax() {

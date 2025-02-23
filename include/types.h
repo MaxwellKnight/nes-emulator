@@ -60,6 +60,10 @@ enum class Opcode : u8 {
   STX_ABS = 0x8E, // STX Absolute
   STX_ZP = 0x86,  // STX Zero Page
   STX_YZP = 0x96, // STX Zero Page Y-Index
+  // STY
+  STY_ABS = 0x8C, // STY Absolute
+  STY_ZP = 0x84,  // STY Zero Page
+  STY_XZP = 0x94, // STY Zero Page X-Index
   //
   TAX = 0xAA, // Transfer A to X
   TXA = 0x8A  // Transfer X to A

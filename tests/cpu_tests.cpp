@@ -589,3 +589,123 @@ TEST_F(CPUTest, stx_zero_page_y_wrap) {
   EXPECT_EQ(cpu.get_x(), 0x37);    // X register should be unchanged
   EXPECT_EQ(cpu.get_remaining_cycles(), 0);
 }
+
+TEST_F(CPUTest, sty_absolute) {
+  // First load value into X register
+  bus.write(0xFFFC, (nes::u8)nes::Opcode::LDY_IM);
+  bus.write(0xFFFD, 0x37);
+  execute_cycles(2); // LDY_IM takes 2 cycles
+
+  // Then store it using STY absolute
+  bus.write(0xFFFE, (nes::u8)nes::Opcode::STY_ABS);
+  bus.write(0xFFFF, 0x41);
+  bus.write(0x0000, 0x03); // Target address: 0x0341
+  execute_cycles(4);       // STY Absolute takes 4 cycles
+
+  // Verify value was stored correctly
+  EXPECT_EQ(bus.read(0x0341), 0x37);
+  EXPECT_EQ(cpu.get_y(), 0x37); // Y register should be unchanged
+  EXPECT_EQ(cpu.get_remaining_cycles(), 0);
+}
+
+TEST_F(CPUTest, sty_zero_page) {
+  // Load value into X register
+  bus.write(0xFFFC, (nes::u8)nes::Opcode::LDY_IM);
+  bus.write(0xFFFD, 0x37);
+  execute_cycles(2); // LDY_IM takes 2 cycles
+
+  // Store using STY zero page
+  bus.write(0xFFFE, (nes::u8)nes::Opcode::STY_ZP);
+  bus.write(0xFFFF, 0x42); // Zero page address: 0x42
+  execute_cycles(3);       // STY Zero Page takes 3 cycles
+
+  // Verify value was stored correctly
+  EXPECT_EQ(bus.read(0x42), 0x37);
+  EXPECT_EQ(cpu.get_y(), 0x37); // Y register should be unchanged
+  EXPECT_EQ(cpu.get_remaining_cycles(), 0);
+}
+
+TEST_F(CPUTest, sty_zero_page_x) {
+  // First set X register for indexing
+  bus.write(0xFFFC, (nes::u8)nes::Opcode::LDX_IM);
+  bus.write(0xFFFD, 0x02); // X = 0x02
+  execute_cycles(2);       // LDX_IM takes 2 cycles
+
+  // Load value into Y register
+  bus.write(0xFFFE, (nes::u8)nes::Opcode::LDY_IM);
+  bus.write(0xFFFF, 0x37); // Y = 0x37
+  execute_cycles(2);       // LDY_IM takes 2 cycles
+
+  // Store using STY zero page X
+  bus.write(0x0000, (nes::u8)nes::Opcode::STY_XZP);
+  bus.write(0x0001, 0x42); // Base address: 0x42, X = 0x02, final: 0x44
+  execute_cycles(4);       // STY Zero Page X takes 4 cycles
+
+  // Verify value was stored correctly
+  EXPECT_EQ(bus.read(0x44), 0x37); // 0x42 + 0x02
+  EXPECT_EQ(cpu.get_y(), 0x37);    // Y register should be unchanged
+  EXPECT_EQ(cpu.get_remaining_cycles(), 0);
+}
+
+// Test storing zero value
+TEST_F(CPUTest, sty_zero_value) {
+  // Load zero into X register
+  bus.write(0xFFFC, (nes::u8)nes::Opcode::LDY_IM);
+  bus.write(0xFFFD, 0x00);
+  execute_cycles(2); // LDX_IM takes 2 cycles
+
+  // Store using STY absolute
+  bus.write(0xFFFE, (nes::u8)nes::Opcode::STY_ABS);
+  bus.write(0xFFFF, 0x41);
+  bus.write(0x0000, 0x03); // Target address: 0x0341
+  execute_cycles(4);       // STY Absolute takes 4 cycles
+
+  // Verify value was stored correctly
+  EXPECT_EQ(bus.read(0x0341), 0x00);
+  EXPECT_EQ(cpu.get_y(), 0x00); // Y register should be unchanged
+  EXPECT_EQ(cpu.get_remaining_cycles(), 0);
+}
+
+// Test storing negative value (high bit set)
+TEST_F(CPUTest, sty_negative_value) {
+  // Load negative value into X register
+  bus.write(0xFFFC, (nes::u8)nes::Opcode::LDY_IM);
+  bus.write(0xFFFD, 0x80); // Negative value (high bit set)
+  execute_cycles(2);       // LDY_IM takes 2 cycles
+
+  // Store using STY absolute
+  bus.write(0xFFFE, (nes::u8)nes::Opcode::STY_ABS);
+  bus.write(0xFFFF, 0x41);
+  bus.write(0x0000, 0x03); // Target address: 0x0341
+  execute_cycles(4);       // STY Absolute takes 4 cycles
+
+  // Verify value was stored correctly
+  EXPECT_EQ(bus.read(0x0341), 0x80);
+  EXPECT_EQ(cpu.get_y(), 0x80); // Y register should be unchanged
+  EXPECT_EQ(cpu.get_remaining_cycles(), 0);
+}
+
+// Test zero page wrap-around with Y-indexed addressing
+TEST_F(CPUTest, sty_zero_page_x_wrap) {
+  // First set X register for indexing
+  bus.write(0xFFFC, (nes::u8)nes::Opcode::LDX_IM);
+  bus.write(0xFFFD, 0xFF); // X = 0xFF to force wrap-around
+  execute_cycles(2);       // LDX_IM takes 2 cycles
+
+  // Load value into Y register
+  bus.write(0xFFFE, (nes::u8)nes::Opcode::LDY_IM);
+  bus.write(0xFFFF, 0x37); // Y = 0x37
+  execute_cycles(2);       // LDY_IM takes 2 cycles
+
+  // Store using STY zero page X
+  bus.write(0x0000, (nes::u8)nes::Opcode::STY_XZP);
+  bus.write(0x0001, 0x84); // Base address: 0x84
+                           // When X (0xFF) is added: 0x84 + 0xFF = 0x183
+                           // After zero page wrap: 0x83
+  execute_cycles(4);       // STY Zero Page X takes 4 cycles
+
+  // Verify value was stored correctly
+  EXPECT_EQ(bus.read(0x83), 0x37); // (0x84 + 0xFF) & 0xFF = 0x83
+  EXPECT_EQ(cpu.get_y(), 0x37);    // Y register should be unchanged
+  EXPECT_EQ(cpu.get_remaining_cycles(), 0);
+}

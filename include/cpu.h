@@ -73,6 +73,11 @@ private:
   void stx_zero_page();
   void stx_zero_page_y();
 
+  // STY
+  void sty_absolute();
+  void sty_zero_page();
+  void sty_zero_page_x();
+
   void tax();
   void txa();
 
