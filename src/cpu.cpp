@@ -28,8 +28,19 @@ CPU::CPU(Bus &bus_ref) : bus(bus_ref) {
                        {(u8)Opcode::LDY_XABS, {&CPU::ldy_absolute_x, 4, "LDY"}},
                        {(u8)Opcode::LDY_ZP, {&CPU::ldy_zero_page, 3, "LDY"}},
                        {(u8)Opcode::LDY_XZP, {&CPU::ldy_zero_page_x, 4, "LDY"}},
-                       //
+                       // STA
+                       {(u8)Opcode::STA_ABS, {&CPU::sta_absolute, 4, "STA"}},
+                       {(u8)Opcode::STA_XABS, {&CPU::sta_absolute_x, 5, "STA"}},
+                       {(u8)Opcode::STA_YABS, {&CPU::sta_absolute_y, 5, "STA"}},
                        {(u8)Opcode::STA_ZP, {&CPU::sta_zero_page, 3, "STA"}},
+                       {(u8)Opcode::STA_XZP, {&CPU::sta_zero_page_x, 4, "STA"}},
+                       {(u8)Opcode::STA_XZPI, {&CPU::sta_indirect_x, 6, "STA"}},
+                       {(u8)Opcode::STA_YZPI, {&CPU::sta_indirect_y, 6, "STA"}},
+                       // STX
+                       {(u8)Opcode::STX_ABS, {&CPU::stx_absolute, 4, "STX"}},
+                       {(u8)Opcode::STX_ZP, {&CPU::stx_zero_page, 3, "STX"}},
+                       {(u8)Opcode::STX_YZP, {&CPU::stx_zero_page_y, 4, "STX"}},
+                       //
                        {(u8)Opcode::TAX, {&CPU::tax, 2, "TAX"}},
                        {(u8)Opcode::TXA, {&CPU::txa, 2, "TXA"}}};
 }
@@ -232,10 +243,57 @@ void CPU::ldy_absolute_x() {
   update_zero_and_negative_flags(Y);
 }
 
-//
+// STA
 void CPU::sta_zero_page() {
   u16 addr = addr_zero_page();
   write_byte(addr, A);
+}
+
+void CPU::sta_absolute() {
+  u16 addr = addr_absolute();
+  write_byte(addr, A);
+}
+
+void CPU::sta_absolute_x() {
+  u16 addr = addr_absolute_x();
+  write_byte(addr, A);
+}
+
+void CPU::sta_absolute_y() {
+  u16 addr = addr_absolute_y();
+  write_byte(addr, A);
+}
+
+void CPU::sta_zero_page_x() {
+  u16 addr = addr_zero_page_x();
+  write_byte(addr, A);
+}
+
+void CPU::sta_indirect_x() {
+  u16 addr = addr_indirect_x();
+  write_byte(addr, A);
+}
+
+void CPU::sta_indirect_y() {
+  u8 zp_addr = read_byte(PC++);
+  u16 addr = addr_indirect_y(zp_addr);
+  write_byte(addr, A);
+}
+
+// STX
+void CPU::stx_zero_page() {
+  u16 addr = addr_zero_page();
+  write_byte(addr, X);
+}
+
+void CPU::stx_absolute() {
+  u16 addr = addr_absolute();
+  write_byte(addr, X);
+}
+
+void CPU::stx_zero_page_y() {
+  u16 addr = addr_zero_page_y();
+  write_byte(addr, X);
 }
 
 void CPU::tax() {

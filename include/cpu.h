@@ -59,7 +59,20 @@ private:
   void ldy_zero_page();
   void ldy_zero_page_x();
 
+  // STA
+  void sta_absolute();
+  void sta_absolute_x();
+  void sta_absolute_y();
   void sta_zero_page();
+  void sta_zero_page_x();
+  void sta_indirect_x();
+  void sta_indirect_y();
+
+  // STX
+  void stx_absolute();
+  void stx_zero_page();
+  void stx_zero_page_y();
+
   void tax();
   void txa();
 

@@ -53,9 +53,13 @@ enum class Opcode : u8 {
   STA_XABS = 0x9D, // STA X-Index Absolute
   STA_YABS = 0x99, // STA Y-Index Absolute
   STA_ZP = 0x85,   // STA Zero Page
-  STA_XZP = 0x95,  // STA Absolute
-  STA_YZP = 0x81,  // STA Absolute
-  STA_YZPI = 0x91, // STA Absolute
+  STA_XZP = 0x95,  // STA Zero Page X
+  STA_XZPI = 0x81, // STA Zero Page X Indirect
+  STA_YZPI = 0x91, // STA Zero Page Y Indirect
+  // STX
+  STX_ABS = 0x8E, // STX Absolute
+  STX_ZP = 0x86,  // STX Zero Page
+  STX_YZP = 0x96, // STX Zero Page Y-Index
   //
   TAX = 0xAA, // Transfer A to X
   TXA = 0x8A  // Transfer X to A

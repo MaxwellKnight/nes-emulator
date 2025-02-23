@@ -7,5 +7,4 @@ int main() {
 
   cpu.reset();
   cpu.print_cpu_state();
-  return 0;
 }
