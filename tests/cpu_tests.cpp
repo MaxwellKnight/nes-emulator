@@ -6,10 +6,11 @@ class CPUTest : public ::testing::Test {
 protected:
   void SetUp() override { cpu.reset(); }
 
-  void execute_instruction() {
-    do {
+  void execute_cycles(int cycles) {
+    for (int i = 0; i < cycles; i++) {
       cpu.clock();
-    } while (cpu.get_remaining_cycles() > 0);
+    }
+    EXPECT_EQ(cpu.get_remaining_cycles(), 0);
   }
 
   nes::Bus bus;
@@ -31,12 +32,11 @@ TEST_F(CPUTest, LDAImmediate) {
   bus.write(0xFFFD, 0x42);
 
   EXPECT_EQ(cpu.get_remaining_cycles(), 0);
-  execute_instruction();
+  execute_cycles(2); // LDA Immediate takes 2 cycles
   EXPECT_EQ(cpu.get_accumulator(), 0x42);
   EXPECT_EQ(cpu.get_pc(), 0xFFFE);
   EXPECT_FALSE(cpu.get_flag(nes::Flag::ZERO));
   EXPECT_FALSE(cpu.get_flag(nes::Flag::NEGATIVE));
-  EXPECT_EQ(cpu.get_remaining_cycles(), 0); // Should have used exactly 2 cycles
 }
 
 TEST_F(CPUTest, LDAImmediateZeroFlag) {
@@ -44,10 +44,9 @@ TEST_F(CPUTest, LDAImmediateZeroFlag) {
   bus.write(0xFFFD, 0x00);
 
   EXPECT_EQ(cpu.get_remaining_cycles(), 0);
-  execute_instruction();
+  execute_cycles(2); // LDA Immediate takes 2 cycles
   EXPECT_TRUE(cpu.get_flag(nes::Flag::ZERO));
   EXPECT_FALSE(cpu.get_flag(nes::Flag::NEGATIVE));
-  EXPECT_EQ(cpu.get_remaining_cycles(), 0); // Should have used exactly 2 cycles
 }
 
 TEST_F(CPUTest, LDAImmediateNegativeFlag) {
@@ -55,26 +54,22 @@ TEST_F(CPUTest, LDAImmediateNegativeFlag) {
   bus.write(0xFFFD, 0x80);
 
   EXPECT_EQ(cpu.get_remaining_cycles(), 0);
-  execute_instruction();
+  execute_cycles(2); // LDA Immediate takes 2 cycles
   EXPECT_FALSE(cpu.get_flag(nes::Flag::ZERO));
   EXPECT_TRUE(cpu.get_flag(nes::Flag::NEGATIVE));
-  EXPECT_EQ(cpu.get_remaining_cycles(), 0); // Should have used exactly 2 cycles
 }
 
 TEST_F(CPUTest, TAX) {
   bus.write(0xFFFC, static_cast<nes::u8>(nes::Opcode::LDA_IM));
   bus.write(0xFFFD, 0x42);
-  EXPECT_EQ(cpu.get_remaining_cycles(), 0);
-  execute_instruction();
-  EXPECT_EQ(cpu.get_remaining_cycles(), 0); // LDA_IM used 2 cycles
+  execute_cycles(2); // LDA_IM takes 2 cycles
 
   bus.write(0xFFFE, static_cast<nes::u8>(nes::Opcode::TAX));
-  execute_instruction();
+  execute_cycles(2); // TAX takes 2 cycles
   EXPECT_EQ(cpu.get_x(), 0x42);
   EXPECT_EQ(cpu.get_accumulator(), 0x42);
   EXPECT_FALSE(cpu.get_flag(nes::Flag::ZERO));
   EXPECT_FALSE(cpu.get_flag(nes::Flag::NEGATIVE));
-  EXPECT_EQ(cpu.get_remaining_cycles(), 0); // TAX used 2 cycles
 }
 
 TEST_F(CPUTest, LDAZeroPage) {
@@ -83,51 +78,42 @@ TEST_F(CPUTest, LDAZeroPage) {
   bus.write(0xFFFD, 0x42);
 
   EXPECT_EQ(cpu.get_remaining_cycles(), 0);
-  execute_instruction();
+  execute_cycles(3); // LDA Zero Page takes 3 cycles
   EXPECT_EQ(cpu.get_accumulator(), 0x37);
   EXPECT_FALSE(cpu.get_flag(nes::Flag::ZERO));
   EXPECT_FALSE(cpu.get_flag(nes::Flag::NEGATIVE));
-  EXPECT_EQ(cpu.get_remaining_cycles(), 0); // Should have used exactly 3 cycles
 }
 
 TEST_F(CPUTest, STAZeroPage) {
   bus.write(0xFFFC, static_cast<nes::u8>(nes::Opcode::LDA_IM));
   bus.write(0xFFFD, 0x42);
-  EXPECT_EQ(cpu.get_remaining_cycles(), 0);
-  execute_instruction();
-  EXPECT_EQ(cpu.get_remaining_cycles(), 0); // LDA_IM used 2 cycles
+  execute_cycles(2); // LDA_IM takes 2 cycles
 
   bus.write(0xFFFE, static_cast<nes::u8>(nes::Opcode::STA_ZP));
   bus.write(0xFFFF, 0x20);
-  execute_instruction();
+  execute_cycles(3); // STA Zero Page takes 3 cycles
   EXPECT_EQ(bus.read(0x20), 0x42);
   EXPECT_EQ(cpu.get_accumulator(), 0x42);
-  EXPECT_EQ(cpu.get_remaining_cycles(), 0); // STA_ZP used 3 cycles
 }
 
 TEST_F(CPUTest, TXA) {
   bus.write(0xFFFC, static_cast<nes::u8>(nes::Opcode::LDA_IM));
   bus.write(0xFFFD, 0x42);
-  EXPECT_EQ(cpu.get_remaining_cycles(), 0);
-  execute_instruction();
-  EXPECT_EQ(cpu.get_remaining_cycles(), 0); // LDA_IM used 2 cycles
+  execute_cycles(2); // LDA_IM takes 2 cycles
 
   bus.write(0xFFFE, static_cast<nes::u8>(nes::Opcode::TAX));
-  execute_instruction();
-  EXPECT_EQ(cpu.get_remaining_cycles(), 0); // TAX used 2 cycles
+  execute_cycles(2); // TAX takes 2 cycles
 
   bus.write(0xFFFF, static_cast<nes::u8>(nes::Opcode::LDA_IM));
   bus.write(0x0000, 0x00);
-  execute_instruction();
-  EXPECT_EQ(cpu.get_remaining_cycles(), 0); // LDA_IM used 2 cycles
+  execute_cycles(2); // LDA_IM takes 2 cycles
 
   bus.write(0x0001, static_cast<nes::u8>(nes::Opcode::TXA));
-  execute_instruction();
+  execute_cycles(2); // TXA takes 2 cycles
   EXPECT_EQ(cpu.get_accumulator(), 0x42);
   EXPECT_EQ(cpu.get_x(), 0x42);
   EXPECT_FALSE(cpu.get_flag(nes::Flag::ZERO));
   EXPECT_FALSE(cpu.get_flag(nes::Flag::NEGATIVE));
-  EXPECT_EQ(cpu.get_remaining_cycles(), 0); // TXA used 2 cycles
 }
 
 TEST_F(CPUTest, LDXImmediate) {
@@ -135,12 +121,11 @@ TEST_F(CPUTest, LDXImmediate) {
   bus.write(0xFFFD, 0x42);
 
   EXPECT_EQ(cpu.get_remaining_cycles(), 0);
-  execute_instruction();
+  execute_cycles(2); // LDX Immediate takes 2 cycles
   EXPECT_EQ(cpu.get_x(), 0x42);
   EXPECT_EQ(cpu.get_pc(), 0xFFFE);
   EXPECT_FALSE(cpu.get_flag(nes::Flag::ZERO));
   EXPECT_FALSE(cpu.get_flag(nes::Flag::NEGATIVE));
-  EXPECT_EQ(cpu.get_remaining_cycles(), 0); // Should have used exactly 2 cycles
 }
 
 TEST_F(CPUTest, LDXImmediateZeroFlag) {
@@ -148,11 +133,10 @@ TEST_F(CPUTest, LDXImmediateZeroFlag) {
   bus.write(0xFFFD, 0x00);
 
   EXPECT_EQ(cpu.get_remaining_cycles(), 0);
-  execute_instruction();
+  execute_cycles(2); // LDX Immediate takes 2 cycles
   EXPECT_EQ(cpu.get_x(), 0x00);
   EXPECT_TRUE(cpu.get_flag(nes::Flag::ZERO));
   EXPECT_FALSE(cpu.get_flag(nes::Flag::NEGATIVE));
-  EXPECT_EQ(cpu.get_remaining_cycles(), 0); // Should have used exactly 2 cycles
 }
 
 TEST_F(CPUTest, LDXImmediateNegativeFlag) {
@@ -160,11 +144,10 @@ TEST_F(CPUTest, LDXImmediateNegativeFlag) {
   bus.write(0xFFFD, 0x80);
 
   EXPECT_EQ(cpu.get_remaining_cycles(), 0);
-  execute_instruction();
+  execute_cycles(2); // LDX Immediate takes 2 cycles
   EXPECT_EQ(cpu.get_x(), 0x80);
   EXPECT_FALSE(cpu.get_flag(nes::Flag::ZERO));
   EXPECT_TRUE(cpu.get_flag(nes::Flag::NEGATIVE));
-  EXPECT_EQ(cpu.get_remaining_cycles(), 0); // Should have used exactly 2 cycles
 }
 
 TEST_F(CPUTest, LDXZeroPage) {
@@ -173,11 +156,10 @@ TEST_F(CPUTest, LDXZeroPage) {
   bus.write(0xFFFD, 0x42);
 
   EXPECT_EQ(cpu.get_remaining_cycles(), 0);
-  execute_instruction();
+  execute_cycles(3); // LDX Zero Page takes 3 cycles
   EXPECT_EQ(cpu.get_x(), 0x37);
   EXPECT_FALSE(cpu.get_flag(nes::Flag::ZERO));
   EXPECT_FALSE(cpu.get_flag(nes::Flag::NEGATIVE));
-  EXPECT_EQ(cpu.get_remaining_cycles(), 0); // Should have used exactly 3 cycles
 }
 
 TEST_F(CPUTest, LDYImmediate) {
@@ -185,14 +167,13 @@ TEST_F(CPUTest, LDYImmediate) {
   bus.write(0xFFFD, 0x42);
 
   EXPECT_EQ(cpu.get_remaining_cycles(), 0);
-  execute_instruction();
+  execute_cycles(2); // LDY Immediate takes 2 cycles
   EXPECT_EQ(cpu.get_y(), 0x42);
   EXPECT_EQ(cpu.get_pc(), 0xFFFE);
   EXPECT_FALSE(cpu.get_flag(nes::Flag::ZERO));
   EXPECT_FALSE(cpu.get_flag(nes::Flag::NEGATIVE));
   EXPECT_EQ(cpu.get_flag(nes::Flag::CARRY), false);
   EXPECT_EQ(cpu.get_flag(nes::Flag::OVERFLOW_), false);
-  EXPECT_EQ(cpu.get_remaining_cycles(), 0); // Should have used exactly 2 cycles
 }
 
 TEST_F(CPUTest, LDYImmediateZeroFlag) {
@@ -200,11 +181,10 @@ TEST_F(CPUTest, LDYImmediateZeroFlag) {
   bus.write(0xFFFD, 0x00);
 
   EXPECT_EQ(cpu.get_remaining_cycles(), 0);
-  execute_instruction();
+  execute_cycles(2); // LDY Immediate takes 2 cycles
   EXPECT_EQ(cpu.get_y(), 0x00);
   EXPECT_TRUE(cpu.get_flag(nes::Flag::ZERO));
   EXPECT_FALSE(cpu.get_flag(nes::Flag::NEGATIVE));
-  EXPECT_EQ(cpu.get_remaining_cycles(), 0); // Should have used exactly 2 cycles
 }
 
 TEST_F(CPUTest, LDYImmediateNegativeFlag) {
@@ -212,11 +192,10 @@ TEST_F(CPUTest, LDYImmediateNegativeFlag) {
   bus.write(0xFFFD, 0x80);
 
   EXPECT_EQ(cpu.get_remaining_cycles(), 0);
-  execute_instruction();
+  execute_cycles(2); // LDY Immediate takes 2 cycles
   EXPECT_EQ(cpu.get_y(), 0x80);
   EXPECT_FALSE(cpu.get_flag(nes::Flag::ZERO));
   EXPECT_TRUE(cpu.get_flag(nes::Flag::NEGATIVE));
-  EXPECT_EQ(cpu.get_remaining_cycles(), 0); // Should have used exactly 2 cycles
 }
 
 TEST_F(CPUTest, LDYZeroPage) {
@@ -225,30 +204,26 @@ TEST_F(CPUTest, LDYZeroPage) {
   bus.write(0xFFFD, 0x42);
 
   EXPECT_EQ(cpu.get_remaining_cycles(), 0);
-  execute_instruction();
+  execute_cycles(3); // LDY Zero Page takes 3 cycles
   EXPECT_EQ(cpu.get_y(), 0x37);
   EXPECT_FALSE(cpu.get_flag(nes::Flag::ZERO));
   EXPECT_FALSE(cpu.get_flag(nes::Flag::NEGATIVE));
-  EXPECT_EQ(cpu.get_remaining_cycles(), 0); // Should have used exactly 3 cycles
 }
 
 TEST_F(CPUTest, LDYZeroPageX) {
   // First set X register
   bus.write(0xFFFC, static_cast<nes::u8>(nes::Opcode::LDX_IM));
   bus.write(0xFFFD, 0x02);
-  EXPECT_EQ(cpu.get_remaining_cycles(), 0);
-  execute_instruction();
-  EXPECT_EQ(cpu.get_remaining_cycles(), 0); // LDX_IM used 2 cycles
+  execute_cycles(2); // LDX_IM takes 2 cycles
 
   // Then test LDY zero page X
   bus.write(0x44, 0x37); // Target address: 0x42 + 0x02 = 0x44
   bus.write(0xFFFE, static_cast<nes::u8>(nes::Opcode::LDY_XZP));
   bus.write(0xFFFF, 0x42);
-  execute_instruction();
+  execute_cycles(4); // LDY Zero Page X takes 4 cycles
   EXPECT_EQ(cpu.get_y(), 0x37);
   EXPECT_FALSE(cpu.get_flag(nes::Flag::ZERO));
   EXPECT_FALSE(cpu.get_flag(nes::Flag::NEGATIVE));
-  EXPECT_EQ(cpu.get_remaining_cycles(), 0); // LDY_XZP used 4 cycles
 }
 
 TEST_F(CPUTest, LDYAbsolute) {
@@ -258,52 +233,44 @@ TEST_F(CPUTest, LDYAbsolute) {
   bus.write(0xFFFE, 0x42);
 
   EXPECT_EQ(cpu.get_remaining_cycles(), 0);
-  execute_instruction();
+  execute_cycles(4); // LDY Absolute takes 4 cycles
   EXPECT_EQ(cpu.get_y(), 0x37);
   EXPECT_FALSE(cpu.get_flag(nes::Flag::ZERO));
   EXPECT_FALSE(cpu.get_flag(nes::Flag::NEGATIVE));
-  EXPECT_EQ(cpu.get_remaining_cycles(), 0); // Should have used exactly 4 cycles
 }
 
 TEST_F(CPUTest, LDYAbsoluteX) {
   // First set X register
   bus.write(0xFFFC, static_cast<nes::u8>(nes::Opcode::LDX_IM));
   bus.write(0xFFFD, 0x02);
-  EXPECT_EQ(cpu.get_remaining_cycles(), 0);
-  execute_instruction();
-  EXPECT_EQ(cpu.get_remaining_cycles(), 0); // LDX_IM used 2 cycles
+  execute_cycles(2); // LDX_IM takes 2 cycles
 
   // Then test LDY absolute X
   bus.write(0x4244, 0x37); // Target address: 0x4242 + 0x02 = 0x4244
   bus.write(0xFFFE, static_cast<nes::u8>(nes::Opcode::LDY_XABS));
   bus.write(0xFFFF, 0x42);
   bus.write(0x0000, 0x42);
-  execute_instruction();
+  execute_cycles(4); // LDY Absolute X takes 4 cycles (no page cross)
 
   EXPECT_EQ(cpu.get_y(), 0x37);
   EXPECT_FALSE(cpu.get_flag(nes::Flag::ZERO));
   EXPECT_FALSE(cpu.get_flag(nes::Flag::NEGATIVE));
-  EXPECT_EQ(cpu.get_remaining_cycles(), 0); // Should have used exactly 4 cycles
 }
 
 TEST_F(CPUTest, LDYAbsoluteXPageCross) {
   // First set X register
   bus.write(0xFFFC, static_cast<nes::u8>(nes::Opcode::LDX_IM));
   bus.write(0xFFFD, 0xFF); // X = 0xFF to force page cross
-  EXPECT_EQ(cpu.get_remaining_cycles(), 0);
-  execute_instruction();
-  EXPECT_EQ(cpu.get_remaining_cycles(), 0); // LDX_IM used 2 cycles
+  execute_cycles(2); // LDX_IM takes 2 cycles
 
   // Then test LDY absolute X with page cross
   bus.write(0x4341, 0x37); // Target address: 0x4242 + 0xFF = 0x4341
   bus.write(0xFFFE, static_cast<nes::u8>(nes::Opcode::LDY_XABS));
   bus.write(0xFFFF, 0x42);
   bus.write(0x0000, 0x42);
-  execute_instruction();
+  execute_cycles(5); // LDY Absolute X takes 5 cycles with page cross
 
   EXPECT_EQ(cpu.get_y(), 0x37);
   EXPECT_FALSE(cpu.get_flag(nes::Flag::ZERO));
   EXPECT_FALSE(cpu.get_flag(nes::Flag::NEGATIVE));
-  EXPECT_EQ(cpu.get_remaining_cycles(),
-            0); // Should have used 5 cycles (4 + 1 for page cross)
 }

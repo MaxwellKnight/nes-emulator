@@ -28,7 +28,7 @@ private:
   u8 SP{0};     // Stack Pointer
   u16 PC{0};    // Program Counter
   u8 status{0}; // Processor Status Register
-  u64 cycles{0};
+  u32 cycles{0};
   Bus &bus;
 
   std::unordered_map<u8, Instruction> instruction_table;
