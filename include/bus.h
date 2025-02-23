@@ -4,16 +4,19 @@
 #include <array>
 
 namespace nes {
-class Bus {
+class Bus : public Addressable {
 public:
   Bus();
-  static constexpr size_t MEMORY_SIZE = 64 * 1024; // 64KB
-  void write(u16 address, u8 data);
+  static constexpr size_t CPU_MEMORY_SIZE = 2 * 1024; // 64KB
+  static constexpr size_t RESET_VECTOR_SIZE = 4;
+  void write(u16 address, u8 data) override;
   void write_word(u16 address, u16 value);
-  [[nodiscard]] u8 read(u16 address) const;
+  [[nodiscard]] u8 read(u16 address) const override;
   [[nodiscard]] u16 read_word(u16 address) const;
+  [[nodiscard]] bool handles_address(u16 address) const override;
 
 private:
-  std::array<u8, MEMORY_SIZE> ram{};
+  std::array<u8, CPU_MEMORY_SIZE> ram{};
+  std::array<u8, RESET_VECTOR_SIZE> reset_vector{};
 };
 } // namespace nes

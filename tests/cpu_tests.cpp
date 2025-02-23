@@ -227,10 +227,10 @@ TEST_F(CPUTest, LDYZeroPageX) {
 }
 
 TEST_F(CPUTest, LDYAbsolute) {
-  bus.write(0x4242, 0x37);
+  bus.write(0x0242, 0x37);
   bus.write(0xFFFC, static_cast<nes::u8>(nes::Opcode::LDY_ABS));
   bus.write(0xFFFD, 0x42);
-  bus.write(0xFFFE, 0x42);
+  bus.write(0xFFFE, 0x02); // Changed high byte to 0x02
 
   EXPECT_EQ(cpu.get_remaining_cycles(), 0);
   execute_cycles(4); // LDY Absolute takes 4 cycles
@@ -246,10 +246,10 @@ TEST_F(CPUTest, LDYAbsoluteX) {
   execute_cycles(2); // LDX_IM takes 2 cycles
 
   // Then test LDY absolute X
-  bus.write(0x4244, 0x37); // Target address: 0x4242 + 0x02 = 0x4244
+  bus.write(0x0244, 0x37);
   bus.write(0xFFFE, static_cast<nes::u8>(nes::Opcode::LDY_XABS));
   bus.write(0xFFFF, 0x42);
-  bus.write(0x0000, 0x42);
+  bus.write(0x0000, 0x02);
   execute_cycles(4); // LDY Absolute X takes 4 cycles (no page cross)
 
   EXPECT_EQ(cpu.get_y(), 0x37);
@@ -261,13 +261,13 @@ TEST_F(CPUTest, LDYAbsoluteXPageCross) {
   // First set X register
   bus.write(0xFFFC, static_cast<nes::u8>(nes::Opcode::LDX_IM));
   bus.write(0xFFFD, 0xFF); // X = 0xFF to force page cross
-  execute_cycles(2); // LDX_IM takes 2 cycles
+  execute_cycles(2);       // LDX_IM takes 2 cycles
 
   // Then test LDY absolute X with page cross
-  bus.write(0x4341, 0x37); // Target address: 0x4242 + 0xFF = 0x4341
+  bus.write(0x0341, 0x37);
   bus.write(0xFFFE, static_cast<nes::u8>(nes::Opcode::LDY_XABS));
   bus.write(0xFFFF, 0x42);
-  bus.write(0x0000, 0x42);
+  bus.write(0x0000, 0x02);
   execute_cycles(5); // LDY Absolute X takes 5 cycles with page cross
 
   EXPECT_EQ(cpu.get_y(), 0x37);

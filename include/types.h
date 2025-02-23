@@ -1,12 +1,21 @@
 #pragma once
 #include <cstdint>
-#include <string>
 
 namespace nes {
+class IAddressable;
 class CPU;
 using u8 = std::uint8_t;
 using u16 = std::uint16_t;
 using u32 = std::uint32_t;
+
+// Interface for memory-mapped components
+class Addressable {
+public:
+  virtual ~Addressable() = default;
+  virtual u8 read(u16 address) const = 0;
+  virtual void write(u16 address, u8 value) = 0;
+  virtual bool handles_address(u16 address) const = 0;
+};
 
 enum class Opcode : u8 {
   // LDA

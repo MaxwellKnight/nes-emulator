@@ -6,6 +6,7 @@ namespace nes {
 CPU::CPU(Bus &bus_ref) : bus(bus_ref) {
   reset();
   instruction_table = {
+      // LDA
       {static_cast<u8>(Opcode::LDA_IM), {&CPU::lda_immediate, 2, "LDA"}},
       {static_cast<u8>(Opcode::LDA_ZP), {&CPU::lda_zero_page, 3, "LDA"}},
       {static_cast<u8>(Opcode::LDA_ABS), {&CPU::lda_absolute, 4, "LDA"}},
@@ -27,8 +28,7 @@ CPU::CPU(Bus &bus_ref) : bus(bus_ref) {
       {static_cast<u8>(Opcode::LDY_ZP), {&CPU::ldy_zero_page, 3, "LDY"}},
       {static_cast<u8>(Opcode::LDY_XZP), {&CPU::ldy_zero_page_x, 4, "LDY"}},
       //
-      {static_cast<u8>(Opcode::STA_ZP),
-       {&CPU::sta_zero_page, 3, "STA Zero Page"}},
+      {static_cast<u8>(Opcode::STA_ZP), {&CPU::sta_zero_page, 3, "STA"}},
       {static_cast<u8>(Opcode::TAX), {&CPU::tax, 2, "TAX"}},
       {static_cast<u8>(Opcode::TXA), {&CPU::txa, 2, "TXA"}}};
 }
@@ -59,35 +59,8 @@ void CPU::reset() {
   cycles = 0;
 }
 
-// Getters
-u8 CPU::get_accumulator() const { return A; }
-u8 CPU::get_x() const { return X; }
-u8 CPU::get_y() const { return Y; }
-u16 CPU::get_pc() const { return PC; }
-u8 CPU::get_sp() const { return SP; }
-u8 CPU::get_status() const { return status; }
-u8 CPU::get_remaining_cycles() const { return cycles; }
-
-// Flag operations
-void CPU::set_flag(Flag flag, bool value) {
-  if (value) {
-    status |= static_cast<u8>(flag);
-  } else {
-    status &= ~static_cast<u8>(flag);
-  }
-}
-
-bool CPU::get_flag(Flag flag) const {
-  return (status & static_cast<u8>(flag)) != 0;
-}
-
-void CPU::update_zero_and_negative_flags(u8 value) {
-  set_flag(Flag::ZERO, value == 0);
-  set_flag(Flag::NEGATIVE, (value & 0x80) != 0);
-}
-
+// Memory operations
 u8 CPU::read_byte(u16 address) { return bus.read(address); }
-
 void CPU::write_byte(u16 address, u8 value) { bus.write(address, value); }
 
 void CPU::push_stack(u8 value) {
@@ -98,6 +71,33 @@ void CPU::push_stack(u8 value) {
 u8 CPU::pull_stack() {
   SP++;
   return read_byte(0x0100 + SP);
+}
+
+// Getters
+u8 CPU::get_accumulator() const { return A; }
+u8 CPU::get_x() const { return X; }
+u8 CPU::get_y() const { return Y; }
+u16 CPU::get_pc() const { return PC; }
+u8 CPU::get_sp() const { return SP; }
+u8 CPU::get_status() const { return status; }
+u8 CPU::get_remaining_cycles() const { return cycles; }
+
+// Flag operations
+bool CPU::get_flag(Flag flag) const {
+  return (status & static_cast<u8>(flag)) != 0;
+}
+
+void CPU::set_flag(Flag flag, bool value) {
+  if (value) {
+    status |= static_cast<u8>(flag);
+  } else {
+    status &= ~static_cast<u8>(flag);
+  }
+}
+
+void CPU::update_zero_and_negative_flags(u8 value) {
+  set_flag(Flag::ZERO, value == 0);
+  set_flag(Flag::NEGATIVE, (value & 0x80) != 0);
 }
 
 // Instruction Handlers

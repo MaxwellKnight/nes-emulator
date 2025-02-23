@@ -1,11 +1,32 @@
 #include "../include/bus.h"
 
 namespace nes {
-
 Bus::Bus() {}
-void Bus::write(u16 address, u8 value) { ram[address] = value; }
 
-u8 Bus::read(u16 address) const { return ram[address]; }
+bool Bus::handles_address(u16 address) const { return true; }
+
+void Bus::write(u16 address, u8 value) {
+  if (address >= 0x0000 && address <= 0x1FFF) {
+    // Mirror RAM down to 0x0000-0x07FF
+    ram[address & 0x07FF] = value;
+  } else if (address >= 0xFFFC && address <= 0xFFFF) {
+    // Allow writes to reset/interrupt vectors
+    reset_vector[address - 0xFFFC] = value;
+  }
+}
+
+u8 Bus::read(u16 address) const {
+  u8 addr = 0x00;
+  if (address >= 0x0000 && address <= 0x1FFF) {
+    // Mirror RAM down to 0x0000-0x07FF
+    addr = ram[address & 0x07FF];
+  } else if (address >= 0xFFFC && address <= 0xFFFF) {
+    // Read from reset/interrupt vectors
+    addr = reset_vector[address - 0xFFFC];
+  }
+
+  return addr;
+}
 
 u16 Bus::read_word(u16 address) const {
   u8 low = read(address);
@@ -17,5 +38,4 @@ void Bus::write_word(u16 address, u16 value) {
   write(address, value & 0xFF);
   write(address + 1, (value >> 8) & 0xFF);
 }
-
 } // namespace nes
