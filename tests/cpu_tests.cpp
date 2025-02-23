@@ -18,7 +18,7 @@ protected:
   nes::CPU cpu{bus};
 };
 
-TEST_F(CPUTest, Initialization) {
+TEST_F(CPUTest, initialization) {
   EXPECT_EQ(cpu.get_accumulator(), 0x00);
   EXPECT_EQ(cpu.get_x(), 0x00);
   EXPECT_EQ(cpu.get_y(), 0x00);
@@ -28,7 +28,7 @@ TEST_F(CPUTest, Initialization) {
   EXPECT_EQ(cpu.get_remaining_cycles(), 0); // Should start with 0 cycles
 }
 
-TEST_F(CPUTest, LDAImmediate) {
+TEST_F(CPUTest, lda_immediate) {
   bus.write(0xFFFC, (nes::u8)(nes::Opcode::LDA_IM));
   bus.write(0xFFFD, 0x42);
 
@@ -40,7 +40,7 @@ TEST_F(CPUTest, LDAImmediate) {
   EXPECT_FALSE(cpu.get_flag(nes::Flag::NEGATIVE));
 }
 
-TEST_F(CPUTest, LDAImmediateZeroFlag) {
+TEST_F(CPUTest, lda_immediate_zero_flag) {
   bus.write(0xFFFC, (nes::u8)(nes::Opcode::LDA_IM));
   bus.write(0xFFFD, 0x00);
 
@@ -50,7 +50,7 @@ TEST_F(CPUTest, LDAImmediateZeroFlag) {
   EXPECT_FALSE(cpu.get_flag(nes::Flag::NEGATIVE));
 }
 
-TEST_F(CPUTest, LDAImmediateNegativeFlag) {
+TEST_F(CPUTest, lda_immediate_negative_flag) {
   bus.write(0xFFFC, (nes::u8)(nes::Opcode::LDA_IM));
   bus.write(0xFFFD, 0x80);
 
@@ -60,7 +60,7 @@ TEST_F(CPUTest, LDAImmediateNegativeFlag) {
   EXPECT_TRUE(cpu.get_flag(nes::Flag::NEGATIVE));
 }
 
-TEST_F(CPUTest, TAX) {
+TEST_F(CPUTest, tax) {
   bus.write(0xFFFC, (nes::u8)(nes::Opcode::LDA_IM));
   bus.write(0xFFFD, 0x42);
   execute_cycles(2); // LDA_IM takes 2 cycles
@@ -73,7 +73,7 @@ TEST_F(CPUTest, TAX) {
   EXPECT_FALSE(cpu.get_flag(nes::Flag::NEGATIVE));
 }
 
-TEST_F(CPUTest, LDAZeroPage) {
+TEST_F(CPUTest, lda_zero_page) {
   bus.write(0x42, 0x37);
   bus.write(0xFFFC, (nes::u8)(nes::Opcode::LDA_ZP));
   bus.write(0xFFFD, 0x42);
@@ -85,7 +85,7 @@ TEST_F(CPUTest, LDAZeroPage) {
   EXPECT_FALSE(cpu.get_flag(nes::Flag::NEGATIVE));
 }
 
-TEST_F(CPUTest, STAZeroPage) {
+TEST_F(CPUTest, sta_zero_page) {
   bus.write(0xFFFC, (nes::u8)(nes::Opcode::LDA_IM));
   bus.write(0xFFFD, 0x42);
   execute_cycles(2); // LDA_IM takes 2 cycles
@@ -97,7 +97,7 @@ TEST_F(CPUTest, STAZeroPage) {
   EXPECT_EQ(cpu.get_accumulator(), 0x42);
 }
 
-TEST_F(CPUTest, TXA) {
+TEST_F(CPUTest, txa) {
   bus.write(0xFFFC, (nes::u8)(nes::Opcode::LDA_IM));
   bus.write(0xFFFD, 0x42);
   execute_cycles(2); // LDA_IM takes 2 cycles
@@ -117,7 +117,7 @@ TEST_F(CPUTest, TXA) {
   EXPECT_FALSE(cpu.get_flag(nes::Flag::NEGATIVE));
 }
 
-TEST_F(CPUTest, LDXImmediate) {
+TEST_F(CPUTest, ldx_immediate) {
   bus.write(0xFFFC, (nes::u8)(nes::Opcode::LDX_IM));
   bus.write(0xFFFD, 0x42);
 
@@ -129,7 +129,7 @@ TEST_F(CPUTest, LDXImmediate) {
   EXPECT_FALSE(cpu.get_flag(nes::Flag::NEGATIVE));
 }
 
-TEST_F(CPUTest, LDXImmediateZeroFlag) {
+TEST_F(CPUTest, ldx_immediate_zero_flag) {
   bus.write(0xFFFC, (nes::u8)(nes::Opcode::LDX_IM));
   bus.write(0xFFFD, 0x00);
 
@@ -140,7 +140,7 @@ TEST_F(CPUTest, LDXImmediateZeroFlag) {
   EXPECT_FALSE(cpu.get_flag(nes::Flag::NEGATIVE));
 }
 
-TEST_F(CPUTest, LDXImmediateNegativeFlag) {
+TEST_F(CPUTest, ldx_immediate_negative_flag) {
   bus.write(0xFFFC, (nes::u8)(nes::Opcode::LDX_IM));
   bus.write(0xFFFD, 0x80);
 
@@ -151,7 +151,7 @@ TEST_F(CPUTest, LDXImmediateNegativeFlag) {
   EXPECT_TRUE(cpu.get_flag(nes::Flag::NEGATIVE));
 }
 
-TEST_F(CPUTest, LDXZeroPage) {
+TEST_F(CPUTest, ldx_zero_page) {
   bus.write(0x42, 0x37);
   bus.write(0xFFFC, (nes::u8)(nes::Opcode::LDX_ZP));
   bus.write(0xFFFD, 0x42);
@@ -163,7 +163,7 @@ TEST_F(CPUTest, LDXZeroPage) {
   EXPECT_FALSE(cpu.get_flag(nes::Flag::NEGATIVE));
 }
 
-TEST_F(CPUTest, LDYImmediate) {
+TEST_F(CPUTest, ldy_immediate) {
   bus.write(0xFFFC, (nes::u8)(nes::Opcode::LDY_IM));
   bus.write(0xFFFD, 0x42);
 
@@ -177,7 +177,7 @@ TEST_F(CPUTest, LDYImmediate) {
   EXPECT_EQ(cpu.get_flag(nes::Flag::OVERFLOW_), false);
 }
 
-TEST_F(CPUTest, LDYImmediateZeroFlag) {
+TEST_F(CPUTest, ldy_immediate_zero_flag) {
   bus.write(0xFFFC, (nes::u8)(nes::Opcode::LDY_IM));
   bus.write(0xFFFD, 0x00);
 
@@ -188,7 +188,7 @@ TEST_F(CPUTest, LDYImmediateZeroFlag) {
   EXPECT_FALSE(cpu.get_flag(nes::Flag::NEGATIVE));
 }
 
-TEST_F(CPUTest, LDYImmediateNegativeFlag) {
+TEST_F(CPUTest, ldy_immediate_negtive_flag) {
   bus.write(0xFFFC, (nes::u8)(nes::Opcode::LDY_IM));
   bus.write(0xFFFD, 0x80);
 
@@ -199,7 +199,7 @@ TEST_F(CPUTest, LDYImmediateNegativeFlag) {
   EXPECT_TRUE(cpu.get_flag(nes::Flag::NEGATIVE));
 }
 
-TEST_F(CPUTest, LDYZeroPage) {
+TEST_F(CPUTest, ldy_zero_page) {
   bus.write(0x42, 0x37);
   bus.write(0xFFFC, (nes::u8)(nes::Opcode::LDY_ZP));
   bus.write(0xFFFD, 0x42);
@@ -211,7 +211,7 @@ TEST_F(CPUTest, LDYZeroPage) {
   EXPECT_FALSE(cpu.get_flag(nes::Flag::NEGATIVE));
 }
 
-TEST_F(CPUTest, LDYZeroPageX) {
+TEST_F(CPUTest, ldy_zero_page_x) {
   // First set X register
   bus.write(0xFFFC, (nes::u8)(nes::Opcode::LDX_IM));
   bus.write(0xFFFD, 0x02);
@@ -227,7 +227,7 @@ TEST_F(CPUTest, LDYZeroPageX) {
   EXPECT_FALSE(cpu.get_flag(nes::Flag::NEGATIVE));
 }
 
-TEST_F(CPUTest, LDYAbsolute) {
+TEST_F(CPUTest, ldy_absolute) {
   bus.write(0x0242, 0x37);
   bus.write(0xFFFC, (nes::u8)(nes::Opcode::LDY_ABS));
   bus.write(0xFFFD, 0x42);
@@ -240,7 +240,7 @@ TEST_F(CPUTest, LDYAbsolute) {
   EXPECT_FALSE(cpu.get_flag(nes::Flag::NEGATIVE));
 }
 
-TEST_F(CPUTest, LDYAbsoluteX) {
+TEST_F(CPUTest, ldy_absolute_x) {
   // First set X register
   bus.write(0xFFFC, (nes::u8)(nes::Opcode::LDX_IM));
   bus.write(0xFFFD, 0x02);
@@ -258,7 +258,7 @@ TEST_F(CPUTest, LDYAbsoluteX) {
   EXPECT_FALSE(cpu.get_flag(nes::Flag::NEGATIVE));
 }
 
-TEST_F(CPUTest, LDYAbsoluteXPageCross) {
+TEST_F(CPUTest, ldy_absolute_x_page_cross) {
   // First set X register
   bus.write(0xFFFC, (nes::u8)(nes::Opcode::LDX_IM));
   bus.write(0xFFFD, 0xFF); // X = 0xFF to force page cross
@@ -283,7 +283,7 @@ TEST_F(CPUTest, LDYAbsoluteXPageCross) {
 // STA_XZP = 0x95,  // STA Absolute
 // STA_YZP = 0x81,  // STA Absolute
 // STA_YZPI = 0x91, // STA Absolute
-TEST_F(CPUTest, STA_Absolute) {
+TEST_F(CPUTest, sta_absolute) {
   // First load value into accumulator
   bus.write(0xFFFC, (nes::u8)nes::Opcode::LDA_IM);
   bus.write(0xFFFD, 0x37);
@@ -301,7 +301,7 @@ TEST_F(CPUTest, STA_Absolute) {
   EXPECT_EQ(cpu.get_remaining_cycles(), 0);
 }
 
-TEST_F(CPUTest, STA_AbsoluteX) {
+TEST_F(CPUTest, sta_absolute_x) {
   // First set X register
   bus.write(0xFFFC, (nes::u8)nes::Opcode::LDX_IM);
   bus.write(0xFFFD, 0x02);
@@ -324,7 +324,7 @@ TEST_F(CPUTest, STA_AbsoluteX) {
   EXPECT_EQ(cpu.get_remaining_cycles(), 0);
 }
 
-TEST_F(CPUTest, STA_AbsoluteY) {
+TEST_F(CPUTest, sta_absolute_y) {
   // First set Y register
   bus.write(0xFFFC, (nes::u8)nes::Opcode::LDY_IM);
   bus.write(0xFFFD, 0x02);
@@ -347,7 +347,7 @@ TEST_F(CPUTest, STA_AbsoluteY) {
   EXPECT_EQ(cpu.get_remaining_cycles(), 0);
 }
 
-TEST_F(CPUTest, STA_ZeroPage) {
+TEST_F(CPUTest, sta_zero_page_) {
   // Load value into accumulator
   bus.write(0xFFFC, (nes::u8)nes::Opcode::LDA_IM);
   bus.write(0xFFFD, 0x37);
@@ -364,7 +364,7 @@ TEST_F(CPUTest, STA_ZeroPage) {
   EXPECT_EQ(cpu.get_remaining_cycles(), 0);
 }
 
-TEST_F(CPUTest, STA_ZeroPageX) {
+TEST_F(CPUTest, sta_zero_page_x) {
   // First set X register
   bus.write(0xFFFC, (nes::u8)nes::Opcode::LDX_IM);
   bus.write(0xFFFD, 0x02);
@@ -386,7 +386,7 @@ TEST_F(CPUTest, STA_ZeroPageX) {
   EXPECT_EQ(cpu.get_remaining_cycles(), 0);
 }
 
-TEST_F(CPUTest, STA_XIndexedZeroPageIndirect) {
+TEST_F(CPUTest, sta_indirect_zero_page_x) {
   // First set X register
   bus.write(0xFFFC, (nes::u8)nes::Opcode::LDX_IM);
   bus.write(0xFFFD, 0x02); // X = 0x02
@@ -413,7 +413,7 @@ TEST_F(CPUTest, STA_XIndexedZeroPageIndirect) {
   EXPECT_EQ(cpu.get_remaining_cycles(), 0);
 }
 
-TEST_F(CPUTest, STA_ZeroPageIndirectYIndexed) {
+TEST_F(CPUTest, sta_indirect_zero_page_y) {
   // First set Y register
   bus.write(0xFFFC, (nes::u8)nes::Opcode::LDY_IM);
   bus.write(0xFFFD, 0x02); // Y = 0x02
@@ -441,7 +441,7 @@ TEST_F(CPUTest, STA_ZeroPageIndirectYIndexed) {
   EXPECT_EQ(cpu.get_remaining_cycles(), 0);
 }
 
-TEST_F(CPUTest, STA_ZeroPageIndirectYIndexed_PageCross) {
+TEST_F(CPUTest, sta_indirect_zero_page_y_page_cross) {
   // First set Y register
   bus.write(0xFFFC, (nes::u8)nes::Opcode::LDY_IM);
   bus.write(0xFFFD, 0xFF); // Y = 0xFF to force page crossing
@@ -470,7 +470,7 @@ TEST_F(CPUTest, STA_ZeroPageIndirectYIndexed_PageCross) {
   EXPECT_EQ(cpu.get_remaining_cycles(), 0);
 }
 
-TEST_F(CPUTest, STX_Absolute) {
+TEST_F(CPUTest, stx_absolute) {
   // First load value into X register
   bus.write(0xFFFC, (nes::u8)nes::Opcode::LDX_IM);
   bus.write(0xFFFD, 0x37);
@@ -488,7 +488,7 @@ TEST_F(CPUTest, STX_Absolute) {
   EXPECT_EQ(cpu.get_remaining_cycles(), 0);
 }
 
-TEST_F(CPUTest, STX_ZeroPage) {
+TEST_F(CPUTest, stx_zero_page) {
   // Load value into X register
   bus.write(0xFFFC, (nes::u8)nes::Opcode::LDX_IM);
   bus.write(0xFFFD, 0x37);
@@ -505,7 +505,7 @@ TEST_F(CPUTest, STX_ZeroPage) {
   EXPECT_EQ(cpu.get_remaining_cycles(), 0);
 }
 
-TEST_F(CPUTest, STX_ZeroPageY) {
+TEST_F(CPUTest, stx_zero_page_y) {
   // First set Y register
   bus.write(0xFFFC, (nes::u8)nes::Opcode::LDY_IM);
   bus.write(0xFFFD, 0x02);
@@ -528,7 +528,7 @@ TEST_F(CPUTest, STX_ZeroPageY) {
 }
 
 // Test storing zero value
-TEST_F(CPUTest, STX_ZeroValue) {
+TEST_F(CPUTest, stx_zero_value) {
   // Load zero into X register
   bus.write(0xFFFC, (nes::u8)nes::Opcode::LDX_IM);
   bus.write(0xFFFD, 0x00);
@@ -547,7 +547,7 @@ TEST_F(CPUTest, STX_ZeroValue) {
 }
 
 // Test storing negative value (high bit set)
-TEST_F(CPUTest, STX_NegativeValue) {
+TEST_F(CPUTest, stx_negative_value) {
   // Load negative value into X register
   bus.write(0xFFFC, (nes::u8)nes::Opcode::LDX_IM);
   bus.write(0xFFFD, 0x80); // Negative value (high bit set)
@@ -566,7 +566,7 @@ TEST_F(CPUTest, STX_NegativeValue) {
 }
 
 // Test zero page wrap-around with Y-indexed addressing
-TEST_F(CPUTest, STX_ZeroPageY_Wraparound) {
+TEST_F(CPUTest, stx_zero_page_y_wrap) {
   // First set Y register
   bus.write(0xFFFC, (nes::u8)nes::Opcode::LDY_IM);
   bus.write(0xFFFD, 0xFF); // Y = 0xFF
