@@ -2,11 +2,12 @@
 #include <cstdint>
 
 namespace nes {
-class IAddressable;
-class CPU;
 using u8 = std::uint8_t;
 using u16 = std::uint16_t;
 using u32 = std::uint32_t;
+
+class IAddressable;
+class CPU;
 
 // Interface for memory-mapped components
 class Addressable {
@@ -15,6 +16,14 @@ public:
   virtual u8 read(u16 address) const = 0;
   virtual void write(u16 address, u8 value) = 0;
   virtual bool handles_address(u16 address) const = 0;
+};
+
+using InstructionHandler = void (CPU::*)();
+
+struct Instruction {
+  InstructionHandler handler;
+  u8 cycles;
+  const char *name;
 };
 
 enum class Opcode : u8 {
@@ -61,14 +70,6 @@ enum class Flag : u8 {
   UNUSED = 0x20,
   OVERFLOW_ = 0x40,
   NEGATIVE = 0x80
-};
-
-using InstructionHandler = void (CPU::*)();
-
-struct Instruction {
-  InstructionHandler handler;
-  u8 cycles;
-  const char *name;
 };
 
 } // namespace nes
