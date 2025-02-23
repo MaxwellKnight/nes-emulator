@@ -113,7 +113,7 @@ Or use Visual Studio's Test Explorer.
 
 ## License
 
-[Your chosen license]
+This project is licensed under the GNU GPL v3 - see the [LICENSE](LICENSE) file for details.
 
 ## Notes
 
