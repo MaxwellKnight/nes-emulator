@@ -79,6 +79,7 @@ private:
   void sty_zero_page_x();
 
   void tax();
+  void tay();
   void txa();
 
   // Internal methods

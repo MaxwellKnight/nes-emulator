@@ -73,6 +73,45 @@ TEST_F(CPUTest, tax) {
   EXPECT_FALSE(cpu.get_flag(nes::Flag::NEGATIVE));
 }
 
+TEST_F(CPUTest, tay) {
+  bus.write(0xFFFC, (nes::u8)(nes::Opcode::LDA_IM));
+  bus.write(0xFFFD, 0x42);
+  execute_cycles(2); // LDA_IM takes 2 cycles
+
+  bus.write(0xFFFE, (nes::u8)(nes::Opcode::TAY));
+  execute_cycles(2); // TAX takes 2 cycles
+  EXPECT_EQ(cpu.get_y(), 0x42);
+  EXPECT_EQ(cpu.get_accumulator(), 0x42);
+  EXPECT_FALSE(cpu.get_flag(nes::Flag::ZERO));
+  EXPECT_FALSE(cpu.get_flag(nes::Flag::NEGATIVE));
+}
+
+TEST_F(CPUTest, tay_zero_flag) {
+  bus.write(0xFFFC, (nes::u8)(nes::Opcode::LDA_IM));
+  bus.write(0xFFFD, 0x00);
+  execute_cycles(2); // LDA_IM takes 2 cycles
+
+  bus.write(0xFFFE, (nes::u8)(nes::Opcode::TAY));
+  execute_cycles(2); // TAX takes 2 cycles
+  EXPECT_EQ(cpu.get_y(), 0);
+  EXPECT_EQ(cpu.get_accumulator(), 0);
+  EXPECT_TRUE(cpu.get_flag(nes::Flag::ZERO));
+  EXPECT_FALSE(cpu.get_flag(nes::Flag::NEGATIVE));
+}
+
+TEST_F(CPUTest, tay_negative_flag) {
+  bus.write(0xFFFC, (nes::u8)(nes::Opcode::LDA_IM));
+  bus.write(0xFFFD, 0xFF);
+  execute_cycles(2); // LDA_IM takes 2 cycles
+
+  bus.write(0xFFFE, (nes::u8)(nes::Opcode::TAY));
+  execute_cycles(2); // TAX takes 2 cycles
+  EXPECT_EQ(cpu.get_y(), 0xFF);
+  EXPECT_EQ(cpu.get_accumulator(), 0xFF);
+  EXPECT_FALSE(cpu.get_flag(nes::Flag::ZERO));
+  EXPECT_TRUE(cpu.get_flag(nes::Flag::NEGATIVE));
+}
+
 TEST_F(CPUTest, lda_zero_page) {
   bus.write(0x42, 0x37);
   bus.write(0xFFFC, (nes::u8)(nes::Opcode::LDA_ZP));

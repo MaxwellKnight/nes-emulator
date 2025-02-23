@@ -46,6 +46,7 @@ CPU::CPU(Bus &bus_ref) : bus(bus_ref) {
                        {(u8)Opcode::STY_XZP, {&CPU::sty_zero_page_x, 4, "STY"}},
                        //
                        {(u8)Opcode::TAX, {&CPU::tax, 2, "TAX"}},
+                       {(u8)Opcode::TAY, {&CPU::tay, 2, "TAY"}},
                        {(u8)Opcode::TXA, {&CPU::txa, 2, "TXA"}}};
 }
 
@@ -319,6 +320,11 @@ void CPU::sty_zero_page_x() {
 void CPU::tax() {
   X = A;
   update_zero_and_negative_flags(X);
+}
+
+void CPU::tay() {
+  Y = A;
+  update_zero_and_negative_flags(Y);
 }
 
 void CPU::txa() {

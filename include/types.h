@@ -66,6 +66,7 @@ enum class Opcode : u8 {
   STY_XZP = 0x94, // STY Zero Page X-Index
   //
   TAX = 0xAA, // Transfer A to X
+  TAY = 0xA8, // Transfer A to Y
   TXA = 0x8A  // Transfer X to A
 };
 
