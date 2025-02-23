@@ -19,6 +19,7 @@ public:
   [[nodiscard]] bool get_flag(Flag flag) const;
   [[nodiscard]] std::shared_ptr<Bus> get_bus() const;
   void set_flag(Flag flag, bool value);
+  void print_cpu_state() const;
 
 private:
   // Registers

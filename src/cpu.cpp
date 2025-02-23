@@ -1,36 +1,37 @@
 #include "../include/cpu.h"
+#include <iomanip>
+#include <iostream>
 #include <string>
 
 namespace nes {
 
 CPU::CPU(Bus &bus_ref) : bus(bus_ref) {
   reset();
-  instruction_table = {
-      // LDA
-      {static_cast<u8>(Opcode::LDA_IM), {&CPU::lda_immediate, 2, "LDA"}},
-      {static_cast<u8>(Opcode::LDA_ZP), {&CPU::lda_zero_page, 3, "LDA"}},
-      {static_cast<u8>(Opcode::LDA_ABS), {&CPU::lda_absolute, 4, "LDA"}},
-      {static_cast<u8>(Opcode::LDA_XABS), {&CPU::lda_absolute_x, 4, "LDA"}},
-      {static_cast<u8>(Opcode::LDA_YABS), {&CPU::lda_absolute_y, 4, "LDA"}},
-      {static_cast<u8>(Opcode::LDA_XZP), {&CPU::lda_zero_page_x, 4, "LDA"}},
-      {static_cast<u8>(Opcode::LDA_XZPI), {&CPU::lda_indirect_x, 6, "LDA"}},
-      {static_cast<u8>(Opcode::LDA_YZPI), {&CPU::lda_indirect_y, 5, "LDA"}},
-      // LDX
-      {static_cast<u8>(Opcode::LDX_IM), {&CPU::ldx_immediate, 2, "LDX"}},
-      {static_cast<u8>(Opcode::LDX_ABS), {&CPU::ldx_absolute, 4, "LDX"}},
-      {static_cast<u8>(Opcode::LDX_YABS), {&CPU::ldx_absolute_y, 4, "LDX"}},
-      {static_cast<u8>(Opcode::LDX_ZP), {&CPU::ldx_zero_page, 3, "LDX"}},
-      {static_cast<u8>(Opcode::LDX_YZP), {&CPU::ldx_zero_page, 4, "LDX"}},
-      // LDY
-      {static_cast<u8>(Opcode::LDY_IM), {&CPU::ldy_immediate, 2, "LDY"}},
-      {static_cast<u8>(Opcode::LDY_ABS), {&CPU::ldy_absolute, 4, "LDY"}},
-      {static_cast<u8>(Opcode::LDY_XABS), {&CPU::ldy_absolute_x, 4, "LDY"}},
-      {static_cast<u8>(Opcode::LDY_ZP), {&CPU::ldy_zero_page, 3, "LDY"}},
-      {static_cast<u8>(Opcode::LDY_XZP), {&CPU::ldy_zero_page_x, 4, "LDY"}},
-      //
-      {static_cast<u8>(Opcode::STA_ZP), {&CPU::sta_zero_page, 3, "STA"}},
-      {static_cast<u8>(Opcode::TAX), {&CPU::tax, 2, "TAX"}},
-      {static_cast<u8>(Opcode::TXA), {&CPU::txa, 2, "TXA"}}};
+  instruction_table = {// LDA
+                       {(u8)Opcode::LDA_IM, {&CPU::lda_immediate, 2, "LDA"}},
+                       {(u8)Opcode::LDA_ZP, {&CPU::lda_zero_page, 3, "LDA"}},
+                       {(u8)Opcode::LDA_ABS, {&CPU::lda_absolute, 4, "LDA"}},
+                       {(u8)Opcode::LDA_XABS, {&CPU::lda_absolute_x, 4, "LDA"}},
+                       {(u8)Opcode::LDA_YABS, {&CPU::lda_absolute_y, 4, "LDA"}},
+                       {(u8)Opcode::LDA_XZP, {&CPU::lda_zero_page_x, 4, "LDA"}},
+                       {(u8)Opcode::LDA_XZPI, {&CPU::lda_indirect_x, 6, "LDA"}},
+                       {(u8)Opcode::LDA_YZPI, {&CPU::lda_indirect_y, 5, "LDA"}},
+                       // LDX
+                       {(u8)Opcode::LDX_IM, {&CPU::ldx_immediate, 2, "LDX"}},
+                       {(u8)Opcode::LDX_ABS, {&CPU::ldx_absolute, 4, "LDX"}},
+                       {(u8)Opcode::LDX_YABS, {&CPU::ldx_absolute_y, 4, "LDX"}},
+                       {(u8)Opcode::LDX_ZP, {&CPU::ldx_zero_page, 3, "LDX"}},
+                       {(u8)Opcode::LDX_YZP, {&CPU::ldx_zero_page, 4, "LDX"}},
+                       // LDY
+                       {(u8)Opcode::LDY_IM, {&CPU::ldy_immediate, 2, "LDY"}},
+                       {(u8)Opcode::LDY_ABS, {&CPU::ldy_absolute, 4, "LDY"}},
+                       {(u8)Opcode::LDY_XABS, {&CPU::ldy_absolute_x, 4, "LDY"}},
+                       {(u8)Opcode::LDY_ZP, {&CPU::ldy_zero_page, 3, "LDY"}},
+                       {(u8)Opcode::LDY_XZP, {&CPU::ldy_zero_page_x, 4, "LDY"}},
+                       //
+                       {(u8)Opcode::STA_ZP, {&CPU::sta_zero_page, 3, "STA"}},
+                       {(u8)Opcode::TAX, {&CPU::tax, 2, "TAX"}},
+                       {(u8)Opcode::TXA, {&CPU::txa, 2, "TXA"}}};
 }
 
 void CPU::clock() {
@@ -54,7 +55,7 @@ void CPU::reset() {
   X = 0;
   Y = 0;
   SP = 0xFF;
-  status = static_cast<u8>(Flag::UNUSED) | static_cast<u8>(Flag::BREAK);
+  status = (u8)Flag::UNUSED | (u8)Flag::BREAK;
   PC = 0xFFFC;
   cycles = 0;
 }
@@ -83,15 +84,13 @@ u8 CPU::get_status() const { return status; }
 u8 CPU::get_remaining_cycles() const { return cycles; }
 
 // Flag operations
-bool CPU::get_flag(Flag flag) const {
-  return (status & static_cast<u8>(flag)) != 0;
-}
+bool CPU::get_flag(Flag flag) const { return (status & (u8)(flag)) != 0; }
 
 void CPU::set_flag(Flag flag, bool value) {
   if (value) {
-    status |= static_cast<u8>(flag);
+    status |= (u8)(flag);
   } else {
-    status &= ~static_cast<u8>(flag);
+    status &= ~(u8)(flag);
   }
 }
 
@@ -294,6 +293,22 @@ u16 CPU::addr_indirect_y(u8 zp_addr) {
 
 bool CPU::check_page_cross(u16 addr1, u16 addr2) {
   return (addr1 & 0xFF00) != (addr2 & 0xFF00);
+}
+
+void CPU::print_cpu_state() const {
+  std::cout << "CPU State:\n";
+  std::cout << "A:  0x" << std::hex << std::setw(2) << std::setfill('0')
+            << (int)get_accumulator() << '\n';
+  std::cout << "X:  0x" << std::hex << std::setw(2) << std::setfill('0')
+            << (int)get_x() << '\n';
+  std::cout << "Y:  0x" << std::hex << std::setw(2) << std::setfill('0')
+            << (int)get_y() << '\n';
+  std::cout << "PC: 0x" << std::hex << std::setw(4) << std::setfill('0')
+            << (int)get_pc() << '\n';
+  std::cout << "SP: 0x" << std::hex << std::setw(2) << std::setfill('0')
+            << (int)get_sp() << '\n';
+  std::cout << "Status: 0x" << std::hex << std::setw(2) << std::setfill('0')
+            << (int)get_status() << "\n\n";
 }
 
 } // namespace nes
