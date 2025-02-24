@@ -14,10 +14,10 @@ public:
   [[nodiscard]] bool handles_address(u16 address) const override;
 
 private:
-  static constexpr size_t CPU_RAM_SIZE = 2 * 1024; // 2KB
-  static constexpr size_t RESET_VECTOR_SIZE = 4;
+  static constexpr size_t _CPU_RAM_SIZE = 2 * 1024; // 2KB
+  static constexpr size_t _RESET_VECTOR_SIZE = 4;
 
-  std::array<u8, CPU_RAM_SIZE> ram{};
-  std::array<u8, RESET_VECTOR_SIZE> reset_vector{};
+  std::array<u8, _CPU_RAM_SIZE> _ram{};
+  std::array<u8, _RESET_VECTOR_SIZE> _reset_vector{};
 };
 } // namespace nes

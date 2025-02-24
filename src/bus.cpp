@@ -8,10 +8,10 @@ bool Bus::handles_address(u16 address) const { return true; }
 void Bus::write(u16 address, u8 value) {
   if (address >= 0x0000 && address <= 0x1FFF) {
     // Mirror RAM down to 0x0000-0x07FF
-    ram[address & 0x07FF] = value;
+    _ram[address & 0x07FF] = value;
   } else if (address >= 0xFFFC && address <= 0xFFFF) {
     // Allow writes to reset/interrupt vectors
-    reset_vector[address - 0xFFFC] = value;
+    _reset_vector[address - 0xFFFC] = value;
   }
 }
 
@@ -19,10 +19,10 @@ u8 Bus::read(u16 address) const {
   u8 addr = 0x00;
   if (address >= 0x0000 && address <= 0x1FFF) {
     // Mirror RAM down to 0x0000-0x07FF
-    addr = ram[address & 0x07FF];
+    addr = _ram[address & 0x07FF];
   } else if (address >= 0xFFFC && address <= 0xFFFF) {
     // Read from reset/interrupt vectors
-    addr = reset_vector[address - 0xFFFC];
+    addr = _reset_vector[address - 0xFFFC];
   }
 
   return addr;
@@ -31,7 +31,7 @@ u8 Bus::read(u16 address) const {
 u16 Bus::read_word(u16 address) const {
   u8 low = read(address);
   u8 high = read(address + 1);
-  return (u16)(low) | ((u16)(high) << 8);
+  return (u16)low | ((u16)high << 8);
 }
 
 void Bus::write_word(u16 address, u16 value) {

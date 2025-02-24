@@ -23,16 +23,16 @@ public:
 
 private:
   // Registers
-  u8 A{0};      // Accumulator
-  u8 X{0};      // X Index Register
-  u8 Y{0};      // Y Index Register
-  u8 SP{0};     // Stack Pointer
-  u16 PC{0};    // Program Counter
-  u8 status{0}; // Processor Status Register
-  u32 cycles{0};
-  Bus &bus;
+  u8 _A{0};      // Accumulator
+  u8 _X{0};      // X Index Register
+  u8 _Y{0};      // Y Index Register
+  u8 _SP{0};     // Stack Pointer
+  u16 _PC{0};    // Program Counter
+  u8 _status{0}; // Processor Status Register
+  u32 _cycles{0};
+  Bus &_bus;
 
-  std::unordered_map<u8, Instruction> instruction_table;
+  std::unordered_map<u8, Instruction> _instruction_table;
 
   // Instruction handlers
   // LDA
