@@ -18,12 +18,17 @@ public:
   virtual bool handles_address(u16 address) const = 0;
 };
 
-using InstructionHandler = void (CPU::*)();
+// Forward declarations for function pointer types
+using OperationHandler = void (CPU::*)(u16);
+using ModeHandler = u16 (CPU::*)(bool &);
 
+// Instruction structure
 struct Instruction {
-  InstructionHandler handler;
+  OperationHandler operation;
+  ModeHandler mode;
   u8 cycles;
   const char *name;
+  bool is_extra_cycle = false;
 };
 
 enum class Opcode : u8 {

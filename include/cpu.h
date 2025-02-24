@@ -1,118 +1,94 @@
 #pragma once
+
 #include "bus.h"
-#include "memory.h"
+#include "types.h"
 #include <unordered_map>
 
 namespace nes {
 class CPU {
-public:
-  CPU(Bus &bus);
-  void reset();
-  void clock();
-  [[nodiscard]] u8 get_accumulator() const;
-  [[nodiscard]] u8 get_x() const;
-  [[nodiscard]] u8 get_y() const;
-  [[nodiscard]] u16 get_pc() const;
-  [[nodiscard]] u8 get_sp() const;
-  [[nodiscard]] u8 get_status() const;
-  [[nodiscard]] u8 get_remaining_cycles() const;
-  [[nodiscard]] bool get_flag(Flag flag) const;
-  void set_flag(Flag flag, bool value);
-  void set_sp(u8 sp);
-  void print_cpu_state() const;
-
 private:
-  // Registers
-  u8 _A{0};      // Accumulator
-  u8 _X{0};      // X Index Register
-  u8 _Y{0};      // Y Index Register
-  u8 _SP{0};     // Stack Pointer
-  u16 _PC{0};    // Program Counter
-  u8 _status{0}; // Processor Status Register
-  u32 _cycles{0};
+  // CPU Registers
+  u8 _A;      // Accumulator
+  u8 _X;      // X Register
+  u8 _Y;      // Y Register
+  u8 _SP;     // Stack Pointer
+  u8 _status; // Status Register
+  u16 _PC;    // Program Counter
+  u8 _cycles; // Remaining cycles for current instruction
+
+  // Reference to the bus for memory access
   Bus &_bus;
 
+  // Instruction table mapping opcodes to handlers
   std::unordered_map<u8, Instruction> _instruction_table;
 
-  // Instruction handlers
-  // LDA
-  void lda_immediate();
-  void lda_zero_page();
-  void lda_absolute();
-  void lda_absolute_x();
-  void lda_absolute_y();
-  void lda_zero_page_x();
-  void lda_indirect_x();
-  void lda_indirect_y();
-
-  // LDX
-  void ldx_immediate();
-  void ldx_absolute();
-  void ldx_absolute_y();
-  void ldx_zero_page();
-  void ldx_zero_page_y();
-
-  // LDY
-  void ldy_immediate();
-  void ldy_absolute();
-  void ldy_absolute_x();
-  void ldy_zero_page();
-  void ldy_zero_page_x();
-
-  // STA
-  void sta_absolute();
-  void sta_absolute_x();
-  void sta_absolute_y();
-  void sta_zero_page();
-  void sta_zero_page_x();
-  void sta_indirect_x();
-  void sta_indirect_y();
-
-  // STX
-  void stx_absolute();
-  void stx_zero_page();
-  void stx_zero_page_y();
-
-  // STY
-  void sty_absolute();
-  void sty_zero_page();
-  void sty_zero_page_x();
-
-  void tax();
-  void tay();
-  void txa();
-  void tsx();
-  void txs();
-  void tya();
-
-  // Stack
-  void pha();
-  void php();
-  void pla();
-  void plp();
-
-  // ASL
-  void asl_accumulator();
-  void asl_absolute();
-  void asl_absolute_x();
-  void asl_zero_page();
-  void asl_zero_page_x();
-
-  // Internal methods
+  // Memory access methods
+  u8 read_byte(u16 address);
   void write_byte(u16 address, u8 value);
+
+  // Flag operations
+  void set_flag(Flag flag, bool value);
   void update_zero_and_negative_flags(u8 value);
-  [[nodiscard]] u8 read_byte(const u16 address);
-  [[nodiscard]] bool check_page_cross(u16 addr1, u16 addr2);
 
   // Addressing modes
-  [[nodiscard]] u16 addr_zero_page();
-  [[nodiscard]] u16 addr_zero_page_y();
-  [[nodiscard]] u16 addr_zero_page_x();
-  [[nodiscard]] u16 addr_absolute();
-  [[nodiscard]] u16 addr_absolute_x();
-  [[nodiscard]] u16 addr_absolute_y();
-  [[nodiscard]] u16 addr_indirect_x();
-  [[nodiscard]] u16 addr_indirect_y(u8 zp_addr);
+  u16 immediate(bool &page_crossed);
+  u16 zero_page(bool &page_crossed);
+  u16 zero_page_x(bool &page_crossed);
+  u16 zero_page_y(bool &page_crossed);
+  u16 absolute(bool &page_crossed);
+  u16 absolute_x(bool &page_crossed);
+  u16 absolute_y(bool &page_crossed);
+  u16 indirect_x(bool &page_crossed);
+  u16 indirect_y(bool &page_crossed);
+
+  // Operations
+  // Load operations
+  void op_lda(u16 addr);
+  void op_ldx(u16 addr);
+  void op_ldy(u16 addr);
+
+  // Store operations
+  void op_sta(u16 addr);
+  void op_stx(u16 addr);
+  void op_sty(u16 addr);
+
+  // Transfer operations
+  void op_tax(u16 addr);
+  void op_tay(u16 addr);
+  void op_txa(u16 addr);
+  void op_tya(u16 addr);
+  void op_tsx(u16 addr);
+  void op_txs(u16 addr);
+
+  // Stack operations
+  void op_pha(u16 addr);
+  void op_php(u16 addr);
+  void op_pla(u16 addr);
+  void op_plp(u16 addr);
+
+  // Shift operations
+  void op_asl_acc(u16 addr);
+  void op_asl(u16 addr);
+
+public:
+  CPU(Bus &bus_ref);
+
+  // Core methods
+  void clock();
+  void reset();
+
+  // Getters for testing/debugging
+  u8 get_accumulator() const;
+  u8 get_x() const;
+  u8 get_y() const;
+  u16 get_pc() const;
+  u8 get_sp() const;
+  u8 get_status() const;
+  u8 get_remaining_cycles() const;
+  bool get_flag(Flag flag) const;
+
+  // Setters for testing
+  void set_sp(u8 sp);
 };
 
 } // namespace nes
