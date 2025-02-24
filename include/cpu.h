@@ -24,11 +24,11 @@ private:
 
   // Memory access methods
   u8 read_byte(u16 address);
-  void write_byte(u16 address, u8 value);
+  void write_byte(const u16 address, const u8 value);
 
   // Flag operations
-  void set_flag(Flag flag, bool value);
-  void update_zero_and_negative_flags(u8 value);
+  void set_flag(const Flag flag, const bool value);
+  void update_zero_and_negative_flags(const u8 value);
 
   // Addressing modes
   u16 immediate(bool &page_crossed);
@@ -43,32 +43,32 @@ private:
 
   // Operations
   // Load operations
-  void op_lda(u16 addr);
-  void op_ldx(u16 addr);
-  void op_ldy(u16 addr);
+  void op_lda(const u16 addr);
+  void op_ldx(const u16 addr);
+  void op_ldy(const u16 addr);
 
   // Store operations
-  void op_sta(u16 addr);
-  void op_stx(u16 addr);
-  void op_sty(u16 addr);
+  void op_sta(const u16 addr);
+  void op_stx(const u16 addr);
+  void op_sty(const u16 addr);
 
   // Transfer operations
-  void op_tax(u16 addr);
-  void op_tay(u16 addr);
-  void op_txa(u16 addr);
-  void op_tya(u16 addr);
-  void op_tsx(u16 addr);
-  void op_txs(u16 addr);
+  void op_tax(const u16 addr);
+  void op_tay(const u16 addr);
+  void op_txa(const u16 addr);
+  void op_tya(const u16 addr);
+  void op_tsx(const u16 addr);
+  void op_txs(const u16 addr);
 
   // Stack operations
-  void op_pha(u16 addr);
-  void op_php(u16 addr);
-  void op_pla(u16 addr);
-  void op_plp(u16 addr);
+  void op_pha(const u16 addr);
+  void op_php(const u16 addr);
+  void op_pla(const u16 addr);
+  void op_plp(const u16 addr);
 
   // Shift operations
-  void op_asl_acc(u16 addr);
-  void op_asl(u16 addr);
+  void op_asl_acc(const u16 addr);
+  void op_asl(const u16 addr);
 
 public:
   CPU(Bus &bus_ref);

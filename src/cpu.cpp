@@ -81,7 +81,6 @@ void CPU::clock() {
       throw std::runtime_error("Unknown opcode: " + std::to_string(opcode));
     }
 
-    // Set initial cycles
     _cycles = it->second.cycles;
 
     auto addr_mode = it->second.mode;
@@ -98,7 +97,6 @@ void CPU::clock() {
       }
     }
 
-    // Execute the operation
     (this->*operation)(addr_or_data);
   }
   _cycles--;
@@ -115,8 +113,10 @@ void CPU::reset() {
 }
 
 // Memory operations
-u8 CPU::read_byte(u16 address) { return _bus.read(address); }
-void CPU::write_byte(u16 address, u8 value) { _bus.write(address, value); }
+u8 CPU::read_byte(const u16 address) { return _bus.read(address); }
+void CPU::write_byte(const u16 address, const u8 value) {
+  _bus.write(address, value);
+}
 
 // Getters
 u8 CPU::get_accumulator() const { return _A; }
@@ -133,7 +133,7 @@ void CPU::set_sp(u8 sp) { _SP = sp; }
 // Flag operations
 bool CPU::get_flag(Flag flag) const { return (_status & (u8)(flag)) != 0; }
 
-void CPU::set_flag(Flag flag, bool value) {
+void CPU::set_flag(const Flag flag, const bool value) {
   if (value) {
     _status |= (u8)(flag);
   } else {
@@ -160,12 +160,12 @@ u16 CPU::zero_page(bool &page_crossed) {
 
 u16 CPU::zero_page_x(bool &page_crossed) {
   u8 zp_addr = read_byte(_PC++);
-  return static_cast<u16>((zp_addr + _X) & 0xFF); // Wrap around in zero page
+  return (u16)((zp_addr + _X) & 0xFF); // Wrap around in zero page
 }
 
 u16 CPU::zero_page_y(bool &page_crossed) {
   u8 zp_addr = read_byte(_PC++);
-  return static_cast<u16>((zp_addr + _Y) & 0xFF); // Wrap around in zero page
+  return (u16)((zp_addr + _Y) & 0xFF); // Wrap around in zero page
 }
 
 u16 CPU::absolute(bool &page_crossed) {
@@ -180,18 +180,14 @@ u16 CPU::absolute_x(bool &page_crossed) {
   u16 base_addr = (addr_high << 8) | addr_low;
   u16 final_addr = base_addr + _X;
 
-  // Check if page boundary is crossed
   page_crossed = ((base_addr & 0xFF00) != (final_addr & 0xFF00));
-
   return final_addr;
 }
 u16 CPU::absolute_y(bool &page_crossed) {
-  u16 base_addr = absolute(page_crossed); // Get the base address
+  u16 base_addr = absolute(page_crossed);
   u16 final_addr = base_addr + _Y;
 
-  // Check if page boundary is crossed
   page_crossed = ((base_addr & 0xFF00) != (final_addr & 0xFF00));
-
   return final_addr;
 }
 
@@ -201,8 +197,7 @@ u16 CPU::indirect_x(bool &page_crossed) {
 
   // Read two bytes from the computed zero page address
   u16 effective_addr_low = read_byte(zp_addr);
-  u16 effective_addr_high =
-      read_byte(static_cast<u16>((zp_addr + 1) & 0xFF)); // Wrap in zero page
+  u16 effective_addr_high = read_byte((u16)((zp_addr + 1) & 0xFF));
 
   return (effective_addr_high << 8) | effective_addr_low;
 }
@@ -210,16 +205,12 @@ u16 CPU::indirect_x(bool &page_crossed) {
 u16 CPU::indirect_y(bool &page_crossed) {
   u8 zp_addr = read_byte(_PC++);
 
-  // Read two bytes from the zero page address
   u16 effective_addr_low = read_byte(zp_addr);
-  u16 effective_addr_high =
-      read_byte(static_cast<u16>((zp_addr + 1) & 0xFF)); // Wrap in zero page
+  u16 effective_addr_high = read_byte(((u16)((zp_addr + 1) & 0xFF)));
 
-  // Combine bytes and add Y
   u16 base_addr = (effective_addr_high << 8) | effective_addr_low;
   u16 final_addr = base_addr + _Y;
 
-  // Check if page boundary is crossed
   page_crossed = ((base_addr & 0xFF00) != (final_addr & 0xFF00));
 
   return final_addr;
@@ -230,75 +221,75 @@ u16 CPU::indirect_y(bool &page_crossed) {
 //////////////////////////////////////////////////////////////////////////
 
 // Load operations
-void CPU::op_lda(u16 addr) {
+void CPU::op_lda(const u16 addr) {
   _A = read_byte(addr);
   update_zero_and_negative_flags(_A);
 }
 
-void CPU::op_ldx(u16 addr) {
+void CPU::op_ldx(const u16 addr) {
   _X = read_byte(addr);
   update_zero_and_negative_flags(_X);
 }
 
-void CPU::op_ldy(u16 addr) {
+void CPU::op_ldy(const u16 addr) {
   _Y = read_byte(addr);
   update_zero_and_negative_flags(_Y);
 }
 
 // Store operations
-void CPU::op_sta(u16 addr) { write_byte(addr, _A); }
+void CPU::op_sta(const u16 addr) { write_byte(addr, _A); }
 
-void CPU::op_stx(u16 addr) { write_byte(addr, _X); }
+void CPU::op_stx(const u16 addr) { write_byte(addr, _X); }
 
-void CPU::op_sty(u16 addr) { write_byte(addr, _Y); }
+void CPU::op_sty(const u16 addr) { write_byte(addr, _Y); }
 
 // Transfer operations
-void CPU::op_tax(u16 addr) {
+void CPU::op_tax(const u16 addr) {
   _X = _A;
   update_zero_and_negative_flags(_X);
 }
 
-void CPU::op_tay(u16 addr) {
+void CPU::op_tay(const u16 addr) {
   _Y = _A;
   update_zero_and_negative_flags(_Y);
 }
 
-void CPU::op_txa(u16 addr) {
+void CPU::op_txa(const u16 addr) {
   _A = _X;
   update_zero_and_negative_flags(_A);
 }
 
-void CPU::op_tsx(u16 addr) {
+void CPU::op_tsx(const u16 addr) {
   _X = _SP;
   update_zero_and_negative_flags(_X);
 }
 
-void CPU::op_txs(u16 addr) { _SP = _X; }
+void CPU::op_txs(const u16 addr) { _SP = _X; }
 
-void CPU::op_tya(u16 addr) {
+void CPU::op_tya(const u16 addr) {
   _A = _Y;
   update_zero_and_negative_flags(_A);
 }
 
 // Stack operations
-void CPU::op_pha(u16 addr) {
+void CPU::op_pha(const u16 addr) {
   write_byte(0x0100 + _SP, _A);
   _SP--;
 }
 
-void CPU::op_php(u16 addr) {
+void CPU::op_php(const u16 addr) {
   // When pushing the status register, set bits 4 and 5 (B flag and unused flag)
   write_byte(0x0100 + _SP, _status | 0x30);
   _SP--;
 }
 
-void CPU::op_pla(u16 addr) {
+void CPU::op_pla(const u16 addr) {
   _SP++;
   _A = read_byte(0x0100 + _SP);
   update_zero_and_negative_flags(_A);
 }
 
-void CPU::op_plp(u16 addr) {
+void CPU::op_plp(const u16 addr) {
   _SP++;
   uint8_t pulled_status = read_byte(0x0100 + _SP);
   uint8_t break_flag = _status & 0x10;
@@ -309,13 +300,13 @@ void CPU::op_plp(u16 addr) {
 }
 
 // ASL operations
-void CPU::op_asl_acc(u16 addr) {
+void CPU::op_asl_acc(const u16 addr) {
   set_flag(Flag::CARRY, (_A & 0x80) != 0);
   _A <<= 1;
   update_zero_and_negative_flags(_A);
 }
 
-void CPU::op_asl(u16 addr) {
+void CPU::op_asl(const u16 addr) {
   u8 value = read_byte(addr);
   set_flag(Flag::CARRY, (value & 0x80) != 0);
   value <<= 1;
