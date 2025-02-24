@@ -1,22 +1,6 @@
-#include "../include/bus.h"
-#include "../include/cpu.h"
-#include "types.h"
-#include <gtest/gtest.h>
+#include "cpu_test_base.h"
 
-class CPUTestInit : public ::testing::Test {
-protected:
-  void SetUp() override { cpu.reset(); }
-
-  void execute_cycles(int cycles) {
-    for (int i = 0; i < cycles; i++) {
-      cpu.clock();
-    }
-    EXPECT_EQ(cpu.get_remaining_cycles(), 0);
-  }
-
-  nes::Bus bus;
-  nes::CPU cpu{bus};
-};
+class CPUTestInit : public CPUTestBase {};
 
 TEST_F(CPUTestInit, initialization) {
   EXPECT_EQ(cpu.get_accumulator(), 0x00);

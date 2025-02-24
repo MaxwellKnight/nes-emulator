@@ -1,22 +1,6 @@
-#include "../include/bus.h"
-#include "../include/cpu.h"
-#include "types.h"
-#include <gtest/gtest.h>
+#include "cpu_test_base.h"
 
-class CPUTransferTest : public ::testing::Test {
-protected:
-  void SetUp() override { cpu.reset(); }
-
-  void execute_cycles(int cycles) {
-    for (int i = 0; i < cycles; i++) {
-      cpu.clock();
-    }
-    EXPECT_EQ(cpu.get_remaining_cycles(), 0);
-  }
-
-  nes::Bus bus;
-  nes::CPU cpu{bus};
-};
+class CPUTransferTest : public CPUTestBase {};
 
 TEST_F(CPUTransferTest, tax) {
   bus.write(0xFFFC, (nes::u8)(nes::Opcode::LDA_IM));
