@@ -43,8 +43,3 @@ target_link_libraries(run_tests PRIVATE
 
 # Add tests to CTest
 add_test(NAME UnitTests COMMAND run_tests)
-
-# Install rules (optional)
-install(TARGETS 6502emu
-    RUNTIME DESTINATION bin
-)
