@@ -85,6 +85,12 @@ private:
   void txs();
   void tya();
 
+  // Stack
+  void pha();
+  void php();
+  void pla();
+  void plp();
+
   // Internal methods
   void write_byte(u16 address, u8 value);
   void update_zero_and_negative_flags(u8 value);

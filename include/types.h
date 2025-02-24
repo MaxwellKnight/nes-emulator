@@ -64,13 +64,18 @@ enum class Opcode : u8 {
   STY_ABS = 0x8C, // STY Absolute
   STY_ZP = 0x84,  // STY Zero Page
   STY_XZP = 0x94, // STY Zero Page X-Index
-  //
+  // Transfer
   TAX = 0xAA, // Transfer A to X
   TXA = 0x8A, // Transfer X to A
   TAY = 0xA8, // Transfer A to Y
   TSX = 0xBA, // Transfer Stack Pointer to Index X
   TXS = 0x9A, // Transfer Index X to Stack Pointer
   TYA = 0x98, // Transfer Index X to A
+  // Stack
+  PHA = 0x48, // Push A to the Stack
+  PHP = 0x08, // Push Status to the Stack
+  PLA = 0x68, // Pull A from the Stack
+  PLP = 0x28, // Pull Status from the Stack
 };
 
 enum class Flag : u8 {

@@ -45,13 +45,18 @@ CPU::CPU(Bus &bus_ref) : _bus(bus_ref) {
       {(u8)Opcode::STY_ABS, {&CPU::sty_absolute, 4, "STY"}},
       {(u8)Opcode::STY_ZP, {&CPU::sty_zero_page, 3, "STY"}},
       {(u8)Opcode::STY_XZP, {&CPU::sty_zero_page_x, 4, "STY"}},
-      //
+      // Transfer
       {(u8)Opcode::TAX, {&CPU::tax, 2, "TAX"}},
       {(u8)Opcode::TAY, {&CPU::tay, 2, "TAY"}},
       {(u8)Opcode::TSX, {&CPU::tsx, 2, "TSX"}},
       {(u8)Opcode::TYA, {&CPU::tya, 2, "TYA"}},
       {(u8)Opcode::TXS, {&CPU::txs, 2, "TXS"}},
-      {(u8)Opcode::TXA, {&CPU::txa, 2, "TXA"}}};
+      {(u8)Opcode::TXA, {&CPU::txa, 2, "TXA"}},
+      // Stack
+      {(u8)Opcode::PHA, {&CPU::pha, 3, "PHA"}},
+      {(u8)Opcode::PLA, {&CPU::pla, 4, "PHA"}},
+      {(u8)Opcode::PLP, {&CPU::plp, 4, "PLP"}},
+      {(u8)Opcode::PHP, {&CPU::php, 3, "PHP"}}};
 }
 
 void CPU::clock() {
@@ -339,6 +344,27 @@ void CPU::txs() { _SP = _X; }
 void CPU::tya() {
   _A = _Y;
   update_zero_and_negative_flags(_A);
+}
+
+// Stack
+void CPU::pha() { _bus.write(0x0100 + _SP--, _A); }
+void CPU::php() { _bus.write(0x0100 + _SP--, _status); }
+void CPU::pla() {
+  _A = _bus.read(0x0100 + ++_SP);
+  update_zero_and_negative_flags(_A);
+}
+
+void CPU::plp() {
+  _SP++;
+  // Read the value from the stack ($0100 + SP)
+  uint8_t pulled_status = _bus.read(0x0100 + _SP);
+
+  // Keep the current Break flag status
+  uint8_t break_flag = _status & 0x10;
+
+  // Set the status register with the pulled value
+  // but preserve the Break flag and force Unused flag set
+  _status = (pulled_status & ~0x10) | break_flag | 0x20;
 }
 
 // Addressing modes

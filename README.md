@@ -1,6 +1,6 @@
 # NES Emulator
 
-A 6502 CPU emulator for the Nintendo Entertainment System (NES) written in C++.
+A 6502 micro-processor emulator for the Nintendo Entertainment System (NES) written in C++.
 
 ## Prerequisites
 
@@ -73,21 +73,6 @@ mkdir build && cd build
 cmake ..
 make
 ```
-
-## Project Structure
-
-```
-.
-├── CMakeLists.txt  # CMake build configuration
-├── include/        # Header files
-│   ├── bus.h      # System bus interface
-│   └── cpu.h      # 6502 CPU implementation
-├── src/           # Source files
-│   └── cpu.cpp    # CPU implementation
-└── tests/         # Test files
-    └── cpu_test.cpp # CPU unit tests
-```
-
 ## Running Tests
 
 ### macOS/Linux
