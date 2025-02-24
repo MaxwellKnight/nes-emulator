@@ -91,6 +91,13 @@ private:
   void pla();
   void plp();
 
+  // ASL
+  void asl_accumulator();
+  void asl_absolute();
+  void asl_absolute_x();
+  void asl_zero_page();
+  void asl_zero_page_x();
+
   // Internal methods
   void write_byte(u16 address, u8 value);
   void update_zero_and_negative_flags(u8 value);

@@ -1,4 +1,5 @@
 #include "../include/cpu.h"
+#include "types.h"
 #include <string>
 
 namespace nes {
@@ -54,7 +55,13 @@ CPU::CPU(Bus &bus_ref) : _bus(bus_ref) {
       {(u8)Opcode::PHA, {&CPU::pha, 3, "PHA"}},
       {(u8)Opcode::PLA, {&CPU::pla, 4, "PHA"}},
       {(u8)Opcode::PLP, {&CPU::plp, 4, "PLP"}},
-      {(u8)Opcode::PHP, {&CPU::php, 3, "PHP"}}};
+      {(u8)Opcode::PHP, {&CPU::php, 3, "PHP"}},
+      // ASL
+      {(u8)Opcode::ASL_ACC, {&CPU::asl_accumulator, 2, "ASL"}},
+      {(u8)Opcode::ASL_XABS, {&CPU::asl_absolute_x, 7, "ASL"}},
+      {(u8)Opcode::ASL_ZP, {&CPU::asl_zero_page, 5, "ASL"}},
+      {(u8)Opcode::ASL_XZP, {&CPU::asl_zero_page_x, 6, "ASL"}},
+      {(u8)Opcode::ASL_ABS, {&CPU::asl_absolute, 6, "ASL"}}};
 }
 
 void CPU::clock() {
@@ -359,6 +366,57 @@ void CPU::plp() {
   // Set the status register with the pulled value
   // but preserve the Break flag and force Unused flag set
   _status = (pulled_status & ~0x10) | break_flag | 0x20;
+}
+
+// ASL
+void CPU::asl_accumulator() {
+  set_flag(Flag::CARRY, (_A & 0x80) != 0);
+  _A <<= 1;
+  update_zero_and_negative_flags(_A);
+}
+
+void CPU::asl_absolute() {
+  u16 addr = addr_absolute();
+  u8 value = read_byte(addr);
+
+  set_flag(Flag::CARRY, (value & 0x80) != 0);
+
+  value <<= 1;
+  write_byte(addr, value);
+  update_zero_and_negative_flags(value);
+}
+
+void CPU::asl_absolute_x() {
+  u16 addr = addr_absolute_x();
+  u8 value = read_byte(addr);
+
+  set_flag(Flag::CARRY, (value & 0x80) != 0);
+
+  value <<= 1;
+  write_byte(addr, value);
+  update_zero_and_negative_flags(value);
+}
+
+void CPU::asl_zero_page() {
+  u16 addr = addr_zero_page();
+  u8 value = read_byte(addr);
+
+  set_flag(Flag::CARRY, (value & 0x80) != 0);
+
+  value <<= 1;
+  write_byte(addr, value);
+  update_zero_and_negative_flags(value);
+}
+
+void CPU::asl_zero_page_x() {
+  u16 addr = addr_zero_page_x();
+  u8 value = read_byte(addr);
+
+  set_flag(Flag::CARRY, (value & 0x80) != 0);
+
+  value <<= 1;
+  write_byte(addr, value);
+  update_zero_and_negative_flags(value);
 }
 
 // Addressing modes

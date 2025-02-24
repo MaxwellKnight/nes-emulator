@@ -76,6 +76,12 @@ enum class Opcode : u8 {
   PHP = 0x08, // Push Status to the Stack
   PLA = 0x68, // Pull A from the Stack
   PLP = 0x28, // Pull Status from the Stack
+  // ASL
+  ASL_ACC = 0x0A,  // Arithmetic Shift Left with A
+  ASL_ABS = 0x0E,  // Arithmetic Shift Left Absolute
+  ASL_XABS = 0x1E, // Arithmetic Shift Left Absolute X-Index
+  ASL_ZP = 0x06,   // Arithmetic Shift Left Zero Page
+  ASL_XZP = 0x16,  // Arithmetic Shift Left Zero Page X-Index
 };
 
 enum class Flag : u8 {
