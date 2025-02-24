@@ -6,5 +6,4 @@ int main() {
   nes::CPU cpu{bus};
 
   cpu.reset();
-  cpu.print_cpu_state();
 }

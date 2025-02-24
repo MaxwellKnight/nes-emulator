@@ -26,7 +26,7 @@ brew install cmake googletest
 
 2. Clone and build:
 ```bash
-git clone https://github.com/MaxwellKnight/cpu6502-emulator.git
+git clone https://github.com/MaxwellKnight/nes-emulator.git
 cd nes-emulator
 mkdir build && cd build
 cmake ..
@@ -37,7 +37,7 @@ make
 
 1. Clone and build:
 ```cmd
-git clone https://github.com/MaxwellKnight/cpu6502-emulator.git
+git clone https://github.com/MaxwellKnight/nes-emulator.git
 cd nes-emulator
 mkdir build
 cd build
@@ -67,7 +67,7 @@ sudo dnf install cmake gcc-c++ gtest-devel
 
 2. Clone and build:
 ```bash
-git clone https://github.com/MaxwellKnight/cpu6502-emulator.git
+git clone https://github.com/MaxwellKnight/nes-emulator.git
 cd nes-emulator
 mkdir build && cd build
 cmake ..

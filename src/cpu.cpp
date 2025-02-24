@@ -1,6 +1,4 @@
 #include "../include/cpu.h"
-#include <iomanip>
-#include <iostream>
 #include <string>
 
 namespace nes {
@@ -355,11 +353,7 @@ void CPU::pla() {
 }
 
 void CPU::plp() {
-  _SP++;
-  // Read the value from the stack ($0100 + SP)
-  uint8_t pulled_status = _bus.read(0x0100 + _SP);
-
-  // Keep the current Break flag status
+  uint8_t pulled_status = _bus.read(0x0100 + ++_SP);
   uint8_t break_flag = _status & 0x10;
 
   // Set the status register with the pulled value
@@ -413,21 +407,4 @@ u16 CPU::addr_indirect_y(u8 zp_addr) {
 bool CPU::check_page_cross(u16 addr1, u16 addr2) {
   return (addr1 & 0xFF00) != (addr2 & 0xFF00);
 }
-
-void CPU::print_cpu_state() const {
-  std::cout << "CPU State:\n";
-  std::cout << "A:  0x" << std::hex << std::setw(2) << std::setfill('0')
-            << (int)get_accumulator() << '\n';
-  std::cout << "X:  0x" << std::hex << std::setw(2) << std::setfill('0')
-            << (int)get_x() << '\n';
-  std::cout << "Y:  0x" << std::hex << std::setw(2) << std::setfill('0')
-            << (int)get_y() << '\n';
-  std::cout << "PC: 0x" << std::hex << std::setw(4) << std::setfill('0')
-            << (int)get_pc() << '\n';
-  std::cout << "SP: 0x" << std::hex << std::setw(2) << std::setfill('0')
-            << (int)get_sp() << '\n';
-  std::cout << "Status: 0x" << std::hex << std::setw(2) << std::setfill('0')
-            << (int)get_status() << "\n\n";
-}
-
 } // namespace nes
