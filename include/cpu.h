@@ -19,6 +19,9 @@ class CPU {
   // Reference to the bus for memory access
   Bus &_bus;
 
+  // Used for addressing mode to know if a page is crossed to add a cycle
+  bool _page_crossed = false;
+
   // Instruction table mapping opcodes to handlers
   static constexpr size_t INSTRUCTION_SIZE = 256;
   std::array<Instruction, INSTRUCTION_SIZE> _instruction_table;
@@ -32,15 +35,15 @@ class CPU {
   void update_zero_and_negative_flags(const u8 value);
 
   // Addressing modes
-  u16 immediate(bool &page_crossed);
-  u16 zero_page(bool &page_crossed);
-  u16 zero_page_x(bool &page_crossed);
-  u16 zero_page_y(bool &page_crossed);
-  u16 absolute(bool &page_crossed);
-  u16 absolute_x(bool &page_crossed);
-  u16 absolute_y(bool &page_crossed);
-  u16 indirect_x(bool &page_crossed);
-  u16 indirect_y(bool &page_crossed);
+  u16 immediate();
+  u16 zero_page();
+  u16 zero_page_x();
+  u16 zero_page_y();
+  u16 absolute();
+  u16 absolute_x();
+  u16 absolute_y();
+  u16 indirect_x();
+  u16 indirect_y();
 
   // Operations that require an address
   // Load operations

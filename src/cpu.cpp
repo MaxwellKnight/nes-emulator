@@ -113,11 +113,11 @@ void CPU::clock() {
       auto addr_mode = instruction.mode;
       u16 addr = 0;
       if (addr_mode != nullptr) {
-        bool page_crossed = false;
-        addr = (this->*addr_mode)(page_crossed);
+        addr = (this->*addr_mode)();
 
-        if (page_crossed && instruction.is_extra_cycle) {
+        if (_page_crossed && instruction.is_extra_cycle) {
           _cycles++;
+          _page_crossed = false;
         }
       }
 
@@ -174,49 +174,49 @@ void CPU::update_zero_and_negative_flags(u8 value) {
 // ADDRESSING MODES
 //////////////////////////////////////////////////////////////////////////
 
-u16 CPU::immediate(bool &page_crossed) {
+u16 CPU::immediate() {
   return _PC++;  // Return the PC then increment it
 }
 
-u16 CPU::zero_page(bool &page_crossed) {
+u16 CPU::zero_page() {
   return read_byte(_PC++);  // Zero page address is just a single byte
 }
 
-u16 CPU::zero_page_x(bool &page_crossed) {
+u16 CPU::zero_page_x() {
   u8 zp_addr = read_byte(_PC++);
   return (u16)((zp_addr + _X) & 0xFF);  // Wrap around in zero page
 }
 
-u16 CPU::zero_page_y(bool &page_crossed) {
+u16 CPU::zero_page_y() {
   u8 zp_addr = read_byte(_PC++);
   return (u16)((zp_addr + _Y) & 0xFF);  // Wrap around in zero page
 }
 
-u16 CPU::absolute(bool &page_crossed) {
+u16 CPU::absolute() {
   u16 addr_low = read_byte(_PC++);
   u16 addr_high = read_byte(_PC++);
   return (addr_high << 8) | addr_low;
 }
 
-u16 CPU::absolute_x(bool &page_crossed) {
+u16 CPU::absolute_x() {
   u16 addr_low = read_byte(_PC++);
   u16 addr_high = read_byte(_PC++);
   u16 base_addr = (addr_high << 8) | addr_low;
   u16 final_addr = base_addr + _X;
 
-  page_crossed = ((base_addr & 0xFF00) != (final_addr & 0xFF00));
+  _page_crossed = ((base_addr & 0xFF00) != (final_addr & 0xFF00));
   return final_addr;
 }
 
-u16 CPU::absolute_y(bool &page_crossed) {
-  u16 base_addr = absolute(page_crossed);
+u16 CPU::absolute_y() {
+  u16 base_addr = absolute();
   u16 final_addr = base_addr + _Y;
 
-  page_crossed = ((base_addr & 0xFF00) != (final_addr & 0xFF00));
+  _page_crossed = ((base_addr & 0xFF00) != (final_addr & 0xFF00));
   return final_addr;
 }
 
-u16 CPU::indirect_x(bool &page_crossed) {
+u16 CPU::indirect_x() {
   u8 zp_addr = read_byte(_PC++);
   zp_addr += _X;  // Add X to the zero page address (with wrap)
 
@@ -227,7 +227,7 @@ u16 CPU::indirect_x(bool &page_crossed) {
   return (effective_addr_high << 8) | effective_addr_low;
 }
 
-u16 CPU::indirect_y(bool &page_crossed) {
+u16 CPU::indirect_y() {
   u8 zp_addr = read_byte(_PC++);
 
   u16 effective_addr_low = read_byte(zp_addr);
@@ -236,7 +236,7 @@ u16 CPU::indirect_y(bool &page_crossed) {
   u16 base_addr = (effective_addr_high << 8) | effective_addr_low;
   u16 final_addr = base_addr + _Y;
 
-  page_crossed = ((base_addr & 0xFF00) != (final_addr & 0xFF00));
+  _page_crossed = ((base_addr & 0xFF00) != (final_addr & 0xFF00));
 
   return final_addr;
 }

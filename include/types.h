@@ -21,7 +21,7 @@ class Addressable {
 // Forward declarations for better type clarity
 using AddressedOperation = void (CPU::*)(u16 addr);
 using ImpliedOperation = void (CPU::*)();
-using ModeHandler = u16 (CPU::*)(bool &);
+using ModeHandler = u16 (CPU::*)();
 
 // Instruction structure with support for both addressed and implied operations
 struct Instruction {
