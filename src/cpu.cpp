@@ -103,10 +103,10 @@ CPU::CPU(Bus &bus_ref)
   // ROL
   set_op(Opcode::ROL_ACC,
          {.implied_op = &CPU::op_rol_acc, .mode = nullptr, .cycles = 2, .name = "ROL", .is_implied = true});
-  // set_op(Opcode::ROL_ABS, {.addressed_op = &CPU::op_rol, .mode = &CPU::absolute, .cycles = 6, .name = "ROL"});
-  // set_op(Opcode::ROL_ABX, {.addressed_op = &CPU::op_rol, .mode = &CPU::absolute_x, .cycles = 7, .name = "ROL"});
-  // set_op(Opcode::ROL_ZPG, {.addressed_op = &CPU::op_rol, .mode = &CPU::zero_page, .cycles = 5, .name = "ROL"});
-  // set_op(Opcode::ROL_ZPX, {.addressed_op = &CPU::op_rol, .mode = &CPU::zero_page_x, .cycles = 6, .name = "ROL"});
+  set_op(Opcode::ROL_ABS, {.addressed_op = &CPU::op_rol, .mode = &CPU::absolute, .cycles = 6, .name = "ROL"});
+  set_op(Opcode::ROL_ABX, {.addressed_op = &CPU::op_rol, .mode = &CPU::absolute_x, .cycles = 7, .name = "ROL"});
+  set_op(Opcode::ROL_ZPG, {.addressed_op = &CPU::op_rol, .mode = &CPU::zero_page, .cycles = 5, .name = "ROL"});
+  set_op(Opcode::ROL_ZPX, {.addressed_op = &CPU::op_rol, .mode = &CPU::zero_page_x, .cycles = 6, .name = "ROL"});
 
   // Flags
   set_op(Opcode::CLC_IMP,
@@ -310,11 +310,17 @@ void CPU::op_lsr(const u16 addr) {
 // ROL
 void CPU::op_rol(const u16 addr) {
   u8 value = read_byte(addr);
-  set_flag(Flag::CARRY, (value & 0x01) != 0);
-  value >>= 1 | get_flag(Flag::CARRY);
+  bool carry_bit = (value & 0x80) != 0;
+  value <<= 1;
+
+  // Put the old carry flag into bit 0
+  if (get_flag(Flag::CARRY)) {
+    value |= 0x01;
+  }
+
+  set_flag(Flag::CARRY, carry_bit);
   write_byte(addr, value);
-  set_flag(Flag::NEGATIVE, 0);
-  set_flag(Flag::ZERO, value == 0);
+  update_zero_and_negative_flags(value);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -392,8 +398,15 @@ void CPU::op_lsr_acc() {
 }
 
 void CPU::op_rol_acc() {
-  set_flag(Flag::CARRY, (_A & 0x80) != 0);
-  _A <<= 1 | get_flag(Flag::CARRY);
+  bool carry_bit = (_A & 0x80) != 0;
+  _A <<= 1;
+
+  // Put the old carry flag into bit 0
+  if (get_flag(Flag::CARRY)) {
+    _A |= 0x01;
+  }
+
+  set_flag(Flag::CARRY, carry_bit);
   update_zero_and_negative_flags(_A);
 }
 
