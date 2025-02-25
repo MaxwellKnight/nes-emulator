@@ -10,7 +10,7 @@ CPU::CPU(Bus &bus_ref)
 
   // Initialize all opcodes as invalid
   _instruction_table.fill({.addressed_op = nullptr, .mode = nullptr, .cycles = 0, .name = "???"});
-  auto set_op = [this](Opcode op, Instruction instr) { _instruction_table[(u8)op] = instr; };
+  auto set_op = [this](const Opcode &op, const Instruction &instr) { _instruction_table[(u8)op] = instr; };
 
   // LDA
   set_op(Opcode::LDA_IMM, {.addressed_op = &CPU::op_lda, .mode = &CPU::immediate, .cycles = 2, .name = "LDA"});
@@ -100,17 +100,19 @@ CPU::CPU(Bus &bus_ref)
   set_op(Opcode::LSR_ZPG, {.addressed_op = &CPU::op_lsr, .mode = &CPU::zero_page, .cycles = 5, .name = "LSR"});
   set_op(Opcode::LSR_ZPX, {.addressed_op = &CPU::op_lsr, .mode = &CPU::zero_page_x, .cycles = 6, .name = "LSR"});
 
-  // ROL (commented out in your original code)
-  // set_op(Opcode::ROL_ACC, {.implied_op = &CPU::op_rol_acc, .mode = nullptr, .cycles = 2, .name = "ROL", .is_implied =
-  // true}); set_op(Opcode::ROL_ABS, {.addressed_op = &CPU::op_rol, .mode = &CPU::absolute, .cycles = 6, .name =
-  // "ROL"}); set_op(Opcode::ROL_ABX, {.addressed_op = &CPU::op_rol, .mode = &CPU::absolute_x, .cycles = 7, .name =
-  // "ROL"}); set_op(Opcode::ROL_ZPG, {.addressed_op = &CPU::op_rol, .mode = &CPU::zero_page, .cycles = 5, .name =
-  // "ROL"}); set_op(Opcode::ROL_ZPX, {.addressed_op = &CPU::op_rol, .mode = &CPU::zero_page_x, .cycles = 6, .name =
-  // "ROL"});
+  // ROL
+  set_op(Opcode::ROL_ACC,
+         {.implied_op = &CPU::op_rol_acc, .mode = nullptr, .cycles = 2, .name = "ROL", .is_implied = true});
+  // set_op(Opcode::ROL_ABS, {.addressed_op = &CPU::op_rol, .mode = &CPU::absolute, .cycles = 6, .name = "ROL"});
+  // set_op(Opcode::ROL_ABX, {.addressed_op = &CPU::op_rol, .mode = &CPU::absolute_x, .cycles = 7, .name = "ROL"});
+  // set_op(Opcode::ROL_ZPG, {.addressed_op = &CPU::op_rol, .mode = &CPU::zero_page, .cycles = 5, .name = "ROL"});
+  // set_op(Opcode::ROL_ZPX, {.addressed_op = &CPU::op_rol, .mode = &CPU::zero_page_x, .cycles = 6, .name = "ROL"});
 
   // Flags
-  set_op(Opcode::CLC_IMP, {.implied_op = &CPU::clc, .mode = nullptr, .cycles = 2, .name = "CLC", .is_implied = true});
-  set_op(Opcode::SEC_IMP, {.implied_op = &CPU::sec, .mode = nullptr, .cycles = 2, .name = "SEC", .is_implied = true});
+  set_op(Opcode::CLC_IMP,
+         {.implied_op = &CPU::op_clc, .mode = nullptr, .cycles = 2, .name = "CLC", .is_implied = true});
+  set_op(Opcode::SEC_IMP,
+         {.implied_op = &CPU::op_sec, .mode = nullptr, .cycles = 2, .name = "SEC", .is_implied = true});
 }
 
 void CPU::clock() {
@@ -119,9 +121,7 @@ void CPU::clock() {
     set_flag(Flag::UNUSED, true);
 
     const auto &instruction = _instruction_table[opcode];
-    if (instruction.cycles == 0) {
-      throw std::runtime_error("Unknown opcode: " + std::to_string(opcode));
-    }
+    if (instruction.cycles == 0) throw std::runtime_error("Unknown opcode: " + std::to_string(opcode));
 
     _cycles = instruction.cycles;
 
@@ -131,7 +131,6 @@ void CPU::clock() {
     } else {
       // Handle operations that require addressing
       auto addr_mode = instruction.mode;
-
       u16 addr = 0;
       if (addr_mode != nullptr) {
         bool page_crossed = false;
@@ -308,6 +307,16 @@ void CPU::op_lsr(const u16 addr) {
   set_flag(Flag::ZERO, value == 0);
 }
 
+// ROL
+void CPU::op_rol(const u16 addr) {
+  u8 value = read_byte(addr);
+  set_flag(Flag::CARRY, (value & 0x01) != 0);
+  value >>= 1 | get_flag(Flag::CARRY);
+  write_byte(addr, value);
+  set_flag(Flag::NEGATIVE, 0);
+  set_flag(Flag::ZERO, value == 0);
+}
+
 //////////////////////////////////////////////////////////////////////////
 // IMPLIED OPERATIONS (operations that don't need an address)
 //////////////////////////////////////////////////////////////////////////
@@ -347,8 +356,7 @@ void CPU::op_pha() {
 }
 
 void CPU::op_php() {
-  // When pushing the status register, set bits a4 and 5 (B flag and unused
-  // flag)
+  // When pushing the status register, set bits a4 and 5 (B flag and unused flag)
   write_byte(0x0100 + _SP, _status | 0x30);
   _SP--;
 }
@@ -369,7 +377,7 @@ void CPU::op_plp() {
   _status = (pulled_status & ~0x10) | break_flag | 0x20;
 }
 
-// ASL and LSR accumulator operations
+// ASL, LSR, ROL accumulator operations
 void CPU::op_asl_acc() {
   set_flag(Flag::CARRY, (_A & 0x80) != 0);
   _A <<= 1;
@@ -383,8 +391,14 @@ void CPU::op_lsr_acc() {
   set_flag(Flag::ZERO, _A == 0);
 }
 
+void CPU::op_rol_acc() {
+  set_flag(Flag::CARRY, (_A & 0x80) != 0);
+  _A <<= 1 | get_flag(Flag::CARRY);
+  update_zero_and_negative_flags(_A);
+}
+
 // Flag operations
-void CPU::sec() { set_flag(Flag::CARRY, true); }
-void CPU::clc() { set_flag(Flag::CARRY, false); }
+void CPU::op_sec() { set_flag(Flag::CARRY, true); }
+void CPU::op_clc() { set_flag(Flag::CARRY, false); }
 
 }  // namespace nes

@@ -1,6 +1,5 @@
 #pragma once
 #include <array>
-
 #include "bus.h"
 #include "types.h"
 
@@ -44,32 +43,40 @@ class CPU {
   u16 indirect_y(bool &page_crossed);
 
   // Operations that require an address
+  // Load operations
   void op_lda(u16 addr);
   void op_ldx(u16 addr);
   void op_ldy(u16 addr);
+  // Store operations
   void op_sta(u16 addr);
   void op_stx(u16 addr);
   void op_sty(u16 addr);
+  // Shift/Rotate operations
   void op_asl(u16 addr);
   void op_lsr(u16 addr);
+  void op_rol(u16 addr);
 
   // Operations that don't require an address (implied operations)
+  // Transfer operations
   void op_tax();
   void op_tay();
   void op_txa();
   void op_tya();
   void op_tsx();
   void op_txs();
+  // Stack operations
   void op_pha();
   void op_php();
   void op_pla();
   void op_plp();
+  // Shift/Rotate operations
   void op_asl_acc();
   void op_lsr_acc();
-
+  void op_rol_acc();
+  void op_ror_acc();
   // Flag operations
-  void clc();
-  void sec();
+  void op_clc();
+  void op_sec();
 
  public:
   CPU(Bus &bus_ref);
