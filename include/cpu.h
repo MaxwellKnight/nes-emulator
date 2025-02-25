@@ -1,20 +1,21 @@
 #pragma once
+#include <unordered_map>
 
 #include "bus.h"
 #include "types.h"
-#include <unordered_map>
 
 namespace nes {
+
 class CPU {
-private:
+ private:
   // CPU Registers
-  u8 _A;      // Accumulator
-  u8 _X;      // X Register
-  u8 _Y;      // Y Register
-  u8 _SP;     // Stack Pointer
-  u8 _status; // Status Register
-  u16 _PC;    // Program Counter
-  u8 _cycles; // Remaining cycles for current instruction
+  u8 _A;       // Accumulator
+  u8 _X;       // X Register
+  u8 _Y;       // Y Register
+  u8 _SP;      // Stack Pointer
+  u8 _status;  // Status Register
+  u16 _PC;     // Program Counter
+  u8 _cycles;  // Remaining cycles for current instruction
 
   // Reference to the bus for memory access
   Bus &_bus;
@@ -41,38 +42,35 @@ private:
   u16 indirect_x(bool &page_crossed);
   u16 indirect_y(bool &page_crossed);
 
-  // Operations
-  // Load operations
-  void op_lda(const u16 addr);
-  void op_ldx(const u16 addr);
-  void op_ldy(const u16 addr);
+  // Operations that require an address
+  void op_lda(u16 addr);
+  void op_ldx(u16 addr);
+  void op_ldy(u16 addr);
+  void op_sta(u16 addr);
+  void op_stx(u16 addr);
+  void op_sty(u16 addr);
+  void op_asl(u16 addr);
+  void op_lsr(u16 addr);
 
-  // Store operations
-  void op_sta(const u16 addr);
-  void op_stx(const u16 addr);
-  void op_sty(const u16 addr);
+  // Operations that don't require an address (implied operations)
+  void op_tax();
+  void op_tay();
+  void op_txa();
+  void op_tya();
+  void op_tsx();
+  void op_txs();
+  void op_pha();
+  void op_php();
+  void op_pla();
+  void op_plp();
+  void op_asl_acc();
+  void op_lsr_acc();
 
-  // Transfer operations
-  void op_tax(const u16 addr);
-  void op_tay(const u16 addr);
-  void op_txa(const u16 addr);
-  void op_tya(const u16 addr);
-  void op_tsx(const u16 addr);
-  void op_txs(const u16 addr);
+  // Flag operations
+  void clc();
+  void sec();
 
-  // Stack operations
-  void op_pha(const u16 addr);
-  void op_php(const u16 addr);
-  void op_pla(const u16 addr);
-  void op_plp(const u16 addr);
-
-  // Shift operations
-  void op_asl_acc(const u16 addr);
-  void op_asl(const u16 addr);
-  void op_lsr_acc(const u16 addr);
-  void op_lsr(const u16 addr);
-
-public:
+ public:
   CPU(Bus &bus_ref);
 
   // Core methods
@@ -93,4 +91,4 @@ public:
   void set_sp(u8 sp);
 };
 
-} // namespace nes
+}  // namespace nes
