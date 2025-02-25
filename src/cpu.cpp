@@ -11,86 +11,104 @@ CPU::CPU(Bus &bus_ref)
   reset();
   _instruction_table = {
     // LDA
-    {(u8)Opcode::LDA_IM, {.addressed_op = &CPU::op_lda, .mode = &CPU::immediate, .cycles = 2, .name = "LDA"}},
-    {(u8)Opcode::LDA_ZP, {.addressed_op = &CPU::op_lda, .mode = &CPU::zero_page, .cycles = 3, .name = "LDA"}},
+    {(u8)Opcode::LDA_IMM, {.addressed_op = &CPU::op_lda, .mode = &CPU::immediate, .cycles = 2, .name = "LDA"}},
+    {(u8)Opcode::LDA_ZPG, {.addressed_op = &CPU::op_lda, .mode = &CPU::zero_page, .cycles = 3, .name = "LDA"}},
     {(u8)Opcode::LDA_ABS, {.addressed_op = &CPU::op_lda, .mode = &CPU::absolute, .cycles = 4, .name = "LDA"}},
-    {(u8)Opcode::LDA_XABS,
+    {(u8)Opcode::LDA_ABX,
      {.addressed_op = &CPU::op_lda, .mode = &CPU::absolute_x, .cycles = 4, .name = "LDA", .is_extra_cycle = true}},
-    {(u8)Opcode::LDA_YABS,
+    {(u8)Opcode::LDA_ABY,
      {.addressed_op = &CPU::op_lda, .mode = &CPU::absolute_y, .cycles = 4, .name = "LDA", .is_extra_cycle = true}},
-    {(u8)Opcode::LDA_XZP, {.addressed_op = &CPU::op_lda, .mode = &CPU::zero_page_x, .cycles = 4, .name = "LDA"}},
-    {(u8)Opcode::LDA_XZPI, {.addressed_op = &CPU::op_lda, .mode = &CPU::indirect_x, .cycles = 6, .name = "LDA"}},
-    {(u8)Opcode::LDA_YZPI,
+    {(u8)Opcode::LDA_ZPX, {.addressed_op = &CPU::op_lda, .mode = &CPU::zero_page_x, .cycles = 4, .name = "LDA"}},
+    {(u8)Opcode::LDA_IZX, {.addressed_op = &CPU::op_lda, .mode = &CPU::indirect_x, .cycles = 6, .name = "LDA"}},
+    {(u8)Opcode::LDA_IZY,
      {.addressed_op = &CPU::op_lda, .mode = &CPU::indirect_y, .cycles = 5, .name = "LDA", .is_extra_cycle = true}},
 
     // LDX
-    {(u8)Opcode::LDX_IM, {.addressed_op = &CPU::op_ldx, .mode = &CPU::immediate, .cycles = 2, .name = "LDX"}},
+    {(u8)Opcode::LDX_IMM, {.addressed_op = &CPU::op_ldx, .mode = &CPU::immediate, .cycles = 2, .name = "LDX"}},
     {(u8)Opcode::LDX_ABS, {.addressed_op = &CPU::op_ldx, .mode = &CPU::absolute, .cycles = 4, .name = "LDX"}},
-    {(u8)Opcode::LDX_YABS,
+    {(u8)Opcode::LDX_ABY,
      {.addressed_op = &CPU::op_ldx, .mode = &CPU::absolute_y, .cycles = 4, .name = "LDX", .is_extra_cycle = true}},
-    {(u8)Opcode::LDX_ZP, {.addressed_op = &CPU::op_ldx, .mode = &CPU::zero_page, .cycles = 3, .name = "LDX"}},
-    {(u8)Opcode::LDX_YZP, {.addressed_op = &CPU::op_ldx, .mode = &CPU::zero_page_y, .cycles = 4, .name = "LDX"}},
+    {(u8)Opcode::LDX_ZPG, {.addressed_op = &CPU::op_ldx, .mode = &CPU::zero_page, .cycles = 3, .name = "LDX"}},
+    {(u8)Opcode::LDX_ZPY, {.addressed_op = &CPU::op_ldx, .mode = &CPU::zero_page_y, .cycles = 4, .name = "LDX"}},
 
     // LDY
-    {(u8)Opcode::LDY_IM, {.addressed_op = &CPU::op_ldy, .mode = &CPU::immediate, .cycles = 2, .name = "LDY"}},
+    {(u8)Opcode::LDY_IMM, {.addressed_op = &CPU::op_ldy, .mode = &CPU::immediate, .cycles = 2, .name = "LDY"}},
     {(u8)Opcode::LDY_ABS, {.addressed_op = &CPU::op_ldy, .mode = &CPU::absolute, .cycles = 4, .name = "LDY"}},
-    {(u8)Opcode::LDY_XABS,
+    {(u8)Opcode::LDY_ABX,
      {.addressed_op = &CPU::op_ldy, .mode = &CPU::absolute_x, .cycles = 4, .name = "LDY", .is_extra_cycle = true}},
-    {(u8)Opcode::LDY_ZP, {.addressed_op = &CPU::op_ldy, .mode = &CPU::zero_page, .cycles = 3, .name = "LDY"}},
-    {(u8)Opcode::LDY_XZP, {.addressed_op = &CPU::op_ldy, .mode = &CPU::zero_page_x, .cycles = 4, .name = "LDY"}},
+    {(u8)Opcode::LDY_ZPG, {.addressed_op = &CPU::op_ldy, .mode = &CPU::zero_page, .cycles = 3, .name = "LDY"}},
+    {(u8)Opcode::LDY_ZPX, {.addressed_op = &CPU::op_ldy, .mode = &CPU::zero_page_x, .cycles = 4, .name = "LDY"}},
 
     // STA
     {(u8)Opcode::STA_ABS, {.addressed_op = &CPU::op_sta, .mode = &CPU::absolute, .cycles = 4, .name = "STA"}},
-    {(u8)Opcode::STA_XABS, {.addressed_op = &CPU::op_sta, .mode = &CPU::absolute_x, .cycles = 5, .name = "STA"}},
-    {(u8)Opcode::STA_YABS, {.addressed_op = &CPU::op_sta, .mode = &CPU::absolute_y, .cycles = 5, .name = "STA"}},
-    {(u8)Opcode::STA_ZP, {.addressed_op = &CPU::op_sta, .mode = &CPU::zero_page, .cycles = 3, .name = "STA"}},
-    {(u8)Opcode::STA_XZP, {.addressed_op = &CPU::op_sta, .mode = &CPU::zero_page_x, .cycles = 4, .name = "STA"}},
-    {(u8)Opcode::STA_XZPI, {.addressed_op = &CPU::op_sta, .mode = &CPU::indirect_x, .cycles = 6, .name = "STA"}},
-    {(u8)Opcode::STA_YZPI, {.addressed_op = &CPU::op_sta, .mode = &CPU::indirect_y, .cycles = 6, .name = "STA"}},
+    {(u8)Opcode::STA_ABX, {.addressed_op = &CPU::op_sta, .mode = &CPU::absolute_x, .cycles = 5, .name = "STA"}},
+    {(u8)Opcode::STA_ABY, {.addressed_op = &CPU::op_sta, .mode = &CPU::absolute_y, .cycles = 5, .name = "STA"}},
+    {(u8)Opcode::STA_ZPG, {.addressed_op = &CPU::op_sta, .mode = &CPU::zero_page, .cycles = 3, .name = "STA"}},
+    {(u8)Opcode::STA_ZPX, {.addressed_op = &CPU::op_sta, .mode = &CPU::zero_page_x, .cycles = 4, .name = "STA"}},
+    {(u8)Opcode::STA_IZX, {.addressed_op = &CPU::op_sta, .mode = &CPU::indirect_x, .cycles = 6, .name = "STA"}},
+    {(u8)Opcode::STA_IZY, {.addressed_op = &CPU::op_sta, .mode = &CPU::indirect_y, .cycles = 6, .name = "STA"}},
 
     // STX
     {(u8)Opcode::STX_ABS, {.addressed_op = &CPU::op_stx, .mode = &CPU::absolute, .cycles = 4, .name = "STX"}},
-    {(u8)Opcode::STX_ZP, {.addressed_op = &CPU::op_stx, .mode = &CPU::zero_page, .cycles = 3, .name = "STX"}},
-    {(u8)Opcode::STX_YZP, {.addressed_op = &CPU::op_stx, .mode = &CPU::zero_page_y, .cycles = 4, .name = "STX"}},
+    {(u8)Opcode::STX_ZPG, {.addressed_op = &CPU::op_stx, .mode = &CPU::zero_page, .cycles = 3, .name = "STX"}},
+    {(u8)Opcode::STX_ZPY, {.addressed_op = &CPU::op_stx, .mode = &CPU::zero_page_y, .cycles = 4, .name = "STX"}},
 
     // STY
     {(u8)Opcode::STY_ABS, {.addressed_op = &CPU::op_sty, .mode = &CPU::absolute, .cycles = 4, .name = "STY"}},
-    {(u8)Opcode::STY_ZP, {.addressed_op = &CPU::op_sty, .mode = &CPU::zero_page, .cycles = 3, .name = "STY"}},
-    {(u8)Opcode::STY_XZP, {.addressed_op = &CPU::op_sty, .mode = &CPU::zero_page_x, .cycles = 4, .name = "STY"}},
+    {(u8)Opcode::STY_ZPG, {.addressed_op = &CPU::op_sty, .mode = &CPU::zero_page, .cycles = 3, .name = "STY"}},
+    {(u8)Opcode::STY_ZPX, {.addressed_op = &CPU::op_sty, .mode = &CPU::zero_page_x, .cycles = 4, .name = "STY"}},
 
     // Transfer operations (implied addressing)
-    {(u8)Opcode::TAX, {.implied_op = &CPU::op_tax, .mode = nullptr, .cycles = 2, .name = "TAX", .is_implied = true}},
-    {(u8)Opcode::TAY, {.implied_op = &CPU::op_tay, .mode = nullptr, .cycles = 2, .name = "TAY", .is_implied = true}},
-    {(u8)Opcode::TSX, {.implied_op = &CPU::op_tsx, .mode = nullptr, .cycles = 2, .name = "TSX", .is_implied = true}},
-    {(u8)Opcode::TYA, {.implied_op = &CPU::op_tya, .mode = nullptr, .cycles = 2, .name = "TYA", .is_implied = true}},
-    {(u8)Opcode::TXS, {.implied_op = &CPU::op_txs, .mode = nullptr, .cycles = 2, .name = "TXS", .is_implied = true}},
-    {(u8)Opcode::TXA, {.implied_op = &CPU::op_txa, .mode = nullptr, .cycles = 2, .name = "TXA", .is_implied = true}},
+    {(u8)Opcode::TAX_IMP,
+     {.implied_op = &CPU::op_tax, .mode = nullptr, .cycles = 2, .name = "TAX", .is_implied = true}},
+    {(u8)Opcode::TAY_IMP,
+     {.implied_op = &CPU::op_tay, .mode = nullptr, .cycles = 2, .name = "TAY", .is_implied = true}},
+    {(u8)Opcode::TSX_IMP,
+     {.implied_op = &CPU::op_tsx, .mode = nullptr, .cycles = 2, .name = "TSX", .is_implied = true}},
+    {(u8)Opcode::TYA_IMP,
+     {.implied_op = &CPU::op_tya, .mode = nullptr, .cycles = 2, .name = "TYA", .is_implied = true}},
+    {(u8)Opcode::TXS_IMP,
+     {.implied_op = &CPU::op_txs, .mode = nullptr, .cycles = 2, .name = "TXS", .is_implied = true}},
+    {(u8)Opcode::TXA_IMP,
+     {.implied_op = &CPU::op_txa, .mode = nullptr, .cycles = 2, .name = "TXA", .is_implied = true}},
 
     // Stack operations (implied addressing)
-    {(u8)Opcode::PHA, {.implied_op = &CPU::op_pha, .mode = nullptr, .cycles = 3, .name = "PHA", .is_implied = true}},
-    {(u8)Opcode::PLA, {.implied_op = &CPU::op_pla, .mode = nullptr, .cycles = 4, .name = "PLA", .is_implied = true}},
-    {(u8)Opcode::PLP, {.implied_op = &CPU::op_plp, .mode = nullptr, .cycles = 4, .name = "PLP", .is_implied = true}},
-    {(u8)Opcode::PHP, {.implied_op = &CPU::op_php, .mode = nullptr, .cycles = 3, .name = "PHP", .is_implied = true}},
+    {(u8)Opcode::PHA_IMP,
+     {.implied_op = &CPU::op_pha, .mode = nullptr, .cycles = 3, .name = "PHA", .is_implied = true}},
+    {(u8)Opcode::PLA_IMP,
+     {.implied_op = &CPU::op_pla, .mode = nullptr, .cycles = 4, .name = "PLA", .is_implied = true}},
+    {(u8)Opcode::PLP_IMP,
+     {.implied_op = &CPU::op_plp, .mode = nullptr, .cycles = 4, .name = "PLP", .is_implied = true}},
+    {(u8)Opcode::PHP_IMP,
+     {.implied_op = &CPU::op_php, .mode = nullptr, .cycles = 3, .name = "PHP", .is_implied = true}},
 
     // ASL
     {(u8)Opcode::ASL_ACC,
      {.implied_op = &CPU::op_asl_acc, .mode = nullptr, .cycles = 2, .name = "ASL", .is_implied = true}},
     {(u8)Opcode::ASL_ABS, {.addressed_op = &CPU::op_asl, .mode = &CPU::absolute, .cycles = 6, .name = "ASL"}},
-    {(u8)Opcode::ASL_XABS, {.addressed_op = &CPU::op_asl, .mode = &CPU::absolute_x, .cycles = 7, .name = "ASL"}},
-    {(u8)Opcode::ASL_ZP, {.addressed_op = &CPU::op_asl, .mode = &CPU::zero_page, .cycles = 5, .name = "ASL"}},
-    {(u8)Opcode::ASL_XZP, {.addressed_op = &CPU::op_asl, .mode = &CPU::zero_page_x, .cycles = 6, .name = "ASL"}},
+    {(u8)Opcode::ASL_ABX, {.addressed_op = &CPU::op_asl, .mode = &CPU::absolute_x, .cycles = 7, .name = "ASL"}},
+    {(u8)Opcode::ASL_ZPG, {.addressed_op = &CPU::op_asl, .mode = &CPU::zero_page, .cycles = 5, .name = "ASL"}},
+    {(u8)Opcode::ASL_ZPX, {.addressed_op = &CPU::op_asl, .mode = &CPU::zero_page_x, .cycles = 6, .name = "ASL"}},
 
     // LSR
     {(u8)Opcode::LSR_ACC,
      {.implied_op = &CPU::op_lsr_acc, .mode = nullptr, .cycles = 2, .name = "LSR", .is_implied = true}},
     {(u8)Opcode::LSR_ABS, {.addressed_op = &CPU::op_lsr, .mode = &CPU::absolute, .cycles = 6, .name = "LSR"}},
-    {(u8)Opcode::LSR_XABS, {.addressed_op = &CPU::op_lsr, .mode = &CPU::absolute_x, .cycles = 7, .name = "LSR"}},
-    {(u8)Opcode::LSR_ZP, {.addressed_op = &CPU::op_lsr, .mode = &CPU::zero_page, .cycles = 5, .name = "LSR"}},
-    {(u8)Opcode::LSR_XZP, {.addressed_op = &CPU::op_lsr, .mode = &CPU::zero_page_x, .cycles = 6, .name = "LSR"}},
+    {(u8)Opcode::LSR_ABX, {.addressed_op = &CPU::op_lsr, .mode = &CPU::absolute_x, .cycles = 7, .name = "LSR"}},
+    {(u8)Opcode::LSR_ZPG, {.addressed_op = &CPU::op_lsr, .mode = &CPU::zero_page, .cycles = 5, .name = "LSR"}},
+    {(u8)Opcode::LSR_ZPX, {.addressed_op = &CPU::op_lsr, .mode = &CPU::zero_page_x, .cycles = 6, .name = "LSR"}},
+
+    // ROL
+    //{(u8)Opcode::ROL_ACC,
+    // {.implied_op = &CPU::op_rol_acc, .mode = nullptr, .cycles = 2, .name = "ROL", .is_implied = true}},
+    //{(u8)Opcode::ROL_ABS, {.addressed_op = &CPU::op_rol, .mode = &CPU::absolute, .cycles = 6, .name = "ROL"}},
+    //{(u8)Opcode::ROL_ABX, {.addressed_op = &CPU::op_rol, .mode = &CPU::absolute_x, .cycles = 7, .name = "ROL"}},
+    //{(u8)Opcode::ROL_ZPG, {.addressed_op = &CPU::op_rol, .mode = &CPU::zero_page, .cycles = 5, .name = "ROL"}},
+    //{(u8)Opcode::ROL_ZPX, {.addressed_op = &CPU::op_rol, .mode = &CPU::zero_page_x, .cycles = 6, .name = "ROL"}},
 
     // Flags
-    {(u8)Opcode::CLC, {.implied_op = &CPU::clc, .mode = nullptr, .cycles = 2, .name = "CLC"}},
-    {(u8)Opcode::SEC, {.implied_op = &CPU::sec, .mode = nullptr, .cycles = 2, .name = "SEC"}}};
+    {(u8)Opcode::CLC_IMP, {.implied_op = &CPU::clc, .mode = nullptr, .cycles = 2, .name = "CLC", .is_implied = true}},
+    {(u8)Opcode::SEC_IMP, {.implied_op = &CPU::sec, .mode = nullptr, .cycles = 2, .name = "SEC", .is_implied = true}}};
 }
 
 void CPU::clock() {
