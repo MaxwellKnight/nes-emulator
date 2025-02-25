@@ -68,7 +68,14 @@ CPU::CPU(Bus &bus_ref) : _bus(bus_ref) {
       {(u8)Opcode::ASL_ABS, {&CPU::op_asl, &CPU::absolute, 6, "ASL"}},
       {(u8)Opcode::ASL_XABS, {&CPU::op_asl, &CPU::absolute_x, 7, "ASL"}},
       {(u8)Opcode::ASL_ZP, {&CPU::op_asl, &CPU::zero_page, 5, "ASL"}},
-      {(u8)Opcode::ASL_XZP, {&CPU::op_asl, &CPU::zero_page_x, 6, "ASL"}}};
+      {(u8)Opcode::ASL_XZP, {&CPU::op_asl, &CPU::zero_page_x, 6, "ASL"}},
+
+      // LSR
+      {(u8)Opcode::LSR_ACC, {&CPU::op_lsr_acc, nullptr, 2, "LSR"}},
+      {(u8)Opcode::LSR_ABS, {&CPU::op_lsr, &CPU::absolute, 6, "LSR"}},
+      {(u8)Opcode::LSR_XABS, {&CPU::op_lsr, &CPU::absolute_x, 7, "LSR"}},
+      {(u8)Opcode::LSR_ZP, {&CPU::op_lsr, &CPU::zero_page, 5, "LSR"}},
+      {(u8)Opcode::LSR_XZP, {&CPU::op_lsr, &CPU::zero_page_x, 6, "LSR"}}};
 }
 
 void CPU::clock() {
@@ -312,6 +319,23 @@ void CPU::op_asl(const u16 addr) {
   value <<= 1;
   write_byte(addr, value);
   update_zero_and_negative_flags(value);
+}
+
+// LSR operations
+void CPU::op_lsr_acc(const u16 addr) {
+  set_flag(Flag::CARRY, (_A & 0x01) != 0);
+  _A >>= 1;
+  set_flag(Flag::NEGATIVE, 0);
+  set_flag(Flag::ZERO, _A == 0);
+}
+
+void CPU::op_lsr(const u16 addr) {
+  u8 value = read_byte(addr);
+  set_flag(Flag::CARRY, (value & 0x01) != 0);
+  value >>= 1;
+  write_byte(addr, value);
+  set_flag(Flag::NEGATIVE, 0);
+  set_flag(Flag::ZERO, value == 0);
 }
 
 } // namespace nes

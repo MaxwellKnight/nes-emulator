@@ -69,6 +69,8 @@ private:
   // Shift operations
   void op_asl_acc(const u16 addr);
   void op_asl(const u16 addr);
+  void op_lsr_acc(const u16 addr);
+  void op_lsr(const u16 addr);
 
 public:
   CPU(Bus &bus_ref);

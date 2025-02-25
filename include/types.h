@@ -87,6 +87,12 @@ enum class Opcode : u8 {
   ASL_XABS = 0x1E, // Arithmetic Shift Left Absolute X-Index
   ASL_ZP = 0x06,   // Arithmetic Shift Left Zero Page
   ASL_XZP = 0x16,  // Arithmetic Shift Left Zero Page X-Index
+  // LSR
+  LSR_ACC = 0x4A,  //  Logical Shift Right with A
+  LSR_ABS = 0x4E,  //  Logical Shift Right Absolute
+  LSR_XABS = 0x5E, //  Logical Shift Right Absolute X-Index
+  LSR_ZP = 0x46,   //  Logical Shift Right Zero Page
+  LSR_XZP = 0x56,  //  Logical Shift Right Zero Page X-Index
 };
 
 enum class Flag : u8 {
