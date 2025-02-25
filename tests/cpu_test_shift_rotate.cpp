@@ -717,3 +717,364 @@ TEST_F(CPUShiftRotateTest, rol_multiple_operations) {
   EXPECT_FALSE(cpu.get_flag(nes::Flag::NEGATIVE));
   EXPECT_FALSE(cpu.get_flag(nes::Flag::ZERO));
 }
+
+// ROR Accumulator (0x6A)
+TEST_F(CPUShiftRotateTest, ror_accumulator_carry_clear) {
+  // Clear carry flag initially
+  bus.write(0xFFFC, (nes::u8)nes::Opcode::CLC_IMP);
+  execute_cycles(2);
+
+  // Load value into accumulator
+  bus.write(0xFFFD, (nes::u8)nes::Opcode::LDA_IMM);
+  bus.write(0xFFFE, 0x8A);  // binary: 10001010
+  execute_cycles(2);
+
+  // Execute ROR on accumulator
+  bus.write(0xFFFF, (nes::u8)nes::Opcode::ROR_ACC);
+  execute_cycles(2);  // ROR Accumulator takes 2 cycles
+
+  EXPECT_EQ(cpu.get_accumulator(), 0x45);  // binary: 01000101
+  EXPECT_FALSE(cpu.get_flag(nes::Flag::CARRY));
+  EXPECT_FALSE(cpu.get_flag(nes::Flag::NEGATIVE));
+  EXPECT_FALSE(cpu.get_flag(nes::Flag::ZERO));
+}
+
+TEST_F(CPUShiftRotateTest, ror_accumulator_carry_set) {
+  // Set carry flag initially
+  bus.write(0xFFFC, (nes::u8)nes::Opcode::SEC_IMP);
+  execute_cycles(2);
+
+  // Load value into accumulator
+  bus.write(0xFFFD, (nes::u8)nes::Opcode::LDA_IMM);
+  bus.write(0xFFFE, 0x8A);  // binary: 10001010
+  execute_cycles(2);
+
+  // Execute ROR on accumulator
+  bus.write(0xFFFF, (nes::u8)nes::Opcode::ROR_ACC);
+  execute_cycles(2);
+
+  EXPECT_EQ(cpu.get_accumulator(), 0xC5);  // binary: 11000101
+  EXPECT_FALSE(cpu.get_flag(nes::Flag::CARRY));
+  EXPECT_TRUE(cpu.get_flag(nes::Flag::NEGATIVE));
+  EXPECT_FALSE(cpu.get_flag(nes::Flag::ZERO));
+}
+
+TEST_F(CPUShiftRotateTest, ror_accumulator_carry_out) {
+  // Clear carry flag initially
+  bus.write(0xFFFC, (nes::u8)nes::Opcode::CLC_IMP);
+  execute_cycles(2);
+
+  // Load value into accumulator
+  bus.write(0xFFFD, (nes::u8)nes::Opcode::LDA_IMM);
+  bus.write(0xFFFE, 0x01);  // binary: 00000001
+  execute_cycles(2);
+
+  // Execute ROR on accumulator
+  bus.write(0xFFFF, (nes::u8)nes::Opcode::ROR_ACC);
+  execute_cycles(2);
+
+  EXPECT_EQ(cpu.get_accumulator(), 0x00);  // binary: 00000000
+  EXPECT_TRUE(cpu.get_flag(nes::Flag::CARRY));
+  EXPECT_FALSE(cpu.get_flag(nes::Flag::NEGATIVE));
+  EXPECT_TRUE(cpu.get_flag(nes::Flag::ZERO));
+}
+
+TEST_F(CPUShiftRotateTest, ror_accumulator_carry_in_and_out) {
+  // Set carry flag initially
+  bus.write(0xFFFC, (nes::u8)nes::Opcode::SEC_IMP);
+  execute_cycles(2);
+
+  // Load value into accumulator
+  bus.write(0xFFFD, (nes::u8)nes::Opcode::LDA_IMM);
+  bus.write(0xFFFE, 0x01);  // binary: 00000001
+  execute_cycles(2);
+
+  // Execute ROR on accumulator
+  bus.write(0xFFFF, (nes::u8)nes::Opcode::ROR_ACC);
+  execute_cycles(2);
+
+  EXPECT_EQ(cpu.get_accumulator(), 0x80);  // binary: 10000000
+  EXPECT_TRUE(cpu.get_flag(nes::Flag::CARRY));
+  EXPECT_TRUE(cpu.get_flag(nes::Flag::NEGATIVE));
+  EXPECT_FALSE(cpu.get_flag(nes::Flag::ZERO));
+}
+
+// ROR Absolute (0x6E)
+TEST_F(CPUShiftRotateTest, ror_absolute_carry_clear) {
+  // Clear carry flag initially
+  bus.write(0xFFFC, (nes::u8)nes::Opcode::CLC_IMP);
+  execute_cycles(2);
+
+  // Set up test value in memory
+  bus.write(0x0042, 0x8A);  // binary: 10001010
+
+  // Execute ROR on absolute address
+  bus.write(0xFFFD, (nes::u8)nes::Opcode::ROR_ABS);
+  bus.write(0xFFFE, 0x42);
+  bus.write(0xFFFF, 0x00);  // Address 0x0042
+  execute_cycles(6);        // ROR Absolute takes 6 cycles
+
+  EXPECT_EQ(cpu.get_remaining_cycles(), 0);
+  EXPECT_EQ(bus.read(0x0042), 0x45);  // binary: 01000101
+  EXPECT_FALSE(cpu.get_flag(nes::Flag::CARRY));
+  EXPECT_FALSE(cpu.get_flag(nes::Flag::NEGATIVE));
+  EXPECT_FALSE(cpu.get_flag(nes::Flag::ZERO));
+}
+
+TEST_F(CPUShiftRotateTest, ror_absolute_carry_set) {
+  // Set carry flag initially
+  bus.write(0xFFFC, (nes::u8)nes::Opcode::SEC_IMP);
+  execute_cycles(2);
+
+  // Set up test value in memory
+  bus.write(0x0042, 0x8A);  // binary: 10001010
+
+  // Execute ROR on absolute address
+  bus.write(0xFFFD, (nes::u8)nes::Opcode::ROR_ABS);
+  bus.write(0xFFFE, 0x42);
+  bus.write(0xFFFF, 0x00);  // Address 0x0042
+  execute_cycles(6);
+
+  EXPECT_EQ(bus.read(0x0042), 0xC5);  // binary: 11000101
+  EXPECT_FALSE(cpu.get_flag(nes::Flag::CARRY));
+  EXPECT_TRUE(cpu.get_flag(nes::Flag::NEGATIVE));
+  EXPECT_FALSE(cpu.get_flag(nes::Flag::ZERO));
+}
+
+// ROR Absolute X-Indexed (0x7E)
+TEST_F(CPUShiftRotateTest, ror_absolute_x) {
+  // Clear carry flag
+  bus.write(0xFFFC, (nes::u8)nes::Opcode::CLC_IMP);
+  execute_cycles(2);
+
+  // Set X register
+  bus.write(0xFFFD, (nes::u8)nes::Opcode::LDX_IMM);
+  bus.write(0xFFFE, 0x10);  // X = 0x10
+  execute_cycles(2);
+
+  // Set up test value in memory
+  bus.write(0x0052, 0x8A);  // binary: 10001010 (at address 0x0042 + 0x10)
+
+  // Execute ROR on absolute X-indexed address
+  bus.write(0xFFFF, (nes::u8)nes::Opcode::ROR_ABX);
+  bus.write(0x0000, 0x42);
+  bus.write(0x0001, 0x00);  // Base address 0x0042, X = 0x10, final = 0x0052
+  execute_cycles(7);        // ROR Absolute X takes 7 cycles
+
+  EXPECT_EQ(cpu.get_remaining_cycles(), 0);
+  EXPECT_EQ(bus.read(0x0052), 0x45);  // binary: 01000101
+  EXPECT_FALSE(cpu.get_flag(nes::Flag::CARRY));
+  EXPECT_FALSE(cpu.get_flag(nes::Flag::NEGATIVE));
+  EXPECT_FALSE(cpu.get_flag(nes::Flag::ZERO));
+}
+
+TEST_F(CPUShiftRotateTest, ror_absolute_x_carry_in_and_out) {
+  // Set carry flag
+  bus.write(0xFFFC, (nes::u8)nes::Opcode::SEC_IMP);
+  execute_cycles(2);
+
+  // Set X register
+  bus.write(0xFFFD, (nes::u8)nes::Opcode::LDX_IMM);
+  bus.write(0xFFFE, 0x10);  // X = 0x10
+  execute_cycles(2);
+
+  // Set up test value in memory
+  bus.write(0x0052, 0x01);  // binary: 00000001 (at address 0x0042 + 0x10)
+
+  // Execute ROR on absolute X-indexed address
+  bus.write(0xFFFF, (nes::u8)nes::Opcode::ROR_ABX);
+  bus.write(0x0000, 0x42);
+  bus.write(0x0001, 0x00);  // Base address 0x0042, X = 0x10, final = 0x0052
+  execute_cycles(7);
+
+  EXPECT_EQ(bus.read(0x0052), 0x80);  // binary: 10000000
+  EXPECT_TRUE(cpu.get_flag(nes::Flag::CARRY));
+  EXPECT_TRUE(cpu.get_flag(nes::Flag::NEGATIVE));
+  EXPECT_FALSE(cpu.get_flag(nes::Flag::ZERO));
+}
+
+// ROR Zero Page (0x66)
+TEST_F(CPUShiftRotateTest, ror_zero_page) {
+  // Clear carry flag
+  bus.write(0xFFFC, (nes::u8)nes::Opcode::CLC_IMP);
+  execute_cycles(2);
+
+  // Set up test value in zero page
+  bus.write(0x42, 0x8A);  // binary: 10001010
+
+  // Execute ROR on zero page address
+  bus.write(0xFFFD, (nes::u8)nes::Opcode::ROR_ZPG);
+  bus.write(0xFFFE, 0x42);  // Zero page address 0x42
+  execute_cycles(5);        // ROR Zero Page takes 5 cycles
+
+  EXPECT_EQ(cpu.get_remaining_cycles(), 0);
+  EXPECT_EQ(bus.read(0x42), 0x45);  // binary: 01000101
+  EXPECT_FALSE(cpu.get_flag(nes::Flag::CARRY));
+  EXPECT_FALSE(cpu.get_flag(nes::Flag::NEGATIVE));
+  EXPECT_FALSE(cpu.get_flag(nes::Flag::ZERO));
+}
+
+TEST_F(CPUShiftRotateTest, ror_zero_page_to_zero) {
+  // Clear carry flag
+  bus.write(0xFFFC, (nes::u8)nes::Opcode::CLC_IMP);
+  execute_cycles(2);
+
+  // Set up test value in zero page
+  bus.write(0x42, 0x00);  // binary: 00000000
+
+  // Execute ROR on zero page address
+  bus.write(0xFFFD, (nes::u8)nes::Opcode::ROR_ZPG);
+  bus.write(0xFFFE, 0x42);  // Zero page address 0x42
+  execute_cycles(5);
+
+  EXPECT_EQ(bus.read(0x42), 0x00);  // binary: 00000000
+  EXPECT_FALSE(cpu.get_flag(nes::Flag::CARRY));
+  EXPECT_FALSE(cpu.get_flag(nes::Flag::NEGATIVE));
+  EXPECT_TRUE(cpu.get_flag(nes::Flag::ZERO));
+}
+
+// ROR Zero Page X-Indexed (0x76)
+TEST_F(CPUShiftRotateTest, ror_zero_page_x) {
+  // Set carry flag
+  bus.write(0xFFFC, (nes::u8)nes::Opcode::SEC_IMP);
+  execute_cycles(2);
+
+  // Set X register
+  bus.write(0xFFFD, (nes::u8)nes::Opcode::LDX_IMM);
+  bus.write(0xFFFE, 0x10);  // X = 0x10
+  execute_cycles(2);
+
+  // Set up test value in zero page
+  bus.write(0x52, 0x8A);  // binary: 10001010 (at zero page address 0x42 + 0x10)
+
+  // Execute ROR on zero page X-indexed address
+  bus.write(0xFFFF, (nes::u8)nes::Opcode::ROR_ZPX);
+  bus.write(0x0000, 0x42);  // Base zero page address 0x42, X = 0x10, final = 0x52
+  execute_cycles(6);        // ROR Zero Page X takes 6 cycles
+
+  EXPECT_EQ(cpu.get_remaining_cycles(), 0);
+  EXPECT_EQ(bus.read(0x52), 0xC5);  // binary: 11000101
+  EXPECT_FALSE(cpu.get_flag(nes::Flag::CARRY));
+  EXPECT_TRUE(cpu.get_flag(nes::Flag::NEGATIVE));
+  EXPECT_FALSE(cpu.get_flag(nes::Flag::ZERO));
+}
+
+TEST_F(CPUShiftRotateTest, ror_zero_page_x_wrapping) {
+  // Clear carry flag
+  bus.write(0xFFFC, (nes::u8)nes::Opcode::CLC_IMP);
+  execute_cycles(2);
+
+  // Set X register to cause wrap-around
+  bus.write(0xFFFD, (nes::u8)nes::Opcode::LDX_IMM);
+  bus.write(0xFFFE, 0xFF);  // X = 0xFF
+  execute_cycles(2);
+
+  // Set up test value in zero page
+  bus.write(0x41, 0x01);  // binary: 00000001 (at wrapped address (0x42 + 0xFF) & 0xFF = 0x41)
+
+  // Execute ROR on zero page X-indexed address with wrap
+  bus.write(0xFFFF, (nes::u8)nes::Opcode::ROR_ZPX);
+  bus.write(0x0000, 0x42);
+  execute_cycles(6);
+
+  EXPECT_EQ(cpu.get_remaining_cycles(), 0);
+  EXPECT_EQ(bus.read(0x41), 0x00);  // binary: 00000000
+  EXPECT_TRUE(cpu.get_flag(nes::Flag::CARRY));
+  EXPECT_FALSE(cpu.get_flag(nes::Flag::NEGATIVE));
+  EXPECT_TRUE(cpu.get_flag(nes::Flag::ZERO));
+}
+
+TEST_F(CPUShiftRotateTest, ror_multiple_operations) {
+  // Initial setup: clear carry and load 0x80 into A
+  bus.write(0xFFFC, (nes::u8)nes::Opcode::CLC_IMP);
+  execute_cycles(2);
+
+  bus.write(0xFFFD, (nes::u8)nes::Opcode::LDA_IMM);
+  bus.write(0xFFFE, 0x80);  // Load A with 1000 0000
+  execute_cycles(2);
+
+  // First ROR: 1000 0000 -> 0100 0000, carry = 0
+  bus.write(0xFFFF, (nes::u8)nes::Opcode::ROR_ACC);
+  execute_cycles(2);
+  EXPECT_EQ(cpu.get_accumulator(), 0x40);
+  EXPECT_FALSE(cpu.get_flag(nes::Flag::CARRY));
+
+  // Second ROR: 0100 0000 -> 0010 0000, carry = 0
+  bus.write(0x0000, (nes::u8)nes::Opcode::ROR_ACC);
+  execute_cycles(2);
+  EXPECT_EQ(cpu.get_accumulator(), 0x20);
+  EXPECT_FALSE(cpu.get_flag(nes::Flag::CARRY));
+
+  // Third ROR: 0010 0000 -> 0001 0000, carry = 0
+  bus.write(0x0001, (nes::u8)nes::Opcode::ROR_ACC);
+  execute_cycles(2);
+  EXPECT_EQ(cpu.get_accumulator(), 0x10);
+  EXPECT_FALSE(cpu.get_flag(nes::Flag::CARRY));
+
+  // Fourth ROR: 0001 0000 -> 0000 1000, carry = 0
+  bus.write(0x0002, (nes::u8)nes::Opcode::ROR_ACC);
+  execute_cycles(2);
+  EXPECT_EQ(cpu.get_accumulator(), 0x08);
+  EXPECT_FALSE(cpu.get_flag(nes::Flag::CARRY));
+
+  // Keep rotating until it's 1
+  // Fifth ROR: 0000 1000 -> 0000 0100, carry = 0
+  bus.write(0x0003, (nes::u8)nes::Opcode::ROR_ACC);
+  execute_cycles(2);
+  EXPECT_EQ(cpu.get_accumulator(), 0x04);
+  EXPECT_FALSE(cpu.get_flag(nes::Flag::CARRY));
+
+  // Sixth ROR: 0000 0100 -> 0000 0010, carry = 0
+  bus.write(0x0004, (nes::u8)nes::Opcode::ROR_ACC);
+  execute_cycles(2);
+  EXPECT_EQ(cpu.get_accumulator(), 0x02);
+  EXPECT_FALSE(cpu.get_flag(nes::Flag::CARRY));
+
+  // Seventh ROR: 0000 0010 -> 0000 0001, carry = 0
+  bus.write(0x0005, (nes::u8)nes::Opcode::ROR_ACC);
+  execute_cycles(2);
+  EXPECT_EQ(cpu.get_accumulator(), 0x01);
+  EXPECT_FALSE(cpu.get_flag(nes::Flag::CARRY));
+  EXPECT_FALSE(cpu.get_flag(nes::Flag::NEGATIVE));
+
+  // Eighth ROR: 0000 0001 -> 0000 0000, carry = 1, zero = 1
+  bus.write(0x0006, (nes::u8)nes::Opcode::ROR_ACC);
+  execute_cycles(2);
+  EXPECT_EQ(cpu.get_accumulator(), 0x00);
+  EXPECT_TRUE(cpu.get_flag(nes::Flag::CARRY));
+  EXPECT_FALSE(cpu.get_flag(nes::Flag::NEGATIVE));
+  EXPECT_TRUE(cpu.get_flag(nes::Flag::ZERO));
+
+  // Ninth ROR: carry = 1 -> 1000 0000, negative = 1
+  bus.write(0x0007, (nes::u8)nes::Opcode::ROR_ACC);
+  execute_cycles(2);
+  EXPECT_EQ(cpu.get_accumulator(), 0x80);
+  EXPECT_FALSE(cpu.get_flag(nes::Flag::CARRY));
+  EXPECT_TRUE(cpu.get_flag(nes::Flag::NEGATIVE));
+  EXPECT_FALSE(cpu.get_flag(nes::Flag::ZERO));
+}
+
+TEST_F(CPUShiftRotateTest, ror_rol_combination) {
+  // Start with 0x55 (01010101)
+  bus.write(0xFFFC, (nes::u8)nes::Opcode::LDA_IMM);
+  bus.write(0xFFFD, 0x55);
+  execute_cycles(2);
+
+  // Clear carry flag
+  bus.write(0xFFFE, (nes::u8)nes::Opcode::CLC_IMP);
+  execute_cycles(2);
+
+  // ROL should give 0xAA (10101010), carry = 0
+  bus.write(0xFFFF, (nes::u8)nes::Opcode::ROL_ACC);
+  execute_cycles(2);
+  EXPECT_EQ(cpu.get_accumulator(), 0xAA);
+  EXPECT_FALSE(cpu.get_flag(nes::Flag::CARRY));
+  EXPECT_TRUE(cpu.get_flag(nes::Flag::NEGATIVE));
+
+  // ROR should give back 0x55 (01010101), carry = 0
+  bus.write(0x0000, (nes::u8)nes::Opcode::ROR_ACC);
+  execute_cycles(2);
+  EXPECT_EQ(cpu.get_accumulator(), 0x55);
+  EXPECT_FALSE(cpu.get_flag(nes::Flag::CARRY));
+  EXPECT_FALSE(cpu.get_flag(nes::Flag::NEGATIVE));
+}
