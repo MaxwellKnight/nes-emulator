@@ -1,5 +1,5 @@
 #pragma once
-#include <unordered_map>
+#include <array>
 
 #include "bus.h"
 #include "types.h"
@@ -21,7 +21,8 @@ class CPU {
   Bus &_bus;
 
   // Instruction table mapping opcodes to handlers
-  std::unordered_map<u8, Instruction> _instruction_table;
+  static constexpr size_t INSTRUCTION_SIZE = 256;
+  std::array<Instruction, INSTRUCTION_SIZE> _instruction_table;
 
   // Memory access methods
   u8 read_byte(u16 address);
