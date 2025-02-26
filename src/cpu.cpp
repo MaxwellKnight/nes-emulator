@@ -108,8 +108,13 @@ CPU::CPU(Bus &bus_ref)
   set_op(Opcode::ADC_IZY, {.addressed_op = &CPU::op_adc, .mode = &CPU::indirect_y, .cycles = 5, .name = "LDA", .is_extra_cycle = true});
 
   // Flags
-  set_op(Opcode::CLC_IMP, {.implied_op = &CPU::op_clc, .mode = nullptr, .cycles = 2, .name = "CLC", .is_implied = true});
   set_op(Opcode::SEC_IMP, {.implied_op = &CPU::op_sec, .mode = nullptr, .cycles = 2, .name = "SEC", .is_implied = true});
+  set_op(Opcode::SED_IMP, {.implied_op = &CPU::op_sed, .mode = nullptr, .cycles = 2, .name = "SED", .is_implied = true});
+  set_op(Opcode::SEI_IMP, {.implied_op = &CPU::op_sei, .mode = nullptr, .cycles = 2, .name = "SEI", .is_implied = true});
+  set_op(Opcode::CLC_IMP, {.implied_op = &CPU::op_clc, .mode = nullptr, .cycles = 2, .name = "CLC", .is_implied = true});
+  set_op(Opcode::CLD_IMP, {.implied_op = &CPU::op_cld, .mode = nullptr, .cycles = 2, .name = "CLD", .is_implied = true});
+  set_op(Opcode::CLI_IMP, {.implied_op = &CPU::op_cli, .mode = nullptr, .cycles = 2, .name = "CLI", .is_implied = true});
+  set_op(Opcode::CLV_IMP, {.implied_op = &CPU::op_clv, .mode = nullptr, .cycles = 2, .name = "CLV", .is_implied = true});
 }
 
 void CPU::clock() {
@@ -152,6 +157,7 @@ void CPU::reset() {
   _status = (u8)Flag::UNUSED | (u8)Flag::BREAK;
   _PC = 0xFFFC;
   _cycles = 0;
+  _page_crossed = false;
 }
 
 // Memory operations
@@ -226,7 +232,9 @@ u16 CPU::absolute_x() {
 }
 
 u16 CPU::absolute_y() {
-  u16 base_addr = absolute();
+  u16 addr_low = read_byte(_PC++);
+  u16 addr_high = read_byte(_PC++);
+  u16 base_addr = (addr_high << 8) | addr_low;
   u16 final_addr = base_addr + _Y;
 
   _page_crossed = ((base_addr & 0xFF00) != (final_addr & 0xFF00));
@@ -449,7 +457,12 @@ void CPU::op_ror_acc() {
 }
 
 // Flag operations
-void CPU::op_sec() { set_flag(Flag::CARRY, true); }
 void CPU::op_clc() { set_flag(Flag::CARRY, false); }
+void CPU::op_cld() { set_flag(Flag::DECIMAL, false); }
+void CPU::op_cli() { set_flag(Flag::INTERRUPT_DISABLE, false); }
+void CPU::op_clv() { set_flag(Flag::OVERFLOW_, false); }
+void CPU::op_sec() { set_flag(Flag::CARRY, true); }
+void CPU::op_sed() { set_flag(Flag::DECIMAL, true); }
+void CPU::op_sei() { set_flag(Flag::INTERRUPT_DISABLE, true); }
 
 }  // namespace nes

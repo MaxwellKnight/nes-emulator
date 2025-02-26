@@ -82,7 +82,12 @@ class CPU {
   void op_ror_acc();
   // Flag operations
   void op_clc();
+  void op_cld();
+  void op_cli();
+  void op_clv();
   void op_sec();
+  void op_sed();
+  void op_sei();
 
  public:
   CPU(Bus &bus_ref);

@@ -127,8 +127,8 @@ enum class Opcode : u8 {
 
   // Flag operations (implied addressing)
   SEC_IMP = 0x38,  // Set Carry Flag
-  // SED_IMP = 0xF8,  // Set Decimal Flag
-  // SEI_IMP = 0x78,  // Set Interrupt Disable Flag
+  SED_IMP = 0xF8,  // Set Decimal Flag
+  SEI_IMP = 0x78,  // Set Interrupt Disable Flag
   CLC_IMP = 0x18,  // Clear Carry Flag
   CLD_IMP = 0xD8,  // Clear Decimal Flag
   CLI_IMP = 0x58,  // Clear Interrupt Disable Flag
