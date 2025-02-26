@@ -1,5 +1,4 @@
 #include "../include/cpu.h"
-#include <iostream>
 #include <string>
 #include "types.h"
 
@@ -220,7 +219,6 @@ CPU::CPU(Bus &bus_ref)
 void CPU::clock() {
   if (_cycles == 0) {
     u8 opcode = read_byte(_PC++);
-    std::cout << "Executing opcode: 0x" << std::hex << (int)opcode << " at PC: 0x" << _PC - 1 << std::endl;
     set_flag(Flag::UNUSED, true);
 
     const auto &instruction = _instruction_table[opcode];
@@ -245,10 +243,6 @@ void CPU::clock() {
       }
 
       (this->*(instruction.addressed_op))(addr);
-    }
-
-    for (int i = -5; i <= 5; i++) {
-      std::cout << "Memory at " << std::hex << (int)(_PC + i) << ": 0x" << (int)read_byte(_PC + i) << std::endl;
     }
   }
   _cycles--;
@@ -339,14 +333,9 @@ u16 CPU::absolute_x() {
 
 u16 CPU::absolute_indirect() {
   // Read the 16-bit address from the two bytes following the opcode
-  printf("Current PC before read: 0x%04X\n", _PC);
   u16 addr_low = read_byte(_PC++);
   u16 addr_high = read_byte(_PC++);
   u16 indirect_addr = (addr_high << 8) | addr_low;
-
-  // Debug print: Indirect address
-  printf("Indirect Address: 0x%04X\n", indirect_addr);
-  printf("Read addr_low: 0x%02X, addr_high: 0x%02X\n", addr_low, addr_high);
 
   // Read the effective address from the indirect address
   u16 effective_addr_low = read_byte(indirect_addr);
@@ -355,19 +344,12 @@ u16 CPU::absolute_indirect() {
   // Check if the indirect address is at the page boundary
   if ((indirect_addr & 0x00FF) == 0x00FF) {
     effective_addr_high = read_byte(indirect_addr & 0xFF00);
-    printf("Page boundary hit. Wrapped around to: 0x%04X\n", indirect_addr & 0xFF00);
   } else {
     effective_addr_high = read_byte(indirect_addr + 1);
   }
 
   // Combine the low and high bytes of the effective address
   u16 effective_addr = (effective_addr_high << 8) | effective_addr_low;
-
-  // Debug print: Effective address
-  printf("Effective Address Low: 0x%02X\n", effective_addr_low);
-  printf("Effective Address High: 0x%02X\n", effective_addr_high);
-  printf("Combined Effective Address: 0x%04X\n", effective_addr);
-
   return effective_addr;
 }
 
