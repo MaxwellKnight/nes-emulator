@@ -148,6 +148,26 @@ CPU::CPU(Bus &bus_ref)
   set_op(Opcode::AND_IZX, {.addressed_op = &CPU::op_and, .mode = &CPU::indirect_x, .cycles = 6, .name = "AND"});
   set_op(Opcode::AND_IZY, {.addressed_op = &CPU::op_and, .mode = &CPU::indirect_y, .cycles = 5, .name = "AND", .is_extra_cycle = true});
 
+  // EOR
+  set_op(Opcode::EOR_IMM, {.addressed_op = &CPU::op_eor, .mode = &CPU::immediate, .cycles = 2, .name = "EOR"});
+  set_op(Opcode::EOR_ZPG, {.addressed_op = &CPU::op_eor, .mode = &CPU::zero_page, .cycles = 3, .name = "EOR"});
+  set_op(Opcode::EOR_ABS, {.addressed_op = &CPU::op_eor, .mode = &CPU::absolute, .cycles = 4, .name = "EOR"});
+  set_op(Opcode::EOR_ABX, {.addressed_op = &CPU::op_eor, .mode = &CPU::absolute_x, .cycles = 4, .name = "EOR", .is_extra_cycle = true});
+  set_op(Opcode::EOR_ABY, {.addressed_op = &CPU::op_eor, .mode = &CPU::absolute_y, .cycles = 4, .name = "EOR", .is_extra_cycle = true});
+  set_op(Opcode::EOR_ZPX, {.addressed_op = &CPU::op_eor, .mode = &CPU::zero_page_x, .cycles = 4, .name = "EOR"});
+  set_op(Opcode::EOR_IZX, {.addressed_op = &CPU::op_eor, .mode = &CPU::indirect_x, .cycles = 6, .name = "EOR"});
+  set_op(Opcode::EOR_IZY, {.addressed_op = &CPU::op_eor, .mode = &CPU::indirect_y, .cycles = 5, .name = "EOR", .is_extra_cycle = true});
+
+  // ORA
+  set_op(Opcode::ORA_IMM, {.addressed_op = &CPU::op_ora, .mode = &CPU::immediate, .cycles = 2, .name = "ORA"});
+  set_op(Opcode::ORA_ZPG, {.addressed_op = &CPU::op_ora, .mode = &CPU::zero_page, .cycles = 3, .name = "ORA"});
+  set_op(Opcode::ORA_ABS, {.addressed_op = &CPU::op_ora, .mode = &CPU::absolute, .cycles = 4, .name = "ORA"});
+  set_op(Opcode::ORA_ABX, {.addressed_op = &CPU::op_ora, .mode = &CPU::absolute_x, .cycles = 4, .name = "ORA", .is_extra_cycle = true});
+  set_op(Opcode::ORA_ABY, {.addressed_op = &CPU::op_ora, .mode = &CPU::absolute_y, .cycles = 4, .name = "ORA", .is_extra_cycle = true});
+  set_op(Opcode::ORA_ZPX, {.addressed_op = &CPU::op_ora, .mode = &CPU::zero_page_x, .cycles = 4, .name = "ORA"});
+  set_op(Opcode::ORA_IZX, {.addressed_op = &CPU::op_ora, .mode = &CPU::indirect_x, .cycles = 6, .name = "ORA"});
+  set_op(Opcode::ORA_IZY, {.addressed_op = &CPU::op_ora, .mode = &CPU::indirect_y, .cycles = 5, .name = "ORA", .is_extra_cycle = true});
+
   // BIT
   set_op(Opcode::BIT_ABS, {.addressed_op = &CPU::op_bit, .mode = &CPU::absolute, .cycles = 4, .name = "BIT"});
   set_op(Opcode::BIT_ZPG, {.addressed_op = &CPU::op_bit, .mode = &CPU::zero_page, .cycles = 3, .name = "BIT"});
@@ -449,6 +469,20 @@ void CPU::op_cpy(const u16 addr) {
 void CPU::op_and(const u16 addr) {
   u8 value = read_byte(addr);
   _A &= value;
+  update_zero_and_negative_flags(_A);
+}
+
+// EOR - Exculive OR
+void CPU::op_eor(const u16 addr) {
+  u8 value = read_byte(addr);
+  _A ^= value;
+  update_zero_and_negative_flags(_A);
+}
+
+// ORA
+void CPU::op_ora(const u16 addr) {
+  u8 value = read_byte(addr);
+  _A |= value;
   update_zero_and_negative_flags(_A);
 }
 

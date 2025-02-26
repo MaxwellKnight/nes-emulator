@@ -68,6 +68,8 @@ class CPU {
   // Logical operations
   void op_and(u16 addr);
   void op_bit(u16 addr);
+  void op_eor(u16 addr);
+  void op_ora(u16 addr);
 
   // Operations that don't require an address (implied operations)
   // Transfer operations

@@ -152,6 +152,7 @@ enum class Opcode : u8 {
   CPY_ZPG = 0xC4,  // CPY Absolute
 
   // Logical operations
+  // AND
   AND_IMM = 0x29,  // AND Immediate
   AND_ABS = 0x2D,  // AND Absolute
   AND_ABX = 0x3D,  // AND Absolute X-Indexed
@@ -161,6 +162,27 @@ enum class Opcode : u8 {
   AND_IZX = 0x21,  // AND Indirect X (Zero Page Pre-Indexed)
   AND_IZY = 0x31,  // AND Indirect Y (Zero Page Post-Indexed)
 
+  // EOR
+  EOR_IMM = 0x49,  // EOR Immediate
+  EOR_ABS = 0x4D,  // EOR Absolute
+  EOR_ABX = 0x5D,  // EOR Absolute X-Indexed
+  EOR_ABY = 0x59,  // EOR Absolute Y-Indexed
+  EOR_ZPG = 0x45,  // EOR Zero Page
+  EOR_ZPX = 0x55,  // EOR Zero Page X-Indexed
+  EOR_IZX = 0x41,  // EOR Indirect X (Zero Page Pre-Indexed)
+  EOR_IZY = 0x51,  // EOR Indirect Y (Zero Page Post-Indexed)
+
+  // ORA
+  ORA_IMM = 0x09,  // ORA Immediate
+  ORA_ABS = 0x0D,  // ORA Absolute
+  ORA_ABX = 0x1D,  // ORA Absolute X-Indexed
+  ORA_ABY = 0x19,  // ORA Absolute Y-Indexed
+  ORA_ZPG = 0x05,  // ORA Zero Page
+  ORA_ZPX = 0x15,  // ORA Zero Page X-Indexed
+  ORA_IZX = 0x01,  // ORA Indirect X (Zero Page Pre-Indexed)
+  ORA_IZY = 0x11,  // ORA Indirect Y (Zero Page Post-Indexed)
+
+  // BIT
   BIT_ABS = 0x2C,  // Test Bits in memory witht he accumulator Absolute
   BIT_ZPG = 0x24,  // Test Bits in memory witht he accumulator Zero Page
 
