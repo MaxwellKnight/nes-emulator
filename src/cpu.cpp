@@ -118,6 +118,16 @@ CPU::CPU(Bus &bus_ref)
   set_op(Opcode::CMP_IZX, {.addressed_op = &CPU::op_cmp, .mode = &CPU::indirect_x, .cycles = 6, .name = "CMP"});
   set_op(Opcode::CMP_IZY, {.addressed_op = &CPU::op_cmp, .mode = &CPU::indirect_y, .cycles = 5, .name = "CMP", .is_extra_cycle = true});
 
+  // CPX
+  set_op(Opcode::CPX_IMM, {.addressed_op = &CPU::op_cpx, .mode = &CPU::immediate, .cycles = 2, .name = "CPX"});
+  set_op(Opcode::CPX_ZPG, {.addressed_op = &CPU::op_cpx, .mode = &CPU::zero_page, .cycles = 3, .name = "CPX"});
+  set_op(Opcode::CPX_ABS, {.addressed_op = &CPU::op_cpx, .mode = &CPU::absolute, .cycles = 4, .name = "CPX"});
+
+  // CPX
+  set_op(Opcode::CPY_IMM, {.addressed_op = &CPU::op_cpy, .mode = &CPU::immediate, .cycles = 2, .name = "CPY"});
+  set_op(Opcode::CPY_ZPG, {.addressed_op = &CPU::op_cpy, .mode = &CPU::zero_page, .cycles = 3, .name = "CPY"});
+  set_op(Opcode::CPY_ABS, {.addressed_op = &CPU::op_cpy, .mode = &CPU::absolute, .cycles = 4, .name = "CPY"});
+
   // Flags
   set_op(Opcode::SEC_IMP, {.implied_op = &CPU::op_sec, .mode = nullptr, .cycles = 2, .name = "SEC", .is_implied = true});
   set_op(Opcode::SED_IMP, {.implied_op = &CPU::op_sed, .mode = nullptr, .cycles = 2, .name = "SED", .is_implied = true});
@@ -373,6 +383,24 @@ void CPU::op_cmp(const u16 addr) {
   u16 sub = (u16)_A - value;
 
   set_flag(Flag::CARRY, sub <= _A);
+  update_zero_and_negative_flags(sub);
+}
+
+// CPX
+void CPU::op_cpx(const u16 addr) {
+  u16 value = (u16)read_byte(addr);
+  u16 sub = (u16)_X - value;
+
+  set_flag(Flag::CARRY, sub <= _X);
+  update_zero_and_negative_flags(sub);
+}
+
+// CPY
+void CPU::op_cpy(const u16 addr) {
+  u16 value = (u16)read_byte(addr);
+  u16 sub = (u16)_Y - value;
+
+  set_flag(Flag::CARRY, sub <= _Y);
   update_zero_and_negative_flags(sub);
 }
 

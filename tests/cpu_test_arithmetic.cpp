@@ -635,3 +635,457 @@ TEST_F(CPUArithmeticTest, cmp_zero_page_x) {
   EXPECT_TRUE(cpu.get_flag(nes::Flag::CARRY));
   EXPECT_FALSE(cpu.get_flag(nes::Flag::NEGATIVE));
 }
+
+// CPX - Equal comparison
+TEST_F(CPUArithmeticTest, cpx_equal) {
+  // Load X register with value
+  bus.write(0xFFFC, (nes::u8)nes::Opcode::LDX_IMM);
+  bus.write(0xFFFD, 0x42);  // Load 0x42 into X
+  execute_cycles(2);
+
+  // Execute CPX immediate with equal value
+  bus.write(0xFFFE, (nes::u8)nes::Opcode::CPX_IMM);
+  bus.write(0xFFFF, 0x42);  // Compare with 0x42
+  execute_cycles(2);
+
+  // Equal comparison sets Z flag and C flag, clears N flag
+  EXPECT_TRUE(cpu.get_flag(nes::Flag::ZERO));
+  EXPECT_TRUE(cpu.get_flag(nes::Flag::CARRY));
+  EXPECT_FALSE(cpu.get_flag(nes::Flag::NEGATIVE));
+
+  // X register should remain unchanged
+  EXPECT_EQ(cpu.get_x(), 0x42);
+  EXPECT_EQ(cpu.get_remaining_cycles(), 0);
+}
+
+// CPX - X register greater than memory
+TEST_F(CPUArithmeticTest, cpx_greater) {
+  // Load X register with value
+  bus.write(0xFFFC, (nes::u8)nes::Opcode::LDX_IMM);
+  bus.write(0xFFFD, 0x42);  // Load 0x42 into X
+  execute_cycles(2);
+
+  // Execute CPX immediate with smaller value
+  bus.write(0xFFFE, (nes::u8)nes::Opcode::CPX_IMM);
+  bus.write(0xFFFF, 0x30);  // Compare with 0x30
+  execute_cycles(2);
+
+  // X > M sets C flag, clears Z flag
+  // N flag depends on bit 7 of result (0x42 - 0x30 = 0x12, so N should be clear)
+  EXPECT_FALSE(cpu.get_flag(nes::Flag::ZERO));
+  EXPECT_TRUE(cpu.get_flag(nes::Flag::CARRY));
+  EXPECT_FALSE(cpu.get_flag(nes::Flag::NEGATIVE));
+
+  // X register should remain unchanged
+  EXPECT_EQ(cpu.get_x(), 0x42);
+}
+
+// CPX - X register less than memory
+TEST_F(CPUArithmeticTest, cpx_less) {
+  // Load X register with value
+  bus.write(0xFFFC, (nes::u8)nes::Opcode::LDX_IMM);
+  bus.write(0xFFFD, 0x42);  // Load 0x42 into X
+  execute_cycles(2);
+
+  // Execute CPX immediate with larger value
+  bus.write(0xFFFE, (nes::u8)nes::Opcode::CPX_IMM);
+  bus.write(0xFFFF, 0x50);  // Compare with 0x50
+  execute_cycles(2);
+
+  // X < M clears C flag and Z flag
+  // N flag depends on bit 7 of result (0x42 - 0x50 = 0xF2, so N should be set)
+  EXPECT_FALSE(cpu.get_flag(nes::Flag::ZERO));
+  EXPECT_FALSE(cpu.get_flag(nes::Flag::CARRY));
+  EXPECT_TRUE(cpu.get_flag(nes::Flag::NEGATIVE));
+
+  // X register should remain unchanged
+  EXPECT_EQ(cpu.get_x(), 0x42);
+}
+
+// CPX - With negative number in X
+TEST_F(CPUArithmeticTest, cpx_negative_x) {
+  // Load X register with negative value
+  bus.write(0xFFFC, (nes::u8)nes::Opcode::LDX_IMM);
+  bus.write(0xFFFD, 0x80);  // Load 0x80 (-128 in two's complement) into X
+  execute_cycles(2);
+
+  // Execute CPX immediate with positive value
+  bus.write(0xFFFE, (nes::u8)nes::Opcode::CPX_IMM);
+  bus.write(0xFFFF, 0x01);  // Compare with 0x01
+  execute_cycles(2);
+
+  // 0x80 - 0x01 = 0x7F, sets C flag, clears Z flag and N flag
+  EXPECT_FALSE(cpu.get_flag(nes::Flag::ZERO));
+  EXPECT_TRUE(cpu.get_flag(nes::Flag::CARRY));
+  EXPECT_FALSE(cpu.get_flag(nes::Flag::NEGATIVE));
+
+  // X register should remain unchanged
+  EXPECT_EQ(cpu.get_x(), 0x80);
+}
+
+// CPX - Compare with zero
+TEST_F(CPUArithmeticTest, cpx_with_zero) {
+  // Load X register with value
+  bus.write(0xFFFC, (nes::u8)nes::Opcode::LDX_IMM);
+  bus.write(0xFFFD, 0x42);  // Load 0x42 into X
+  execute_cycles(2);
+
+  // Execute CPX immediate with zero
+  bus.write(0xFFFE, (nes::u8)nes::Opcode::CPX_IMM);
+  bus.write(0xFFFF, 0x00);  // Compare with 0x00
+  execute_cycles(2);
+
+  // X > 0 sets C flag, clears Z flag
+  // 0x42 - 0x00 = 0x42, so N should be clear
+  EXPECT_FALSE(cpu.get_flag(nes::Flag::ZERO));
+  EXPECT_TRUE(cpu.get_flag(nes::Flag::CARRY));
+  EXPECT_FALSE(cpu.get_flag(nes::Flag::NEGATIVE));
+
+  // X register should remain unchanged
+  EXPECT_EQ(cpu.get_x(), 0x42);
+}
+
+// CPX - X register is zero
+TEST_F(CPUArithmeticTest, cpx_x_zero) {
+  // Load X register with zero
+  bus.write(0xFFFC, (nes::u8)nes::Opcode::LDX_IMM);
+  bus.write(0xFFFD, 0x00);  // Load 0x00 into X
+  execute_cycles(2);
+
+  // Execute CPX immediate with positive value
+  bus.write(0xFFFE, (nes::u8)nes::Opcode::CPX_IMM);
+  bus.write(0xFFFF, 0x01);  // Compare with 0x01
+  execute_cycles(2);
+
+  // 0x00 - 0x01 = 0xFF, clears C flag and Z flag, sets N flag
+  EXPECT_FALSE(cpu.get_flag(nes::Flag::ZERO));
+  EXPECT_FALSE(cpu.get_flag(nes::Flag::CARRY));
+  EXPECT_TRUE(cpu.get_flag(nes::Flag::NEGATIVE));
+
+  // X register should remain unchanged
+  EXPECT_EQ(cpu.get_x(), 0x00);
+}
+
+// Testing different addressing modes
+
+// CPX - Zero Page addressing mode
+TEST_F(CPUArithmeticTest, cpx_zero_page) {
+  // Load X register with value
+  bus.write(0xFFFC, (nes::u8)nes::Opcode::LDX_IMM);
+  bus.write(0xFFFD, 0x42);  // Load 0x42 into X
+  execute_cycles(2);
+
+  // Set up value in zero page
+  bus.write(0x42, 0x42);  // Same value as X register
+
+  // Execute CPX zero page
+  bus.write(0xFFFE, (nes::u8)nes::Opcode::CPX_ZPG);
+  bus.write(0xFFFF, 0x42);  // Zero page address
+  execute_cycles(3);
+
+  // Equal comparison sets Z flag and C flag, clears N flag
+  EXPECT_TRUE(cpu.get_flag(nes::Flag::ZERO));
+  EXPECT_TRUE(cpu.get_flag(nes::Flag::CARRY));
+  EXPECT_FALSE(cpu.get_flag(nes::Flag::NEGATIVE));
+
+  // X register should remain unchanged
+  EXPECT_EQ(cpu.get_x(), 0x42);
+}
+
+// CPX - Absolute addressing mode
+TEST_F(CPUArithmeticTest, cpx_absolute) {
+  // Load X register with value
+  bus.write(0xFFFC, (nes::u8)nes::Opcode::LDX_IMM);
+  bus.write(0xFFFD, 0x42);  // Load 0x42 into X
+  execute_cycles(2);
+
+  // Set up value in memory
+  bus.write(0x1234, 0x30);  // Less than X register
+
+  // Execute CPX absolute
+  bus.write(0xFFFE, (nes::u8)nes::Opcode::CPX_ABS);
+  bus.write(0xFFFF, 0x34);  // Low byte of address
+  bus.write(0x0000, 0x12);  // High byte of address
+  execute_cycles(4);
+
+  // X > M sets C flag, clears Z flag and N flag
+  EXPECT_FALSE(cpu.get_flag(nes::Flag::ZERO));
+  EXPECT_TRUE(cpu.get_flag(nes::Flag::CARRY));
+  EXPECT_FALSE(cpu.get_flag(nes::Flag::NEGATIVE));
+
+  // X register should remain unchanged
+  EXPECT_EQ(cpu.get_x(), 0x42);
+}
+
+// CPX - Verify overflow flag is not affected
+TEST_F(CPUArithmeticTest, cpx_overflow_not_affected) {
+  // Load X register
+  bus.write(0xFFFC, (nes::u8)nes::Opcode::LDX_IMM);
+  bus.write(0xFFFD, 0x42);
+  execute_cycles(2);
+
+  // Get current overflow state (should be true if we could set it)
+  bool overflow_before = cpu.get_flag(nes::Flag::OVERFLOW_);
+
+  // Execute CPX
+  bus.write(0xFFFE, (nes::u8)nes::Opcode::CPX_IMM);
+  bus.write(0xFFFF, 0x30);
+  execute_cycles(2);
+
+  // Overflow flag should remain unchanged
+  EXPECT_EQ(cpu.get_flag(nes::Flag::OVERFLOW_), overflow_before);
+}
+
+// CPX - Ensure no other registers are affected
+TEST_F(CPUArithmeticTest, cpx_other_registers_unchanged) {
+  // Set up A and Y registers
+  bus.write(0xFFFC, (nes::u8)nes::Opcode::LDA_IMM);
+  bus.write(0xFFFD, 0xAA);
+  execute_cycles(2);
+
+  bus.write(0xFFFE, (nes::u8)nes::Opcode::LDY_IMM);
+  bus.write(0xFFFF, 0xBB);
+  execute_cycles(2);
+
+  // Load X register
+  bus.write(0x0000, (nes::u8)nes::Opcode::LDX_IMM);
+  bus.write(0x0001, 0x42);
+  execute_cycles(2);
+
+  // Execute CPX
+  bus.write(0x0002, (nes::u8)nes::Opcode::CPX_IMM);
+  bus.write(0x0003, 0x30);
+  execute_cycles(2);
+
+  // A and Y should be unchanged
+  EXPECT_EQ(cpu.get_accumulator(), 0xAA);
+  EXPECT_EQ(cpu.get_y(), 0xBB);
+  EXPECT_EQ(cpu.get_x(), 0x42);
+}
+
+// CPY - Equal comparison
+TEST_F(CPUArithmeticTest, cpy_equal) {
+  // Load Y register with value
+  bus.write(0xFFFC, (nes::u8)nes::Opcode::LDY_IMM);
+  bus.write(0xFFFD, 0x42);  // Load 0x42 into Y
+  execute_cycles(2);
+
+  // Execute CPY immediate with equal value
+  bus.write(0xFFFE, (nes::u8)nes::Opcode::CPY_IMM);
+  bus.write(0xFFFF, 0x42);  // Compare with 0x42
+  execute_cycles(2);
+
+  // Equal comparison sets Z flag and C flag, clears N flag
+  EXPECT_TRUE(cpu.get_flag(nes::Flag::ZERO));
+  EXPECT_TRUE(cpu.get_flag(nes::Flag::CARRY));
+  EXPECT_FALSE(cpu.get_flag(nes::Flag::NEGATIVE));
+
+  // Y register should remain unchanged
+  EXPECT_EQ(cpu.get_y(), 0x42);
+  EXPECT_EQ(cpu.get_remaining_cycles(), 0);
+}
+
+// CPY - Y register greater than memory
+TEST_F(CPUArithmeticTest, cpy_greater) {
+  // Load Y register with value
+  bus.write(0xFFFC, (nes::u8)nes::Opcode::LDY_IMM);
+  bus.write(0xFFFD, 0x42);  // Load 0x42 into Y
+  execute_cycles(2);
+
+  // Execute CPY immediate with smaller value
+  bus.write(0xFFFE, (nes::u8)nes::Opcode::CPY_IMM);
+  bus.write(0xFFFF, 0x30);  // Compare with 0x30
+  execute_cycles(2);
+
+  // Y > M sets C flag, clears Z flag
+  // N flag depends on bit 7 of result (0x42 - 0x30 = 0x12, so N should be clear)
+  EXPECT_FALSE(cpu.get_flag(nes::Flag::ZERO));
+  EXPECT_TRUE(cpu.get_flag(nes::Flag::CARRY));
+  EXPECT_FALSE(cpu.get_flag(nes::Flag::NEGATIVE));
+
+  // Y register should remain unchanged
+  EXPECT_EQ(cpu.get_y(), 0x42);
+}
+
+// CPY - Y register less than memory
+TEST_F(CPUArithmeticTest, cpy_less) {
+  // Load Y register with value
+  bus.write(0xFFFC, (nes::u8)nes::Opcode::LDY_IMM);
+  bus.write(0xFFFD, 0x42);  // Load 0x42 into Y
+  execute_cycles(2);
+
+  // Execute CPY immediate with larger value
+  bus.write(0xFFFE, (nes::u8)nes::Opcode::CPY_IMM);
+  bus.write(0xFFFF, 0x50);  // Compare with 0x50
+  execute_cycles(2);
+
+  // Y < M clears C flag and Z flag
+  // N flag depends on bit 7 of result (0x42 - 0x50 = 0xF2, so N should be set)
+  EXPECT_FALSE(cpu.get_flag(nes::Flag::ZERO));
+  EXPECT_FALSE(cpu.get_flag(nes::Flag::CARRY));
+  EXPECT_TRUE(cpu.get_flag(nes::Flag::NEGATIVE));
+
+  // Y register should remain unchanged
+  EXPECT_EQ(cpu.get_y(), 0x42);
+}
+
+// CPY - With negative number in Y
+TEST_F(CPUArithmeticTest, cpy_negative_y) {
+  // Load Y register with negative value
+  bus.write(0xFFFC, (nes::u8)nes::Opcode::LDY_IMM);
+  bus.write(0xFFFD, 0x80);  // Load 0x80 (-128 in two's complement) into Y
+  execute_cycles(2);
+
+  // Execute CPY immediate with positive value
+  bus.write(0xFFFE, (nes::u8)nes::Opcode::CPY_IMM);
+  bus.write(0xFFFF, 0x01);  // Compare with 0x01
+  execute_cycles(2);
+
+  // 0x80 - 0x01 = 0x7F, sets C flag, clears Z flag and N flag
+  EXPECT_FALSE(cpu.get_flag(nes::Flag::ZERO));
+  EXPECT_TRUE(cpu.get_flag(nes::Flag::CARRY));
+  EXPECT_FALSE(cpu.get_flag(nes::Flag::NEGATIVE));
+
+  // Y register should remain unchanged
+  EXPECT_EQ(cpu.get_y(), 0x80);
+}
+
+// CPY - Compare with zero
+TEST_F(CPUArithmeticTest, cpy_with_zero) {
+  // Load Y register with value
+  bus.write(0xFFFC, (nes::u8)nes::Opcode::LDY_IMM);
+  bus.write(0xFFFD, 0x42);  // Load 0x42 into Y
+  execute_cycles(2);
+
+  // Execute CPY immediate with zero
+  bus.write(0xFFFE, (nes::u8)nes::Opcode::CPY_IMM);
+  bus.write(0xFFFF, 0x00);  // Compare with 0x00
+  execute_cycles(2);
+
+  // Y > 0 sets C flag, clears Z flag
+  // 0x42 - 0x00 = 0x42, so N should be clear
+  EXPECT_FALSE(cpu.get_flag(nes::Flag::ZERO));
+  EXPECT_TRUE(cpu.get_flag(nes::Flag::CARRY));
+  EXPECT_FALSE(cpu.get_flag(nes::Flag::NEGATIVE));
+
+  // Y register should remain unchanged
+  EXPECT_EQ(cpu.get_y(), 0x42);
+}
+
+// CPY - Y register is zero
+TEST_F(CPUArithmeticTest, cpy_y_zero) {
+  // Load Y register with zero
+  bus.write(0xFFFC, (nes::u8)nes::Opcode::LDY_IMM);
+  bus.write(0xFFFD, 0x00);  // Load 0x00 into Y
+  execute_cycles(2);
+
+  // Execute CPY immediate with positive value
+  bus.write(0xFFFE, (nes::u8)nes::Opcode::CPY_IMM);
+  bus.write(0xFFFF, 0x01);  // Compare with 0x01
+  execute_cycles(2);
+
+  // 0x00 - 0x01 = 0xFF, clears C flag and Z flag, sets N flag
+  EXPECT_FALSE(cpu.get_flag(nes::Flag::ZERO));
+  EXPECT_FALSE(cpu.get_flag(nes::Flag::CARRY));
+  EXPECT_TRUE(cpu.get_flag(nes::Flag::NEGATIVE));
+
+  // Y register should remain unchanged
+  EXPECT_EQ(cpu.get_y(), 0x00);
+}
+
+// Testing different addressing modes
+
+// CPY - Zero Page addressing mode
+TEST_F(CPUArithmeticTest, cpy_zero_page) {
+  // Load Y register with value
+  bus.write(0xFFFC, (nes::u8)nes::Opcode::LDY_IMM);
+  bus.write(0xFFFD, 0x42);  // Load 0x42 into Y
+  execute_cycles(2);
+
+  // Set up value in zero page
+  bus.write(0x42, 0x42);  // Same value as Y register
+
+  // Execute CPY zero page
+  bus.write(0xFFFE, (nes::u8)nes::Opcode::CPY_ZPG);
+  bus.write(0xFFFF, 0x42);  // Zero page address
+  execute_cycles(3);
+
+  // Equal comparison sets Z flag and C flag, clears N flag
+  EXPECT_TRUE(cpu.get_flag(nes::Flag::ZERO));
+  EXPECT_TRUE(cpu.get_flag(nes::Flag::CARRY));
+  EXPECT_FALSE(cpu.get_flag(nes::Flag::NEGATIVE));
+
+  // Y register should remain unchanged
+  EXPECT_EQ(cpu.get_y(), 0x42);
+}
+
+// CPY - Absolute addressing mode
+TEST_F(CPUArithmeticTest, cpy_absolute) {
+  // Load Y register with value
+  bus.write(0xFFFC, (nes::u8)nes::Opcode::LDY_IMM);
+  bus.write(0xFFFD, 0x42);  // Load 0x42 into Y
+  execute_cycles(2);
+
+  // Set up value in memory
+  bus.write(0x1234, 0x30);  // Less than Y register
+
+  // Execute CPY absolute
+  bus.write(0xFFFE, (nes::u8)nes::Opcode::CPY_ABS);
+  bus.write(0xFFFF, 0x34);  // Low byte of address
+  bus.write(0x0000, 0x12);  // High byte of address
+  execute_cycles(4);
+
+  // Y > M sets C flag, clears Z flag and N flag
+  EXPECT_FALSE(cpu.get_flag(nes::Flag::ZERO));
+  EXPECT_TRUE(cpu.get_flag(nes::Flag::CARRY));
+  EXPECT_FALSE(cpu.get_flag(nes::Flag::NEGATIVE));
+
+  // Y register should remain unchanged
+  EXPECT_EQ(cpu.get_y(), 0x42);
+}
+
+// CPY - Verify overflow flag is not affected
+TEST_F(CPUArithmeticTest, cpy_overflow_not_affected) {
+  // Load Y register
+  bus.write(0xFFFC, (nes::u8)nes::Opcode::LDY_IMM);
+  bus.write(0xFFFD, 0x42);
+  execute_cycles(2);
+
+  // Get current overflow state (should be true if we could set it)
+  bool overflow_before = cpu.get_flag(nes::Flag::OVERFLOW_);
+
+  // Execute CPY
+  bus.write(0xFFFE, (nes::u8)nes::Opcode::CPY_IMM);
+  bus.write(0xFFFF, 0x30);
+  execute_cycles(2);
+
+  // Overflow flag should remain unchanged
+  EXPECT_EQ(cpu.get_flag(nes::Flag::OVERFLOW_), overflow_before);
+}
+
+// CPY - Ensure no other registers are affected
+TEST_F(CPUArithmeticTest, cpy_other_registers_unchanged) {
+  // Set up A and X registers
+  bus.write(0xFFFC, (nes::u8)nes::Opcode::LDA_IMM);
+  bus.write(0xFFFD, 0xAA);
+  execute_cycles(2);
+
+  bus.write(0xFFFE, (nes::u8)nes::Opcode::LDX_IMM);
+  bus.write(0xFFFF, 0xBB);
+  execute_cycles(2);
+
+  // Load Y register
+  bus.write(0x0000, (nes::u8)nes::Opcode::LDY_IMM);
+  bus.write(0x0001, 0x42);
+  execute_cycles(2);
+
+  // Execute CPY
+  bus.write(0x0002, (nes::u8)nes::Opcode::CPY_IMM);
+  bus.write(0x0003, 0x30);
+  execute_cycles(2);
+
+  // A and X should be unchanged
+  EXPECT_EQ(cpu.get_accumulator(), 0xAA);
+  EXPECT_EQ(cpu.get_x(), 0xBB);
+  EXPECT_EQ(cpu.get_y(), 0x42);
+}
