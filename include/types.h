@@ -5,6 +5,7 @@ namespace nes {
 using u8 = std::uint8_t;
 using u16 = std::uint16_t;
 using u32 = std::uint32_t;
+using i8 = std::int8_t;
 
 class IAddressable;
 class CPU;
@@ -206,6 +207,11 @@ enum class Opcode : u8 {
   // DEX, DEY
   DEX_IMP = 0xCA,  // Decrement Index Register X Implied
   DEY_IMP = 0x88,  // Decrement Index Register Y Implied
+
+  // Branching operations
+  BCC_REL = 0x90,  // Branch on carry clear Relative
+  BCS_REL = 0xB0,  // Branch on carry set Relative
+  BEQ_REL = 0xF0,  // Branch on result zero Relative
 
   // Flag operations (implied addressing)
   SEC_IMP = 0x38,  // Set Carry Flag

@@ -1,10 +1,10 @@
+#include <gtest/gtest.h>
 #include "../include/bus.h"
 #include "../include/cpu.h"
 #include "types.h"
-#include <gtest/gtest.h>
 
 class CPUTestBase : public ::testing::Test {
-protected:
+ protected:
   void SetUp() override { cpu.reset(); }
 
   void execute_cycles(int cycles) {

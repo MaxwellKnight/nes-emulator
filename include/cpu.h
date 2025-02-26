@@ -31,7 +31,6 @@ class CPU {
   void write_byte(const u16 address, const u8 value);
 
   // Flag operations
-  void set_flag(const Flag flag, const bool value);
   void update_zero_and_negative_flags(const u8 value);
 
   // Addressing modes
@@ -44,6 +43,7 @@ class CPU {
   u16 absolute_y();
   u16 indirect_x();
   u16 indirect_y();
+  u16 relative();
 
   // Operations that require an address
   // Load operations
@@ -73,6 +73,10 @@ class CPU {
   // Increment/Decrement operations
   void op_inc(u16 addr);
   void op_dec(u16 addr);
+  // Branching operations
+  void op_bcc(u16 addr);
+  void op_bcs(u16 addr);
+  void op_beq(u16 addr);
 
   // Operations that don't require an address (implied operations)
   // Transfer operations
@@ -114,7 +118,7 @@ class CPU {
   void clock();
   void reset();
 
-  // Getters for testing/debugging
+  // Getters
   u8 get_accumulator() const;
   u8 get_x() const;
   u8 get_y() const;
@@ -124,8 +128,10 @@ class CPU {
   u8 get_remaining_cycles() const;
   bool get_flag(Flag flag) const;
 
-  // Setters for testing
+  // Setters
   void set_sp(u8 sp);
+  void set_pc(u16 sp);
+  void set_flag(const Flag flag, const bool value);
 };
 
 }  // namespace nes
