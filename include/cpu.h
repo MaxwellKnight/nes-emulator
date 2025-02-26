@@ -23,8 +23,8 @@ class CPU {
   bool _page_crossed = false;
 
   // Instruction table mapping opcodes to handlers
-  static constexpr size_t INSTRUCTION_SIZE = 256;
-  std::array<Instruction, INSTRUCTION_SIZE> _instruction_table;
+  static constexpr size_t INSTRUCTION_TABLE_SIZE = 256;
+  std::array<Instruction, INSTRUCTION_TABLE_SIZE> _instruction_table;
 
   // Memory access methods
   u8 read_byte(u16 address);
@@ -58,6 +58,7 @@ class CPU {
   void op_asl(u16 addr);
   void op_lsr(u16 addr);
   void op_rol(u16 addr);
+  void op_ror(u16 addr);
 
   // Operations that don't require an address (implied operations)
   // Transfer operations

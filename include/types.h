@@ -110,7 +110,7 @@ enum class Opcode : u8 {
   ROL_ABX = 0x3E,  // Rotate Left Absolute X-Indexed
 
   ROR_ACC = 0x6A,  // Rotate Right Accumulator
-  ROR_ZPG = 0x6E,  // Rotate Right Zero Page
+  ROR_ZPG = 0x66,  // Rotate Right Zero Page
   ROR_ZPX = 0x76,  // Rotate Right Zero Page X-Indexed
   ROR_ABS = 0x6E,  // Rotate Right Absolute
   ROR_ABX = 0x7E,  // Rotate Right Absolute X-Indexed

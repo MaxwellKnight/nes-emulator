@@ -90,6 +90,13 @@ CPU::CPU(Bus &bus_ref)
   set_op(Opcode::ROL_ZPG, {.addressed_op = &CPU::op_rol, .mode = &CPU::zero_page, .cycles = 5, .name = "ROL"});
   set_op(Opcode::ROL_ZPX, {.addressed_op = &CPU::op_rol, .mode = &CPU::zero_page_x, .cycles = 6, .name = "ROL"});
 
+  // ROR
+  set_op(Opcode::ROR_ACC, {.implied_op = &CPU::op_ror_acc, .mode = nullptr, .cycles = 2, .name = "ROR", .is_implied = true});
+  set_op(Opcode::ROR_ABS, {.addressed_op = &CPU::op_ror, .mode = &CPU::absolute, .cycles = 6, .name = "ROR"});
+  set_op(Opcode::ROR_ABX, {.addressed_op = &CPU::op_ror, .mode = &CPU::absolute_x, .cycles = 7, .name = "ROR"});
+  set_op(Opcode::ROR_ZPG, {.addressed_op = &CPU::op_ror, .mode = &CPU::zero_page, .cycles = 5, .name = "ROR"});
+  set_op(Opcode::ROR_ZPX, {.addressed_op = &CPU::op_ror, .mode = &CPU::zero_page_x, .cycles = 6, .name = "ROR"});
+
   // Flags
   set_op(Opcode::CLC_IMP, {.implied_op = &CPU::op_clc, .mode = nullptr, .cycles = 2, .name = "CLC", .is_implied = true});
   set_op(Opcode::SEC_IMP, {.implied_op = &CPU::op_sec, .mode = nullptr, .cycles = 2, .name = "SEC", .is_implied = true});
@@ -303,6 +310,22 @@ void CPU::op_rol(const u16 addr) {
   update_zero_and_negative_flags(value);
 }
 
+// ROR
+void CPU::op_ror(const u16 addr) {
+  u8 value = read_byte(addr);
+  bool carry_bit = (value & 0x01) != 0;
+  value >>= 1;
+
+  // Put the old carry flag into bit 7
+  if (get_flag(Flag::CARRY)) {
+    value |= 0x80;
+  }
+
+  set_flag(Flag::CARRY, carry_bit);
+  write_byte(addr, value);
+  update_zero_and_negative_flags(value);
+}
+
 //////////////////////////////////////////////////////////////////////////
 // IMPLIED OPERATIONS (operations that don't need an address)
 //////////////////////////////////////////////////////////////////////////
@@ -384,6 +407,19 @@ void CPU::op_rol_acc() {
   // Put the old carry flag into bit 0
   if (get_flag(Flag::CARRY)) {
     _A |= 0x01;
+  }
+
+  set_flag(Flag::CARRY, carry_bit);
+  update_zero_and_negative_flags(_A);
+}
+
+void CPU::op_ror_acc() {
+  bool carry_bit = (_A & 0x01) != 0;
+  _A >>= 1;
+
+  // Put the old carry flag into bit 7
+  if (get_flag(Flag::CARRY)) {
+    _A |= 0x80;
   }
 
   set_flag(Flag::CARRY, carry_bit);
