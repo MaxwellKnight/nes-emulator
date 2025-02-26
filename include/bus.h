@@ -6,6 +6,7 @@ namespace nes {
 class Bus : public Addressable {
  public:
   Bus();
+  ~Bus() = default;
   void write(u16 address, u8 data) override;
   void write_word(u16 address, u16 value);
   [[nodiscard]] u8 read(u16 address) const override;

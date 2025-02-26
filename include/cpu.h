@@ -70,6 +70,8 @@ class CPU {
   void op_bit(u16 addr);
   void op_eor(u16 addr);
   void op_ora(u16 addr);
+  // Increment/Decrement operations
+  void op_inc(u16 addr);
 
   // Operations that don't require an address (implied operations)
   // Transfer operations
@@ -100,6 +102,7 @@ class CPU {
 
  public:
   CPU(Bus &bus_ref);
+  ~CPU() = default;
 
   // Core methods
   void clock();

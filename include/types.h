@@ -186,6 +186,12 @@ enum class Opcode : u8 {
   BIT_ABS = 0x2C,  // Test Bits in memory witht he accumulator Absolute
   BIT_ZPG = 0x24,  // Test Bits in memory witht he accumulator Zero Page
 
+  // Increment/Decrement operations
+  INC_ABS = 0xEE,  // INC Absolute
+  INC_ABX = 0xFE,  // INC Absolute X-Indexed
+  INC_ZPG = 0xE6,  // INC Absolute Zero Page
+  INC_ZPX = 0xF6,  // INC Absolute Zero Page X-Indexed
+
   // Flag operations (implied addressing)
   SEC_IMP = 0x38,  // Set Carry Flag
   SED_IMP = 0xF8,  // Set Decimal Flag

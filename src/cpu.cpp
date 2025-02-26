@@ -172,6 +172,12 @@ CPU::CPU(Bus &bus_ref)
   set_op(Opcode::BIT_ABS, {.addressed_op = &CPU::op_bit, .mode = &CPU::absolute, .cycles = 4, .name = "BIT"});
   set_op(Opcode::BIT_ZPG, {.addressed_op = &CPU::op_bit, .mode = &CPU::zero_page, .cycles = 3, .name = "BIT"});
 
+  // Increment/Decrement operations
+  set_op(Opcode::INC_ABS, {.addressed_op = &CPU::op_inc, .mode = &CPU::absolute, .cycles = 6, .name = "INC"});
+  set_op(Opcode::INC_ABX, {.addressed_op = &CPU::op_inc, .mode = &CPU::absolute_x, .cycles = 7, .name = "INC"});
+  set_op(Opcode::INC_ZPG, {.addressed_op = &CPU::op_inc, .mode = &CPU::zero_page, .cycles = 5, .name = "INC"});
+  set_op(Opcode::INC_ZPX, {.addressed_op = &CPU::op_inc, .mode = &CPU::zero_page_x, .cycles = 6, .name = "INC"});
+
   // Flags
   set_op(Opcode::SEC_IMP, {.implied_op = &CPU::op_sec, .mode = nullptr, .cycles = 2, .name = "SEC", .is_implied = true});
   set_op(Opcode::SED_IMP, {.implied_op = &CPU::op_sed, .mode = nullptr, .cycles = 2, .name = "SED", .is_implied = true});
@@ -493,6 +499,13 @@ void CPU::op_bit(const u16 addr) {
   set_flag(Flag::NEGATIVE, (value & 0x80) != 0);
   set_flag(Flag::OVERFLOW_, (value & 0x40) != 0);
   set_flag(Flag::ZERO, result == 0);
+}
+
+// Increment/Decrement operations
+void CPU::op_inc(const u16 addr) {
+  u8 value = read_byte(addr);
+  write_byte(addr, value + 1);
+  update_zero_and_negative_flags(value + 1);
 }
 
 //////////////////////////////////////////////////////////////////////////
