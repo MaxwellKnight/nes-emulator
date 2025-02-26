@@ -352,3 +352,286 @@ TEST_F(CPUArithmeticTest, adc_sequence) {
   EXPECT_TRUE(cpu.get_flag(nes::Flag::CARRY));
   EXPECT_FALSE(cpu.get_flag(nes::Flag::NEGATIVE));
 }
+
+// CMP - Equal comparison
+TEST_F(CPUArithmeticTest, cmp_equal) {
+  // Load accumulator with value
+  bus.write(0xFFFC, (nes::u8)nes::Opcode::LDA_IMM);
+  bus.write(0xFFFD, 0x42);  // Load 0x42 into A
+  execute_cycles(2);
+
+  // Execute CMP immediate with equal value
+  bus.write(0xFFFE, (nes::u8)nes::Opcode::CMP_IMM);
+  bus.write(0xFFFF, 0x42);  // Compare with 0x42
+  execute_cycles(2);
+
+  // Equal comparison sets Z flag and C flag, clears N flag
+  EXPECT_TRUE(cpu.get_flag(nes::Flag::ZERO));
+  EXPECT_TRUE(cpu.get_flag(nes::Flag::CARRY));
+  EXPECT_FALSE(cpu.get_flag(nes::Flag::NEGATIVE));
+
+  // Accumulator should remain unchanged
+  EXPECT_EQ(cpu.get_accumulator(), 0x42);
+  EXPECT_EQ(cpu.get_remaining_cycles(), 0);
+}
+
+// CMP - Accumulator greater than memory
+TEST_F(CPUArithmeticTest, cmp_greater) {
+  // Load accumulator with value
+  bus.write(0xFFFC, (nes::u8)nes::Opcode::LDA_IMM);
+  bus.write(0xFFFD, 0x42);  // Load 0x42 into A
+  execute_cycles(2);
+
+  // Execute CMP immediate with smaller value
+  bus.write(0xFFFE, (nes::u8)nes::Opcode::CMP_IMM);
+  bus.write(0xFFFF, 0x30);  // Compare with 0x30
+  execute_cycles(2);
+
+  // A > M sets C flag, clears Z flag
+  // N flag depends on bit 7 of result (0x42 - 0x30 = 0x12, so N should be clear)
+  EXPECT_FALSE(cpu.get_flag(nes::Flag::ZERO));
+  EXPECT_TRUE(cpu.get_flag(nes::Flag::CARRY));
+  EXPECT_FALSE(cpu.get_flag(nes::Flag::NEGATIVE));
+
+  // Accumulator should remain unchanged
+  EXPECT_EQ(cpu.get_accumulator(), 0x42);
+}
+
+// CMP - Accumulator less than memory
+TEST_F(CPUArithmeticTest, cmp_less) {
+  // Load accumulator with value
+  bus.write(0xFFFC, (nes::u8)nes::Opcode::LDA_IMM);
+  bus.write(0xFFFD, 0x42);  // Load 0x42 into A
+  execute_cycles(2);
+
+  // Execute CMP immediate with larger value
+  bus.write(0xFFFE, (nes::u8)nes::Opcode::CMP_IMM);
+  bus.write(0xFFFF, 0x50);  // Compare with 0x50
+  execute_cycles(2);
+
+  // A < M clears C flag and Z flag
+  // N flag depends on bit 7 of result (0x42 - 0x50 = 0xF2, so N should be set)
+  EXPECT_FALSE(cpu.get_flag(nes::Flag::ZERO));
+  EXPECT_FALSE(cpu.get_flag(nes::Flag::CARRY));
+  EXPECT_TRUE(cpu.get_flag(nes::Flag::NEGATIVE));
+
+  // Accumulator should remain unchanged
+  EXPECT_EQ(cpu.get_accumulator(), 0x42);
+}
+
+// CMP - With negative number
+TEST_F(CPUArithmeticTest, cmp_negative) {
+  // Load accumulator with negative value
+  bus.write(0xFFFC, (nes::u8)nes::Opcode::LDA_IMM);
+  bus.write(0xFFFD, 0x80);  // Load 0x80 (-128 in two's complement) into A
+  execute_cycles(2);
+
+  // Execute CMP immediate with positive value
+  bus.write(0xFFFE, (nes::u8)nes::Opcode::CMP_IMM);
+  bus.write(0xFFFF, 0x01);  // Compare with 0x01
+  execute_cycles(2);
+
+  // 0x80 - 0x01 = 0x7F, sets C flag, clears Z flag and N flag
+  EXPECT_FALSE(cpu.get_flag(nes::Flag::ZERO));
+  EXPECT_TRUE(cpu.get_flag(nes::Flag::CARRY));
+  EXPECT_FALSE(cpu.get_flag(nes::Flag::NEGATIVE));
+
+  // Accumulator should remain unchanged
+  EXPECT_EQ(cpu.get_accumulator(), 0x80);
+}
+
+// CMP - Compare with zero
+TEST_F(CPUArithmeticTest, cmp_with_zero) {
+  // Load accumulator with value
+  bus.write(0xFFFC, (nes::u8)nes::Opcode::LDA_IMM);
+  bus.write(0xFFFD, 0x42);  // Load 0x42 into A
+  execute_cycles(2);
+
+  // Execute CMP immediate with zero
+  bus.write(0xFFFE, (nes::u8)nes::Opcode::CMP_IMM);
+  bus.write(0xFFFF, 0x00);  // Compare with 0x00
+  execute_cycles(2);
+
+  // A > 0 sets C flag, clears Z flag
+  // 0x42 - 0x00 = 0x42, so N should be clear
+  EXPECT_FALSE(cpu.get_flag(nes::Flag::ZERO));
+  EXPECT_TRUE(cpu.get_flag(nes::Flag::CARRY));
+  EXPECT_FALSE(cpu.get_flag(nes::Flag::NEGATIVE));
+
+  // Accumulator should remain unchanged
+  EXPECT_EQ(cpu.get_accumulator(), 0x42);
+}
+
+// CMP - Accumulator is zero
+TEST_F(CPUArithmeticTest, cmp_accumulator_zero) {
+  // Load accumulator with zero
+  bus.write(0xFFFC, (nes::u8)nes::Opcode::LDA_IMM);
+  bus.write(0xFFFD, 0x00);  // Load 0x00 into A
+  execute_cycles(2);
+
+  // Execute CMP immediate with positive value
+  bus.write(0xFFFE, (nes::u8)nes::Opcode::CMP_IMM);
+  bus.write(0xFFFF, 0x01);  // Compare with 0x01
+  execute_cycles(2);
+
+  // 0x00 - 0x01 = 0xFF, clears C flag and Z flag, sets N flag
+  EXPECT_FALSE(cpu.get_flag(nes::Flag::ZERO));
+  EXPECT_FALSE(cpu.get_flag(nes::Flag::CARRY));
+  EXPECT_TRUE(cpu.get_flag(nes::Flag::NEGATIVE));
+
+  // Accumulator should remain unchanged
+  EXPECT_EQ(cpu.get_accumulator(), 0x00);
+}
+
+// Testing different addressing modes
+
+// CMP - Zero Page addressing mode
+TEST_F(CPUArithmeticTest, cmp_zero_page) {
+  // Load accumulator with value
+  bus.write(0xFFFC, (nes::u8)nes::Opcode::LDA_IMM);
+  bus.write(0xFFFD, 0x42);  // Load 0x42 into A
+  execute_cycles(2);
+
+  // Set up value in zero page
+  bus.write(0x42, 0x42);  // Same value as accumulator
+
+  // Execute CMP zero page
+  bus.write(0xFFFE, (nes::u8)nes::Opcode::CMP_ZPG);
+  bus.write(0xFFFF, 0x42);  // Zero page address
+  execute_cycles(3);
+
+  // Equal comparison sets Z flag and C flag, clears N flag
+  EXPECT_TRUE(cpu.get_flag(nes::Flag::ZERO));
+  EXPECT_TRUE(cpu.get_flag(nes::Flag::CARRY));
+  EXPECT_FALSE(cpu.get_flag(nes::Flag::NEGATIVE));
+}
+
+// CMP - Absolute addressing mode
+TEST_F(CPUArithmeticTest, cmp_absolute) {
+  // Load accumulator with value
+  bus.write(0xFFFC, (nes::u8)nes::Opcode::LDA_IMM);
+  bus.write(0xFFFD, 0x42);  // Load 0x42 into A
+  execute_cycles(2);
+
+  // Set up value in memory
+  bus.write(0x1234, 0x30);  // Less than accumulator
+
+  // Execute CMP absolute
+  bus.write(0xFFFE, (nes::u8)nes::Opcode::CMP_ABS);
+  bus.write(0xFFFF, 0x34);  // Low byte of address
+  bus.write(0x0000, 0x12);  // High byte of address
+  execute_cycles(4);
+
+  // A > M sets C flag, clears Z flag and N flag
+  EXPECT_FALSE(cpu.get_flag(nes::Flag::ZERO));
+  EXPECT_TRUE(cpu.get_flag(nes::Flag::CARRY));
+  EXPECT_FALSE(cpu.get_flag(nes::Flag::NEGATIVE));
+}
+
+// CMP - Absolute X-indexed addressing mode
+TEST_F(CPUArithmeticTest, cmp_absolute_x) {
+  // Set X register
+  bus.write(0xFFFC, (nes::u8)nes::Opcode::LDX_IMM);
+  bus.write(0xFFFD, 0x10);  // X = 0x10
+  execute_cycles(2);
+
+  // Load accumulator with value
+  bus.write(0xFFFE, (nes::u8)nes::Opcode::LDA_IMM);
+  bus.write(0xFFFF, 0x42);  // Load 0x42 into A
+  execute_cycles(2);
+
+  // Set up value in memory
+  bus.write(0x1244, 0x50);  // 0x1234 + 0x10 = 0x1244, value greater than accumulator
+
+  // Execute CMP absolute X-indexed
+  bus.write(0x0000, (nes::u8)nes::Opcode::CMP_ABX);
+  bus.write(0x0001, 0x34);  // Low byte of base address
+  bus.write(0x0002, 0x12);  // High byte of base address
+  execute_cycles(4);        // No page crossing
+
+  // A < M clears C flag and Z flag, sets N flag
+  EXPECT_FALSE(cpu.get_flag(nes::Flag::ZERO));
+  EXPECT_FALSE(cpu.get_flag(nes::Flag::CARRY));
+  EXPECT_TRUE(cpu.get_flag(nes::Flag::NEGATIVE));
+}
+
+// CMP - Absolute X-indexed with page crossing
+TEST_F(CPUArithmeticTest, cmp_absolute_x_page_crossing) {
+  // Set X register to cause page crossing
+  bus.write(0xFFFC, (nes::u8)nes::Opcode::LDX_IMM);
+  bus.write(0xFFFD, 0xFF);  // X = 0xFF
+  execute_cycles(2);
+
+  // Load accumulator with value
+  bus.write(0xFFFE, (nes::u8)nes::Opcode::LDA_IMM);
+  bus.write(0xFFFF, 0x42);  // Load 0x42 into A
+  execute_cycles(2);
+
+  // Set up value in memory
+  bus.write(0x12FE, 0x42);  // 0x1200 + 0xFF = 0x12FF (page crossing), equal to accumulator
+
+  // Execute CMP absolute X-indexed with page crossing
+  bus.write(0x0000, (nes::u8)nes::Opcode::CMP_ABX);
+  bus.write(0x0001, 0xFF);  // Low byte of base address
+  bus.write(0x0002, 0x11);  // High byte of base address
+  execute_cycles(5);        // Page crossing adds 1 cycle
+
+  // Equal comparison sets Z flag and C flag, clears N flag
+  EXPECT_TRUE(cpu.get_flag(nes::Flag::ZERO));
+  EXPECT_TRUE(cpu.get_flag(nes::Flag::CARRY));
+  EXPECT_FALSE(cpu.get_flag(nes::Flag::NEGATIVE));
+}
+
+// CMP - Absolute Y-indexed addressing mode
+TEST_F(CPUArithmeticTest, cmp_absolute_y) {
+  // Set Y register
+  bus.write(0xFFFC, (nes::u8)nes::Opcode::LDY_IMM);
+  bus.write(0xFFFD, 0x10);  // Y = 0x10
+  execute_cycles(2);
+
+  // Load accumulator with value
+  bus.write(0xFFFE, (nes::u8)nes::Opcode::LDA_IMM);
+  bus.write(0xFFFF, 0xFF);  // Load 0xFF into A
+  execute_cycles(2);
+
+  // Set up value in memory
+  bus.write(0x1244, 0x01);  // 0x1234 + 0x10 = 0x1244, value less than accumulator
+
+  // Execute CMP absolute Y-indexed
+  bus.write(0x0000, (nes::u8)nes::Opcode::CMP_ABY);
+  bus.write(0x0001, 0x34);  // Low byte of base address
+  bus.write(0x0002, 0x12);  // High byte of base address
+  execute_cycles(4);        // No page crossing
+
+  // A > M sets C flag, clears Z flag, might set or clear N flag
+  // 0xFF - 0x01 = 0xFE, which has bit 7 set
+  EXPECT_FALSE(cpu.get_flag(nes::Flag::ZERO));
+  EXPECT_TRUE(cpu.get_flag(nes::Flag::CARRY));
+  EXPECT_TRUE(cpu.get_flag(nes::Flag::NEGATIVE));
+}
+
+// CMP - Zero Page X-indexed addressing mode
+TEST_F(CPUArithmeticTest, cmp_zero_page_x) {
+  // Set X register
+  bus.write(0xFFFC, (nes::u8)nes::Opcode::LDX_IMM);
+  bus.write(0xFFFD, 0x10);  // X = 0x10
+  execute_cycles(2);
+
+  // Load accumulator with value
+  bus.write(0xFFFE, (nes::u8)nes::Opcode::LDA_IMM);
+  bus.write(0xFFFF, 0x42);  // Load 0x42 into A
+  execute_cycles(2);
+
+  // Set up value in zero page
+  bus.write(0x52, 0x42);  // 0x42 + 0x10 = 0x52, same as accumulator
+
+  // Execute CMP zero page X-indexed
+  bus.write(0x0000, (nes::u8)nes::Opcode::CMP_ZPX);
+  bus.write(0x0001, 0x42);  // Zero page address
+  execute_cycles(4);
+
+  // Equal comparison sets Z flag and C flag, clears N flag
+  EXPECT_TRUE(cpu.get_flag(nes::Flag::ZERO));
+  EXPECT_TRUE(cpu.get_flag(nes::Flag::CARRY));
+  EXPECT_FALSE(cpu.get_flag(nes::Flag::NEGATIVE));
+}

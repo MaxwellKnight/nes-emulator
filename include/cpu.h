@@ -61,6 +61,7 @@ class CPU {
   void op_ror(u16 addr);
   // Arithmetic operations
   void op_adc(u16 addr);
+  void op_cmp(u16 addr);
 
   // Operations that don't require an address (implied operations)
   // Transfer operations

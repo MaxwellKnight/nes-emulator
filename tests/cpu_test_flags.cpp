@@ -285,7 +285,6 @@ TEST_F(CPUFlagTest, flag_clear_sequence) {
   EXPECT_TRUE(cpu.get_flag(nes::Flag::INTERRUPT_DISABLE));
   EXPECT_TRUE(cpu.get_flag(nes::Flag::DECIMAL));
 
-  // Now write the CLEAR instructions
   pc = cpu.get_pc();  // Get current PC after executing the SET instructions
   bus.write(pc++, (nes::u8)nes::Opcode::CLC_IMP);
   bus.write(pc++, (nes::u8)nes::Opcode::CLI_IMP);

@@ -125,6 +125,15 @@ enum class Opcode : u8 {
   ADC_IZX = 0x61,  // ADC Indirect X (Zero Page Pre-Indexed)
   ADC_IZY = 0x71,  // ADC Indirect Y (Zero Page Post-Indexed)
 
+  CMP_IMM = 0xC9,  // CMP Immediate
+  CMP_ABS = 0xCD,  // CMP Absolute
+  CMP_ABX = 0xDD,  // CMP Absolute X-Indexed
+  CMP_ABY = 0xD9,  // CMP Absolute Y-Indexed
+  CMP_ZPG = 0xC5,  // CMP Zero Page
+  CMP_ZPX = 0xD5,  // CMP Zero Page X-Indexed
+  CMP_IZX = 0xC1,  // CMP Indirect X (Zero Page Pre-Indexed)
+  CMP_IZY = 0xD1,  // CMP Indirect Y (Zero Page Post-Indexed)
+
   // Flag operations (implied addressing)
   SEC_IMP = 0x38,  // Set Carry Flag
   SED_IMP = 0xF8,  // Set Decimal Flag
