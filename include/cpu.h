@@ -61,6 +61,7 @@ class CPU {
   void op_ror(u16 addr);
   // Arithmetic operations
   void op_adc(u16 addr);
+  void op_sbc(u16 addr);
   void op_cmp(u16 addr);
   void op_cpx(u16 addr);
   void op_cpy(u16 addr);

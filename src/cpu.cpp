@@ -108,6 +108,16 @@ CPU::CPU(Bus &bus_ref)
   set_op(Opcode::ADC_IZX, {.addressed_op = &CPU::op_adc, .mode = &CPU::indirect_x, .cycles = 6, .name = "LDA"});
   set_op(Opcode::ADC_IZY, {.addressed_op = &CPU::op_adc, .mode = &CPU::indirect_y, .cycles = 5, .name = "LDA", .is_extra_cycle = true});
 
+  // SBC
+  set_op(Opcode::SBC_IMM, {.addressed_op = &CPU::op_sbc, .mode = &CPU::immediate, .cycles = 2, .name = "SBC"});
+  set_op(Opcode::SBC_ZPG, {.addressed_op = &CPU::op_sbc, .mode = &CPU::zero_page, .cycles = 3, .name = "SBC"});
+  set_op(Opcode::SBC_ABS, {.addressed_op = &CPU::op_sbc, .mode = &CPU::absolute, .cycles = 4, .name = "SBC"});
+  set_op(Opcode::SBC_ABX, {.addressed_op = &CPU::op_sbc, .mode = &CPU::absolute_x, .cycles = 4, .name = "SBC", .is_extra_cycle = true});
+  set_op(Opcode::SBC_ABY, {.addressed_op = &CPU::op_sbc, .mode = &CPU::absolute_y, .cycles = 4, .name = "SBC", .is_extra_cycle = true});
+  set_op(Opcode::SBC_ZPX, {.addressed_op = &CPU::op_sbc, .mode = &CPU::zero_page_x, .cycles = 4, .name = "SBC"});
+  set_op(Opcode::SBC_IZX, {.addressed_op = &CPU::op_sbc, .mode = &CPU::indirect_x, .cycles = 6, .name = "SBC"});
+  set_op(Opcode::SBC_IZY, {.addressed_op = &CPU::op_sbc, .mode = &CPU::indirect_y, .cycles = 5, .name = "SBC", .is_extra_cycle = true});
+
   // CMP
   set_op(Opcode::CMP_IMM, {.addressed_op = &CPU::op_cmp, .mode = &CPU::immediate, .cycles = 2, .name = "CMP"});
   set_op(Opcode::CMP_ZPG, {.addressed_op = &CPU::op_cmp, .mode = &CPU::zero_page, .cycles = 3, .name = "CMP"});
@@ -374,6 +384,21 @@ void CPU::op_adc(const u16 addr) {
   bool overflow = ((_A ^ sum) & (value ^ sum) & 0x80) != 0;
   set_flag(Flag::OVERFLOW_, overflow);
   _A = sum;
+  update_zero_and_negative_flags(_A);
+}
+
+// SBC
+void CPU::op_sbc(const u16 addr) {
+  u16 value = (u16)read_byte(addr);
+  u16 sub = (u16)_A - value - (1 - (u16)get_flag(Flag::CARRY));
+
+  set_flag(Flag::CARRY, !(sub & 0x100));
+
+  // overflow is set when operands have different signs and result sign != A sign
+  bool overflow = ((_A ^ value) & 0x80) && ((_A ^ sub) & 0x80);
+  set_flag(Flag::OVERFLOW_, overflow);
+
+  _A = (u8)sub;
   update_zero_and_negative_flags(_A);
 }
 

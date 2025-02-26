@@ -1089,3 +1089,357 @@ TEST_F(CPUArithmeticTest, cpy_other_registers_unchanged) {
   EXPECT_EQ(cpu.get_x(), 0xBB);
   EXPECT_EQ(cpu.get_y(), 0x42);
 }
+
+// SBC - Basic subtraction with carry set (no borrow)
+TEST_F(CPUArithmeticTest, sbc_basic_subtraction_carry_set) {
+  // Load accumulator with initial value
+  bus.write(0xFFFC, (nes::u8)nes::Opcode::LDA_IMM);
+  bus.write(0xFFFD, 0x50);  // Load 0x50 (80) into A
+  execute_cycles(2);
+
+  // Set carry flag (no borrow)
+  bus.write(0xFFFE, (nes::u8)nes::Opcode::SEC_IMP);
+  execute_cycles(2);
+
+  // Execute SBC immediate
+  bus.write(0xFFFF, (nes::u8)nes::Opcode::SBC_IMM);
+  bus.write(0x0000, 0x30);  // Subtract 0x30 (48) from accumulator
+  execute_cycles(2);
+
+  // Result: 0x50 - 0x30 = 0x20 (32)
+  EXPECT_EQ(cpu.get_accumulator(), 0x20);
+  EXPECT_TRUE(cpu.get_flag(nes::Flag::CARRY));  // No borrow occurred
+  EXPECT_FALSE(cpu.get_flag(nes::Flag::ZERO));
+  EXPECT_FALSE(cpu.get_flag(nes::Flag::NEGATIVE));
+  EXPECT_FALSE(cpu.get_flag(nes::Flag::OVERFLOW_));
+}
+
+// SBC - Basic subtraction with carry clear (with borrow)
+TEST_F(CPUArithmeticTest, sbc_basic_subtraction_carry_clear) {
+  // Load accumulator with initial value
+  bus.write(0xFFFC, (nes::u8)nes::Opcode::LDA_IMM);
+  bus.write(0xFFFD, 0x50);  // Load 0x50 (80) into A
+  execute_cycles(2);
+
+  // Clear carry flag (causes borrow)
+  bus.write(0xFFFE, (nes::u8)nes::Opcode::CLC_IMP);
+  execute_cycles(2);
+
+  // Execute SBC immediate
+  bus.write(0xFFFF, (nes::u8)nes::Opcode::SBC_IMM);
+  bus.write(0x0000, 0x30);  // Subtract 0x30 (48) + borrow from accumulator
+  execute_cycles(2);
+
+  // Result: 0x50 - 0x30 - 1 = 0x1F (31)
+  EXPECT_EQ(cpu.get_accumulator(), 0x1F);
+  EXPECT_TRUE(cpu.get_flag(nes::Flag::CARRY));  // No borrow occurred in final result
+  EXPECT_FALSE(cpu.get_flag(nes::Flag::ZERO));
+  EXPECT_FALSE(cpu.get_flag(nes::Flag::NEGATIVE));
+  EXPECT_FALSE(cpu.get_flag(nes::Flag::OVERFLOW_));
+}
+
+// SBC - Subtraction resulting in zero
+TEST_F(CPUArithmeticTest, sbc_result_zero) {
+  // Load accumulator with initial value
+  bus.write(0xFFFC, (nes::u8)nes::Opcode::LDA_IMM);
+  bus.write(0xFFFD, 0x50);  // Load 0x50 (80) into A
+  execute_cycles(2);
+
+  // Set carry flag (no borrow)
+  bus.write(0xFFFE, (nes::u8)nes::Opcode::SEC_IMP);
+  execute_cycles(2);
+
+  // Execute SBC immediate
+  bus.write(0xFFFF, (nes::u8)nes::Opcode::SBC_IMM);
+  bus.write(0x0000, 0x50);  // Subtract 0x50 (80) from accumulator
+  execute_cycles(2);
+
+  // Result: 0x50 - 0x50 = 0x00
+  EXPECT_EQ(cpu.get_accumulator(), 0x00);
+  EXPECT_TRUE(cpu.get_flag(nes::Flag::CARRY));  // No borrow occurred
+  EXPECT_TRUE(cpu.get_flag(nes::Flag::ZERO));
+  EXPECT_FALSE(cpu.get_flag(nes::Flag::NEGATIVE));
+  EXPECT_FALSE(cpu.get_flag(nes::Flag::OVERFLOW_));
+}
+
+// SBC - Subtraction resulting in borrow (carry clear)
+TEST_F(CPUArithmeticTest, sbc_with_borrow_out) {
+  // Load accumulator with initial value
+  bus.write(0xFFFC, (nes::u8)nes::Opcode::LDA_IMM);
+  bus.write(0xFFFD, 0x50);  // Load 0x50 (80) into A
+  execute_cycles(2);
+
+  // Set carry flag (no borrow)
+  bus.write(0xFFFE, (nes::u8)nes::Opcode::SEC_IMP);
+  execute_cycles(2);
+
+  // Execute SBC immediate
+  bus.write(0xFFFF, (nes::u8)nes::Opcode::SBC_IMM);
+  bus.write(0x0000, 0x70);  // Subtract 0x70 (112) from accumulator
+  execute_cycles(2);
+
+  // Result: 0x50 - 0x70 = 0xE0 (-32 in two's complement)
+  EXPECT_EQ(cpu.get_accumulator(), 0xE0);
+  EXPECT_FALSE(cpu.get_flag(nes::Flag::CARRY));  // Borrow occurred
+  EXPECT_FALSE(cpu.get_flag(nes::Flag::ZERO));
+  EXPECT_TRUE(cpu.get_flag(nes::Flag::NEGATIVE));
+  EXPECT_FALSE(cpu.get_flag(nes::Flag::OVERFLOW_));
+}
+
+// SBC - Overflow set (positive to negative)
+TEST_F(CPUArithmeticTest, sbc_overflow_positive_to_negative) {
+  // Load accumulator with positive value
+  bus.write(0xFFFC, (nes::u8)nes::Opcode::LDA_IMM);
+  bus.write(0xFFFD, 0x50);  // Load 0x50 (80) into A
+  execute_cycles(2);
+
+  // Set carry flag (no borrow)
+  bus.write(0xFFFE, (nes::u8)nes::Opcode::SEC_IMP);
+  execute_cycles(2);
+
+  // Execute SBC immediate with large positive value
+  bus.write(0xFFFF, (nes::u8)nes::Opcode::SBC_IMM);
+  bus.write(0x0000, 0xB0);  // Subtract 0xB0 (176) from accumulator
+  execute_cycles(2);
+
+  // Result: 0x50 - 0xB0 = 0xA0 (-96 in two's complement)
+  // This crosses from positive to negative, setting overflow
+  EXPECT_EQ(cpu.get_accumulator(), 0xA0);
+  EXPECT_FALSE(cpu.get_flag(nes::Flag::CARRY));  // Borrow occurred
+  EXPECT_FALSE(cpu.get_flag(nes::Flag::ZERO));
+  EXPECT_TRUE(cpu.get_flag(nes::Flag::NEGATIVE));
+  EXPECT_TRUE(cpu.get_flag(nes::Flag::OVERFLOW_));  // Sign changed incorrectly
+}
+
+// SBC - Overflow set (negative to positive)
+TEST_F(CPUArithmeticTest, sbc_overflow_negative_to_positive) {
+  // Load accumulator with negative value
+  bus.write(0xFFFC, (nes::u8)nes::Opcode::LDA_IMM);
+  bus.write(0xFFFD, 0x80);  // Load 0x80 (-128) into A
+  execute_cycles(2);
+
+  // Set carry flag (no borrow)
+  bus.write(0xFFFE, (nes::u8)nes::Opcode::SEC_IMP);
+  execute_cycles(2);
+
+  // Execute SBC immediate with negative value
+  bus.write(0xFFFF, (nes::u8)nes::Opcode::SBC_IMM);
+  bus.write(0x0000, 0xFF);  // Subtract 0xFF (-1) from accumulator
+  execute_cycles(2);
+
+  // Result: 0x80 - 0xFF = 0x81 (-127 to 127 overflow)
+  // Since -128 - (-1) = -127, but we get 127 (0x7F), which is a sign change
+  EXPECT_EQ(cpu.get_accumulator(), 0x81);
+  EXPECT_FALSE(cpu.get_flag(nes::Flag::CARRY));  // Borrow occurred
+  EXPECT_FALSE(cpu.get_flag(nes::Flag::ZERO));
+  EXPECT_TRUE(cpu.get_flag(nes::Flag::NEGATIVE));
+  EXPECT_FALSE(cpu.get_flag(nes::Flag::OVERFLOW_));  // No overflow in this case
+}
+
+// SBC - Wraparound with carry set
+TEST_F(CPUArithmeticTest, sbc_wraparound_with_carry) {
+  // Load accumulator with initial value
+  bus.write(0xFFFC, (nes::u8)nes::Opcode::LDA_IMM);
+  bus.write(0xFFFD, 0x00);  // Load 0x00 into A
+  execute_cycles(2);
+
+  // Set carry flag (no borrow)
+  bus.write(0xFFFE, (nes::u8)nes::Opcode::SEC_IMP);
+  execute_cycles(2);
+
+  // Execute SBC immediate
+  bus.write(0xFFFF, (nes::u8)nes::Opcode::SBC_IMM);
+  bus.write(0x0000, 0x01);  // Subtract 0x01 from accumulator
+  execute_cycles(2);
+
+  // Result: 0x00 - 0x01 = 0xFF (-1 in two's complement)
+  EXPECT_EQ(cpu.get_accumulator(), 0xFF);
+  EXPECT_FALSE(cpu.get_flag(nes::Flag::CARRY));  // Borrow occurred
+  EXPECT_FALSE(cpu.get_flag(nes::Flag::ZERO));
+  EXPECT_TRUE(cpu.get_flag(nes::Flag::NEGATIVE));
+  EXPECT_FALSE(cpu.get_flag(nes::Flag::OVERFLOW_));
+}
+
+// SBC - Wraparound with carry clear (with borrow)
+TEST_F(CPUArithmeticTest, sbc_wraparound_with_borrow) {
+  // Load accumulator with initial value
+  bus.write(0xFFFC, (nes::u8)nes::Opcode::LDA_IMM);
+  bus.write(0xFFFD, 0x00);  // Load 0x00 into A
+  execute_cycles(2);
+
+  // Clear carry flag (causes borrow)
+  bus.write(0xFFFE, (nes::u8)nes::Opcode::CLC_IMP);
+  execute_cycles(2);
+
+  // Execute SBC immediate
+  bus.write(0xFFFF, (nes::u8)nes::Opcode::SBC_IMM);
+  bus.write(0x0000, 0x01);  // Subtract 0x01 + borrow from accumulator
+  execute_cycles(2);
+
+  // Result: 0x00 - 0x01 - 0x01 (borrow) = 0xFE (-2 in two's complement)
+  EXPECT_EQ(cpu.get_accumulator(), 0xFE);
+  EXPECT_FALSE(cpu.get_flag(nes::Flag::CARRY));  // Borrow occurred
+  EXPECT_FALSE(cpu.get_flag(nes::Flag::ZERO));
+  EXPECT_TRUE(cpu.get_flag(nes::Flag::NEGATIVE));
+  EXPECT_FALSE(cpu.get_flag(nes::Flag::OVERFLOW_));
+}
+
+// SBC - Tests for different addressing modes
+
+// SBC - Zero Page addressing mode
+TEST_F(CPUArithmeticTest, sbc_zero_page) {
+  // Load accumulator with value
+  bus.write(0xFFFC, (nes::u8)nes::Opcode::LDA_IMM);
+  bus.write(0xFFFD, 0x50);  // Load 0x50 into A
+  execute_cycles(2);
+
+  // Set carry flag (no borrow)
+  bus.write(0xFFFE, (nes::u8)nes::Opcode::SEC_IMP);
+  execute_cycles(2);
+
+  // Set up value in zero page
+  bus.write(0x42, 0x30);  // Value to subtract
+
+  // Execute SBC zero page
+  bus.write(0xFFFF, (nes::u8)nes::Opcode::SBC_ZPG);
+  bus.write(0x0000, 0x42);  // Zero page address
+  execute_cycles(3);
+
+  // Result: 0x50 - 0x30 = 0x20
+  EXPECT_EQ(cpu.get_accumulator(), 0x20);
+  EXPECT_TRUE(cpu.get_flag(nes::Flag::CARRY));  // No borrow occurred
+  EXPECT_FALSE(cpu.get_flag(nes::Flag::ZERO));
+  EXPECT_FALSE(cpu.get_flag(nes::Flag::NEGATIVE));
+}
+
+// SBC - Absolute addressing mode
+TEST_F(CPUArithmeticTest, sbc_absolute) {
+  // Load accumulator with value
+  bus.write(0xFFFC, (nes::u8)nes::Opcode::LDA_IMM);
+  bus.write(0xFFFD, 0x50);  // Load 0x50 into A
+  execute_cycles(2);
+
+  // Set carry flag (no borrow)
+  bus.write(0xFFFE, (nes::u8)nes::Opcode::SEC_IMP);
+  execute_cycles(2);
+
+  // Set up value in memory
+  bus.write(0x1234, 0x30);  // Value to subtract
+
+  // Execute SBC absolute
+  bus.write(0xFFFF, (nes::u8)nes::Opcode::SBC_ABS);
+  bus.write(0x0000, 0x34);  // Low byte of address
+  bus.write(0x0001, 0x12);  // High byte of address
+  execute_cycles(4);
+
+  // Result: 0x50 - 0x30 = 0x20
+  EXPECT_EQ(cpu.get_accumulator(), 0x20);
+  EXPECT_TRUE(cpu.get_flag(nes::Flag::CARRY));  // No borrow occurred
+  EXPECT_FALSE(cpu.get_flag(nes::Flag::ZERO));
+  EXPECT_FALSE(cpu.get_flag(nes::Flag::NEGATIVE));
+}
+
+// SBC - Absolute X-indexed addressing mode
+TEST_F(CPUArithmeticTest, sbc_absolute_x) {
+  // Set X register
+  bus.write(0xFFFC, (nes::u8)nes::Opcode::LDX_IMM);
+  bus.write(0xFFFD, 0x10);  // X = 0x10
+  execute_cycles(2);
+
+  // Load accumulator with value
+  bus.write(0xFFFE, (nes::u8)nes::Opcode::LDA_IMM);
+  bus.write(0xFFFF, 0x50);  // Load 0x50 into A
+  execute_cycles(2);
+
+  // Set carry flag (no borrow)
+  bus.write(0x0000, (nes::u8)nes::Opcode::SEC_IMP);
+  execute_cycles(2);
+
+  // Set up value in memory
+  bus.write(0x1244, 0x30);  // 0x1234 + 0x10 = 0x1244, value to subtract
+
+  // Execute SBC absolute X-indexed
+  bus.write(0x0001, (nes::u8)nes::Opcode::SBC_ABX);
+  bus.write(0x0002, 0x34);  // Low byte of base address
+  bus.write(0x0003, 0x12);  // High byte of base address
+  execute_cycles(4);        // No page crossing
+
+  // Result: 0x50 - 0x30 = 0x20
+  EXPECT_EQ(cpu.get_accumulator(), 0x20);
+  EXPECT_TRUE(cpu.get_flag(nes::Flag::CARRY));  // No borrow occurred
+  EXPECT_FALSE(cpu.get_flag(nes::Flag::ZERO));
+  EXPECT_FALSE(cpu.get_flag(nes::Flag::NEGATIVE));
+}
+
+// SBC - Absolute X-indexed with page crossing
+TEST_F(CPUArithmeticTest, sbc_absolute_x_page_crossing) {
+  // Set X register to cause page crossing
+  bus.write(0xFFFC, (nes::u8)nes::Opcode::LDX_IMM);
+  bus.write(0xFFFD, 0xFF);  // X = 0xFF
+  execute_cycles(2);
+
+  // Load accumulator with value
+  bus.write(0xFFFE, (nes::u8)nes::Opcode::LDA_IMM);
+  bus.write(0xFFFF, 0x50);  // Load 0x50 into A
+  execute_cycles(2);
+
+  // Set carry flag (no borrow)
+  bus.write(0x0000, (nes::u8)nes::Opcode::SEC_IMP);
+  execute_cycles(2);
+
+  // Set up value in memory
+  bus.write(0x12FE, 0x30);  // 0x1200 + 0xFF = 0x12FF (page crossing), value to subtract
+
+  // Execute SBC absolute X-indexed with page crossing
+  bus.write(0x0001, (nes::u8)nes::Opcode::SBC_ABX);
+  bus.write(0x0002, 0xFF);  // Low byte of base address
+  bus.write(0x0003, 0x11);  // High byte of base address
+  execute_cycles(5);        // Page crossing adds 1 cycle
+
+  // Result: 0x50 - 0x30 = 0x20
+  EXPECT_EQ(cpu.get_accumulator(), 0x20);
+  EXPECT_TRUE(cpu.get_flag(nes::Flag::CARRY));  // No borrow occurred
+  EXPECT_FALSE(cpu.get_flag(nes::Flag::ZERO));
+  EXPECT_FALSE(cpu.get_flag(nes::Flag::NEGATIVE));
+}
+
+// SBC - Multiple operations in sequence
+TEST_F(CPUArithmeticTest, sbc_sequence) {
+  // Load accumulator with initial value
+  bus.write(0xFFFC, (nes::u8)nes::Opcode::LDA_IMM);
+  bus.write(0xFFFD, 0x80);  // Load 0x80 (128) into A
+  execute_cycles(2);
+
+  // Set carry flag (no borrow)
+  bus.write(0xFFFE, (nes::u8)nes::Opcode::SEC_IMP);
+  execute_cycles(2);
+
+  // First subtraction: 0x80 - 0x20 = 0x60
+  bus.write(0xFFFF, (nes::u8)nes::Opcode::SBC_IMM);
+  bus.write(0x0000, 0x20);  // Subtract 0x20
+  execute_cycles(2);
+  EXPECT_EQ(cpu.get_accumulator(), 0x60);
+  EXPECT_TRUE(cpu.get_flag(nes::Flag::CARRY));  // No borrow
+
+  // Second subtraction: 0x60 - 0x40 = 0x20
+  bus.write(0x0001, (nes::u8)nes::Opcode::SBC_IMM);
+  bus.write(0x0002, 0x40);  // Subtract 0x40
+  execute_cycles(2);
+  EXPECT_EQ(cpu.get_accumulator(), 0x20);
+  EXPECT_TRUE(cpu.get_flag(nes::Flag::CARRY));  // No borrow
+
+  // Third subtraction: 0x20 - 0x30 = 0xF0 (-16)
+  bus.write(0x0003, (nes::u8)nes::Opcode::SBC_IMM);
+  bus.write(0x0004, 0x30);  // Subtract 0x30
+  execute_cycles(2);
+  EXPECT_EQ(cpu.get_accumulator(), 0xF0);
+  EXPECT_FALSE(cpu.get_flag(nes::Flag::CARRY));  // Borrow occurred
+  EXPECT_TRUE(cpu.get_flag(nes::Flag::NEGATIVE));
+
+  // Fourth subtraction with borrow: 0xF0 - 0x10 - 1 (borrow) = 0xDF
+  bus.write(0x0005, (nes::u8)nes::Opcode::SBC_IMM);
+  bus.write(0x0006, 0x10);  // Subtract 0x10 + borrow
+  execute_cycles(2);
+  EXPECT_EQ(cpu.get_accumulator(), 0xDF);
+  EXPECT_TRUE(cpu.get_flag(nes::Flag::NEGATIVE));
+}

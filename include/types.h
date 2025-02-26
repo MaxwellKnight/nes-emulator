@@ -125,6 +125,15 @@ enum class Opcode : u8 {
   ADC_IZX = 0x61,  // ADC Indirect X (Zero Page Pre-Indexed)
   ADC_IZY = 0x71,  // ADC Indirect Y (Zero Page Post-Indexed)
 
+  SBC_IMM = 0xE9,  // SBC Immediate
+  SBC_ABS = 0xED,  // SBC Absolute
+  SBC_ABX = 0xFD,  // SBC Absolute X-Indexed
+  SBC_ABY = 0xF9,  // SBC Absolute Y-Indexed
+  SBC_ZPG = 0xE5,  // SBC Zero Page
+  SBC_ZPX = 0xF5,  // SBC Zero Page X-Indexed
+  SBC_IZX = 0xE1,  // SBC Indirect X (Zero Page Pre-Indexed)
+  SBC_IZY = 0xF1,  // SBC Indirect Y (Zero Page Post-Indexed)
+
   CMP_IMM = 0xC9,  // CMP Immediate
   CMP_ABS = 0xCD,  // CMP Absolute
   CMP_ABX = 0xDD,  // CMP Absolute X-Indexed
