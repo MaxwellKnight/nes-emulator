@@ -65,6 +65,9 @@ class CPU {
   void op_cmp(u16 addr);
   void op_cpx(u16 addr);
   void op_cpy(u16 addr);
+  // Logical operations
+  void op_and(u16 addr);
+  void op_bit(u16 addr);
 
   // Operations that don't require an address (implied operations)
   // Transfer operations

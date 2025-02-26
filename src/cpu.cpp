@@ -138,6 +138,20 @@ CPU::CPU(Bus &bus_ref)
   set_op(Opcode::CPY_ZPG, {.addressed_op = &CPU::op_cpy, .mode = &CPU::zero_page, .cycles = 3, .name = "CPY"});
   set_op(Opcode::CPY_ABS, {.addressed_op = &CPU::op_cpy, .mode = &CPU::absolute, .cycles = 4, .name = "CPY"});
 
+  // Logical operations
+  set_op(Opcode::AND_IMM, {.addressed_op = &CPU::op_and, .mode = &CPU::immediate, .cycles = 2, .name = "AND"});
+  set_op(Opcode::AND_ZPG, {.addressed_op = &CPU::op_and, .mode = &CPU::zero_page, .cycles = 3, .name = "AND"});
+  set_op(Opcode::AND_ABS, {.addressed_op = &CPU::op_and, .mode = &CPU::absolute, .cycles = 4, .name = "AND"});
+  set_op(Opcode::AND_ABX, {.addressed_op = &CPU::op_and, .mode = &CPU::absolute_x, .cycles = 4, .name = "AND", .is_extra_cycle = true});
+  set_op(Opcode::AND_ABY, {.addressed_op = &CPU::op_and, .mode = &CPU::absolute_y, .cycles = 4, .name = "AND", .is_extra_cycle = true});
+  set_op(Opcode::AND_ZPX, {.addressed_op = &CPU::op_and, .mode = &CPU::zero_page_x, .cycles = 4, .name = "AND"});
+  set_op(Opcode::AND_IZX, {.addressed_op = &CPU::op_and, .mode = &CPU::indirect_x, .cycles = 6, .name = "AND"});
+  set_op(Opcode::AND_IZY, {.addressed_op = &CPU::op_and, .mode = &CPU::indirect_y, .cycles = 5, .name = "AND", .is_extra_cycle = true});
+
+  // BIT
+  set_op(Opcode::BIT_ABS, {.addressed_op = &CPU::op_bit, .mode = &CPU::absolute, .cycles = 4, .name = "BIT"});
+  set_op(Opcode::BIT_ZPG, {.addressed_op = &CPU::op_bit, .mode = &CPU::zero_page, .cycles = 3, .name = "BIT"});
+
   // Flags
   set_op(Opcode::SEC_IMP, {.implied_op = &CPU::op_sec, .mode = nullptr, .cycles = 2, .name = "SEC", .is_implied = true});
   set_op(Opcode::SED_IMP, {.implied_op = &CPU::op_sed, .mode = nullptr, .cycles = 2, .name = "SED", .is_implied = true});
@@ -375,6 +389,7 @@ void CPU::op_ror(const u16 addr) {
   update_zero_and_negative_flags(value);
 }
 
+// Arithmetic operations
 // ADC
 void CPU::op_adc(const u16 addr) {
   u16 value = (u16)read_byte(addr);
@@ -427,6 +442,23 @@ void CPU::op_cpy(const u16 addr) {
 
   set_flag(Flag::CARRY, sub <= _Y);
   update_zero_and_negative_flags(sub);
+}
+
+// Logical operations
+// AND
+void CPU::op_and(const u16 addr) {
+  u8 value = read_byte(addr);
+  _A &= value;
+  update_zero_and_negative_flags(_A);
+}
+
+// BIT
+void CPU::op_bit(const u16 addr) {
+  u8 value = read_byte(addr);
+  u8 result = _A & value;
+  set_flag(Flag::NEGATIVE, (value & 0x80) != 0);
+  set_flag(Flag::OVERFLOW_, (value & 0x40) != 0);
+  set_flag(Flag::ZERO, result == 0);
 }
 
 //////////////////////////////////////////////////////////////////////////

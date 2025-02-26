@@ -151,6 +151,19 @@ enum class Opcode : u8 {
   CPY_ABS = 0xCC,  // CPY Absolute
   CPY_ZPG = 0xC4,  // CPY Absolute
 
+  // Logical operations
+  AND_IMM = 0x29,  // AND Immediate
+  AND_ABS = 0x2D,  // AND Absolute
+  AND_ABX = 0x3D,  // AND Absolute X-Indexed
+  AND_ABY = 0x39,  // AND Absolute Y-Indexed
+  AND_ZPG = 0x25,  // AND Zero Page
+  AND_ZPX = 0x35,  // AND Zero Page X-Indexed
+  AND_IZX = 0x21,  // AND Indirect X (Zero Page Pre-Indexed)
+  AND_IZY = 0x31,  // AND Indirect Y (Zero Page Post-Indexed)
+
+  BIT_ABS = 0x2C,  // Test Bits in memory witht he accumulator Absolute
+  BIT_ZPG = 0x24,  // Test Bits in memory witht he accumulator Zero Page
+
   // Flag operations (implied addressing)
   SEC_IMP = 0x38,  // Set Carry Flag
   SED_IMP = 0xF8,  // Set Decimal Flag
