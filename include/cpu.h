@@ -26,10 +26,6 @@ class CPU {
   static constexpr size_t INSTRUCTION_TABLE_SIZE = 256;
   std::array<Instruction, INSTRUCTION_TABLE_SIZE> _instruction_table;
 
-  // Memory access methods
-  u8 read_byte(u16 address);
-  void write_byte(const u16 address, const u8 value);
-
   // Flag operations
   void update_zero_and_negative_flags(const u8 value);
 
@@ -139,6 +135,10 @@ class CPU {
   void set_sp(u8 sp);
   void set_pc(u16 sp);
   void set_flag(const Flag flag, const bool value);
+
+  // Memory access methods
+  u8 read_byte(u16 address);
+  void write_byte(const u16 address, const u8 value);
 };
 
 }  // namespace nes

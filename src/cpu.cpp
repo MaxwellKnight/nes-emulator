@@ -1,4 +1,5 @@
 #include "../include/cpu.h"
+#include <iostream>
 #include <string>
 #include "types.h"
 
@@ -99,14 +100,14 @@ CPU::CPU(Bus &bus_ref)
 
   // Arithmetic instructions
   // ADC
-  set_op(Opcode::ADC_IMM, {.addressed_op = &CPU::op_adc, .mode = &CPU::immediate, .cycles = 2, .name = "LDA"});
-  set_op(Opcode::ADC_ZPG, {.addressed_op = &CPU::op_adc, .mode = &CPU::zero_page, .cycles = 3, .name = "LDA"});
-  set_op(Opcode::ADC_ABS, {.addressed_op = &CPU::op_adc, .mode = &CPU::absolute, .cycles = 4, .name = "LDA"});
-  set_op(Opcode::ADC_ABX, {.addressed_op = &CPU::op_adc, .mode = &CPU::absolute_x, .cycles = 4, .name = "LDA", .is_extra_cycle = true});
-  set_op(Opcode::ADC_ABY, {.addressed_op = &CPU::op_adc, .mode = &CPU::absolute_y, .cycles = 4, .name = "LDA", .is_extra_cycle = true});
-  set_op(Opcode::ADC_ZPX, {.addressed_op = &CPU::op_adc, .mode = &CPU::zero_page_x, .cycles = 4, .name = "LDA"});
-  set_op(Opcode::ADC_IZX, {.addressed_op = &CPU::op_adc, .mode = &CPU::indirect_x, .cycles = 6, .name = "LDA"});
-  set_op(Opcode::ADC_IZY, {.addressed_op = &CPU::op_adc, .mode = &CPU::indirect_y, .cycles = 5, .name = "LDA", .is_extra_cycle = true});
+  set_op(Opcode::ADC_IMM, {.addressed_op = &CPU::op_adc, .mode = &CPU::immediate, .cycles = 2, .name = "ADC"});
+  set_op(Opcode::ADC_ZPG, {.addressed_op = &CPU::op_adc, .mode = &CPU::zero_page, .cycles = 3, .name = "ADC"});
+  set_op(Opcode::ADC_ABS, {.addressed_op = &CPU::op_adc, .mode = &CPU::absolute, .cycles = 4, .name = "ADC"});
+  set_op(Opcode::ADC_ABX, {.addressed_op = &CPU::op_adc, .mode = &CPU::absolute_x, .cycles = 4, .name = "ADC", .is_extra_cycle = true});
+  set_op(Opcode::ADC_ABY, {.addressed_op = &CPU::op_adc, .mode = &CPU::absolute_y, .cycles = 4, .name = "ADC", .is_extra_cycle = true});
+  set_op(Opcode::ADC_ZPX, {.addressed_op = &CPU::op_adc, .mode = &CPU::zero_page_x, .cycles = 4, .name = "ADC"});
+  set_op(Opcode::ADC_IZX, {.addressed_op = &CPU::op_adc, .mode = &CPU::indirect_x, .cycles = 6, .name = "ADC"});
+  set_op(Opcode::ADC_IZY, {.addressed_op = &CPU::op_adc, .mode = &CPU::indirect_y, .cycles = 5, .name = "ADC", .is_extra_cycle = true});
 
   // SBC
   set_op(Opcode::SBC_IMM, {.addressed_op = &CPU::op_sbc, .mode = &CPU::immediate, .cycles = 2, .name = "SBC"});
@@ -219,6 +220,7 @@ CPU::CPU(Bus &bus_ref)
 void CPU::clock() {
   if (_cycles == 0) {
     u8 opcode = read_byte(_PC++);
+    std::cout << "Executing opcode: 0x" << std::hex << (int)opcode << " at PC: 0x" << _PC - 1 << std::endl;
     set_flag(Flag::UNUSED, true);
 
     const auto &instruction = _instruction_table[opcode];
@@ -243,6 +245,10 @@ void CPU::clock() {
       }
 
       (this->*(instruction.addressed_op))(addr);
+    }
+
+    for (int i = -5; i <= 5; i++) {
+      std::cout << "Memory at " << std::hex << (int)(_PC + i) << ": 0x" << (int)read_byte(_PC + i) << std::endl;
     }
   }
   _cycles--;
