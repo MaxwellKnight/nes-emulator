@@ -115,9 +115,24 @@ enum class Opcode : u8 {
   ROR_ABS = 0x6E,  // Rotate Right Absolute
   ROR_ABX = 0x7E,  // Rotate Right Absolute X-Indexed
 
+  // Arithmetic operations
+  ADC_IMM = 0x69,  // ADC Immediate
+  ADC_ABS = 0x6D,  // ADC Absolute
+  ADC_ABX = 0x7D,  // ADC Absolute X-Indexed
+  ADC_ABY = 0x79,  // ADC Absolute Y-Indexed
+  ADC_ZPG = 0x65,  // ADC Zero Page
+  ADC_ZPX = 0x75,  // ADC Zero Page X-Indexed
+  ADC_IZX = 0x61,  // ADC Indirect X (Zero Page Pre-Indexed)
+  ADC_IZY = 0x71,  // ADC Indirect Y (Zero Page Post-Indexed)
+
   // Flag operations (implied addressing)
-  CLC_IMP = 0x18,  // Clear Carry Flag
   SEC_IMP = 0x38,  // Set Carry Flag
+  // SED_IMP = 0xF8,  // Set Decimal Flag
+  // SEI_IMP = 0x78,  // Set Interrupt Disable Flag
+  CLC_IMP = 0x18,  // Clear Carry Flag
+  CLD_IMP = 0xD8,  // Clear Decimal Flag
+  CLI_IMP = 0x58,  // Clear Interrupt Disable Flag
+  CLV_IMP = 0xB8,  // Clear Overflow  Flag
 };
 
 enum class Flag : u8 {

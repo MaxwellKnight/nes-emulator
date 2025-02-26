@@ -97,6 +97,16 @@ CPU::CPU(Bus &bus_ref)
   set_op(Opcode::ROR_ZPG, {.addressed_op = &CPU::op_ror, .mode = &CPU::zero_page, .cycles = 5, .name = "ROR"});
   set_op(Opcode::ROR_ZPX, {.addressed_op = &CPU::op_ror, .mode = &CPU::zero_page_x, .cycles = 6, .name = "ROR"});
 
+  // ADC
+  set_op(Opcode::ADC_IMM, {.addressed_op = &CPU::op_adc, .mode = &CPU::immediate, .cycles = 2, .name = "LDA"});
+  set_op(Opcode::ADC_ZPG, {.addressed_op = &CPU::op_adc, .mode = &CPU::zero_page, .cycles = 3, .name = "LDA"});
+  set_op(Opcode::ADC_ABS, {.addressed_op = &CPU::op_adc, .mode = &CPU::absolute, .cycles = 4, .name = "LDA"});
+  set_op(Opcode::ADC_ABX, {.addressed_op = &CPU::op_adc, .mode = &CPU::absolute_x, .cycles = 4, .name = "LDA", .is_extra_cycle = true});
+  set_op(Opcode::ADC_ABY, {.addressed_op = &CPU::op_adc, .mode = &CPU::absolute_y, .cycles = 4, .name = "LDA", .is_extra_cycle = true});
+  set_op(Opcode::ADC_ZPX, {.addressed_op = &CPU::op_adc, .mode = &CPU::zero_page_x, .cycles = 4, .name = "LDA"});
+  set_op(Opcode::ADC_IZX, {.addressed_op = &CPU::op_adc, .mode = &CPU::indirect_x, .cycles = 6, .name = "LDA"});
+  set_op(Opcode::ADC_IZY, {.addressed_op = &CPU::op_adc, .mode = &CPU::indirect_y, .cycles = 5, .name = "LDA", .is_extra_cycle = true});
+
   // Flags
   set_op(Opcode::CLC_IMP, {.implied_op = &CPU::op_clc, .mode = nullptr, .cycles = 2, .name = "CLC", .is_implied = true});
   set_op(Opcode::SEC_IMP, {.implied_op = &CPU::op_sec, .mode = nullptr, .cycles = 2, .name = "SEC", .is_implied = true});
@@ -324,6 +334,18 @@ void CPU::op_ror(const u16 addr) {
   set_flag(Flag::CARRY, carry_bit);
   write_byte(addr, value);
   update_zero_and_negative_flags(value);
+}
+
+// ADC
+void CPU::op_adc(const u16 addr) {
+  u16 value = (u16)read_byte(addr);
+  u16 sum = (u16)_A + value + get_flag(Flag::CARRY);
+
+  set_flag(Flag::CARRY, sum > 0xFF);
+  bool overflow = ((_A ^ sum) & (value ^ sum) & 0x80) != 0;
+  set_flag(Flag::OVERFLOW_, overflow);
+  _A = sum;
+  update_zero_and_negative_flags(_A);
 }
 
 //////////////////////////////////////////////////////////////////////////
