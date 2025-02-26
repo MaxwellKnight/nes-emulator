@@ -72,6 +72,7 @@ class CPU {
   void op_ora(u16 addr);
   // Increment/Decrement operations
   void op_inc(u16 addr);
+  void op_dec(u16 addr);
 
   // Operations that don't require an address (implied operations)
   // Transfer operations
@@ -91,6 +92,11 @@ class CPU {
   void op_lsr_acc();
   void op_rol_acc();
   void op_ror_acc();
+  // Increment/Decrement operations
+  void op_inx();
+  void op_iny();
+  void op_dex();
+  void op_dey();
   // Flag operations
   void op_clc();
   void op_cld();

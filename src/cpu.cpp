@@ -173,10 +173,25 @@ CPU::CPU(Bus &bus_ref)
   set_op(Opcode::BIT_ZPG, {.addressed_op = &CPU::op_bit, .mode = &CPU::zero_page, .cycles = 3, .name = "BIT"});
 
   // Increment/Decrement operations
+  // INC
   set_op(Opcode::INC_ABS, {.addressed_op = &CPU::op_inc, .mode = &CPU::absolute, .cycles = 6, .name = "INC"});
   set_op(Opcode::INC_ABX, {.addressed_op = &CPU::op_inc, .mode = &CPU::absolute_x, .cycles = 7, .name = "INC"});
   set_op(Opcode::INC_ZPG, {.addressed_op = &CPU::op_inc, .mode = &CPU::zero_page, .cycles = 5, .name = "INC"});
   set_op(Opcode::INC_ZPX, {.addressed_op = &CPU::op_inc, .mode = &CPU::zero_page_x, .cycles = 6, .name = "INC"});
+
+  // DEC
+  set_op(Opcode::DEC_ABS, {.addressed_op = &CPU::op_dec, .mode = &CPU::absolute, .cycles = 6, .name = "DEC"});
+  set_op(Opcode::DEC_ABX, {.addressed_op = &CPU::op_dec, .mode = &CPU::absolute_x, .cycles = 7, .name = "DEC"});
+  set_op(Opcode::DEC_ZPG, {.addressed_op = &CPU::op_dec, .mode = &CPU::zero_page, .cycles = 5, .name = "DEC"});
+  set_op(Opcode::DEC_ZPX, {.addressed_op = &CPU::op_dec, .mode = &CPU::zero_page_x, .cycles = 6, .name = "DEC"});
+
+  // INX, INY
+  set_op(Opcode::INX_IMP, {.implied_op = &CPU::op_inx, .mode = nullptr, .cycles = 2, .name = "INX"});
+  set_op(Opcode::INY_IMP, {.implied_op = &CPU::op_iny, .mode = nullptr, .cycles = 2, .name = "INY"});
+
+  // DEX, DEY
+  set_op(Opcode::DEX_IMP, {.implied_op = &CPU::op_dex, .mode = nullptr, .cycles = 2, .name = "DEX"});
+  set_op(Opcode::DEY_IMP, {.implied_op = &CPU::op_dey, .mode = nullptr, .cycles = 2, .name = "DEY"});
 
   // Flags
   set_op(Opcode::SEC_IMP, {.implied_op = &CPU::op_sec, .mode = nullptr, .cycles = 2, .name = "SEC", .is_implied = true});
@@ -508,6 +523,12 @@ void CPU::op_inc(const u16 addr) {
   update_zero_and_negative_flags(value + 1);
 }
 
+void CPU::op_dec(const u16 addr) {
+  u8 value = read_byte(addr);
+  write_byte(addr, value - 1);
+  update_zero_and_negative_flags(value - 1);
+}
+
 //////////////////////////////////////////////////////////////////////////
 // IMPLIED OPERATIONS (operations that don't need an address)
 //////////////////////////////////////////////////////////////////////////
@@ -606,6 +627,31 @@ void CPU::op_ror_acc() {
 
   set_flag(Flag::CARRY, carry_bit);
   update_zero_and_negative_flags(_A);
+}
+
+// Increment/Decrement operations
+// INX
+void CPU::op_inx() {
+  _X = _X + 1;
+  update_zero_and_negative_flags(_X);
+}
+
+// INY
+void CPU::op_iny() {
+  _Y = _Y + 1;
+  update_zero_and_negative_flags(_Y);
+}
+
+// DEX
+void CPU::op_dex() {
+  _X = _X - 1;
+  update_zero_and_negative_flags(_X);
+}
+
+// DEY
+void CPU::op_dey() {
+  _Y = _Y - 1;
+  update_zero_and_negative_flags(_Y);
 }
 
 // Flag operations
