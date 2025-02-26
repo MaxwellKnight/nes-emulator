@@ -35,6 +35,48 @@ class CPUBranchTest : public CPUTestBase {
     bus.write(0x1000, static_cast<nes::u8>(nes::Opcode::BEQ_REL));
     bus.write(0x1001, offset);
   }
+
+  void execute_bmi_instruction(nes::u8 offset, bool negative_flag) {
+    cpu.reset();
+    cpu.set_pc(0x1000);
+    cpu.set_flag(nes::Flag::NEGATIVE, negative_flag);
+
+    // Write BMI instruction and offset
+    bus.write(0x1000, static_cast<nes::u8>(nes::Opcode::BMI_REL));
+    bus.write(0x1001, offset);
+
+    // Verify the instruction was written correctly
+    EXPECT_EQ(bus.read(0x1000), static_cast<nes::u8>(nes::Opcode::BMI_REL));
+    EXPECT_EQ(bus.read(0x1001), offset);
+  }
+
+  void execute_bne_instruction(nes::u8 offset, bool zero_flag) {
+    cpu.reset();
+    cpu.set_pc(0x1000);
+    cpu.set_flag(nes::Flag::ZERO, zero_flag);
+
+    // Write BNE instruction and offset
+    bus.write(0x1000, static_cast<nes::u8>(nes::Opcode::BNE_REL));
+    bus.write(0x1001, offset);
+
+    // Verify the instruction was written correctly
+    EXPECT_EQ(bus.read(0x1000), static_cast<nes::u8>(nes::Opcode::BNE_REL));
+    EXPECT_EQ(bus.read(0x1001), offset);
+  }
+
+  void execute_bpl_instruction(nes::u8 offset, bool negative_flag) {
+    cpu.reset();
+    cpu.set_pc(0x1000);
+    cpu.set_flag(nes::Flag::NEGATIVE, negative_flag);
+
+    // Write BPL instruction and offset
+    bus.write(0x1000, static_cast<nes::u8>(nes::Opcode::BPL_REL));
+    bus.write(0x1001, offset);
+
+    // Verify the instruction was written correctly
+    EXPECT_EQ(bus.read(0x1000), static_cast<nes::u8>(nes::Opcode::BPL_REL));
+    EXPECT_EQ(bus.read(0x1001), offset);
+  }
 };
 
 // Test BCC when Carry flag is clear (branch should be taken)
@@ -215,4 +257,150 @@ TEST_F(CPUBranchTest, beq_rel_zero_clear) {
   execute_cycles(2);
   // Verify PC only advances by instruction length
   EXPECT_EQ(cpu.get_pc(), 0x1002);
+}
+
+// BMI - Branch on Result Minus (N = 1) Tests
+TEST_F(CPUBranchTest, bmi_rel_negative_set_positive_offset) {
+  // Setup instruction with negative flag set and positive offset
+  execute_bmi_instruction(0x10, true);  // +16 offset
+  // Execute instruction cycles (2 base + 1 branch taken)
+  execute_cycles(3);
+  // Verify PC: 0x1000 (base) + 0x2 (instruction length) + 0x10 (offset) = 0x1012
+  EXPECT_EQ(cpu.get_pc(), 0x1012);
+}
+
+TEST_F(CPUBranchTest, bmi_rel_negative_set_negative_offset) {
+  // Setup instruction with negative flag set and negative offset
+  execute_bmi_instruction(0xF0, true);  // 0xF0 is -16 in two's complement
+  // Execute instruction cycles (2 base + 1 branch taken)
+  execute_cycles(3);
+  // Verify PC: 0x1000 (base) + 0x2 (instruction length) - 0x10 (offset) = 0x0FF2
+  EXPECT_EQ(cpu.get_pc(), 0x0FF2);
+}
+
+TEST_F(CPUBranchTest, bmi_rel_negative_clear) {
+  // Setup instruction with negative flag clear (branch not taken)
+  execute_bmi_instruction(0x10, false);
+  // Execute instruction cycles (2 base only, no branch)
+  execute_cycles(2);
+  // Verify PC only advances by instruction length
+  EXPECT_EQ(cpu.get_pc(), 0x1002);
+}
+
+TEST_F(CPUBranchTest, bmi_rel_page_boundary_cross) {
+  // Set PC to a location near page boundary
+  cpu.reset();
+  cpu.set_pc(0x10F0);
+  // Set negative flag
+  cpu.set_flag(nes::Flag::NEGATIVE, true);
+  // Write BMI instruction with offset that crosses page boundary
+  bus.write(0x10F0, static_cast<nes::u8>(nes::Opcode::BMI_REL));
+  bus.write(0x10F1, 0x40);  // +64 offset
+
+  // Verify instruction was written properly
+  EXPECT_EQ(bus.read(0x10F0), static_cast<nes::u8>(nes::Opcode::BMI_REL));
+  EXPECT_EQ(bus.read(0x10F1), 0x40);
+
+  // Execute instruction cycles (2 base + 1 branch taken + 1 page cross)
+  execute_cycles(4);
+  // Verify PC: 0x10F0 (base) + 0x2 (instruction length) + 0x40 (offset) = 0x1132
+  EXPECT_EQ(cpu.get_pc(), 0x1132);
+}
+
+// BNE - Branch on Result Not Zero (Z = 0) Tests
+
+TEST_F(CPUBranchTest, bne_rel_zero_clear_positive_offset) {
+  // Setup instruction with zero flag clear and positive offset
+  execute_bne_instruction(0x10, false);  // +16 offset
+  // Execute instruction cycles (2 base + 1 branch taken)
+  execute_cycles(3);
+  // Verify PC: 0x1000 (base) + 0x2 (instruction length) + 0x10 (offset) = 0x1012
+  EXPECT_EQ(cpu.get_pc(), 0x1012);
+}
+
+TEST_F(CPUBranchTest, bne_rel_zero_clear_negative_offset) {
+  // Setup instruction with zero flag clear and negative offset
+  execute_bne_instruction(0xF0, false);  // 0xF0 is -16 in two's complement
+  // Execute instruction cycles (2 base + 1 branch taken)
+  execute_cycles(3);
+  // Verify PC: 0x1000 (base) + 0x2 (instruction length) - 0x10 (offset) = 0x0FF2
+  EXPECT_EQ(cpu.get_pc(), 0x0FF2);
+}
+
+TEST_F(CPUBranchTest, bne_rel_zero_set) {
+  // Setup instruction with zero flag set (branch not taken)
+  execute_bne_instruction(0x10, true);
+  // Execute instruction cycles (2 base only, no branch)
+  execute_cycles(2);
+  // Verify PC only advances by instruction length
+  EXPECT_EQ(cpu.get_pc(), 0x1002);
+}
+
+TEST_F(CPUBranchTest, bne_rel_page_boundary_cross) {
+  // Set PC to a location near page boundary
+  cpu.reset();
+  cpu.set_pc(0x10F0);
+  // Clear zero flag
+  cpu.set_flag(nes::Flag::ZERO, false);
+  // Write BNE instruction with offset that crosses page boundary
+  bus.write(0x10F0, static_cast<nes::u8>(nes::Opcode::BNE_REL));
+  bus.write(0x10F1, 0x40);  // +64 offset
+
+  // Verify instruction was written properly
+  EXPECT_EQ(bus.read(0x10F0), static_cast<nes::u8>(nes::Opcode::BNE_REL));
+  EXPECT_EQ(bus.read(0x10F1), 0x40);
+
+  // Execute instruction cycles (2 base + 1 branch taken + 1 page cross)
+  execute_cycles(4);
+  // Verify PC: 0x10F0 (base) + 0x2 (instruction length) + 0x40 (offset) = 0x1132
+  EXPECT_EQ(cpu.get_pc(), 0x1132);
+}
+
+// BPL - Branch on Result Plus (N = 0) Tests
+
+TEST_F(CPUBranchTest, bpl_rel_negative_clear_positive_offset) {
+  // Setup instruction with negative flag clear and positive offset
+  execute_bpl_instruction(0x10, false);  // +16 offset
+  // Execute instruction cycles (2 base + 1 branch taken)
+  execute_cycles(3);
+  // Verify PC: 0x1000 (base) + 0x2 (instruction length) + 0x10 (offset) = 0x1012
+  EXPECT_EQ(cpu.get_pc(), 0x1012);
+}
+
+TEST_F(CPUBranchTest, bpl_rel_negative_clear_negative_offset) {
+  // Setup instruction with negative flag clear and negative offset
+  execute_bpl_instruction(0xF0, false);  // 0xF0 is -16 in two's complement
+  // Execute instruction cycles (2 base + 1 branch taken)
+  execute_cycles(3);
+  // Verify PC: 0x1000 (base) + 0x2 (instruction length) - 0x10 (offset) = 0x0FF2
+  EXPECT_EQ(cpu.get_pc(), 0x0FF2);
+}
+
+TEST_F(CPUBranchTest, bpl_rel_negative_set) {
+  // Setup instruction with negative flag set (branch not taken)
+  execute_bpl_instruction(0x10, true);
+  // Execute instruction cycles (2 base only, no branch)
+  execute_cycles(2);
+  // Verify PC only advances by instruction length
+  EXPECT_EQ(cpu.get_pc(), 0x1002);
+}
+
+TEST_F(CPUBranchTest, bpl_rel_page_boundary_cross) {
+  // Set PC to a location near page boundary
+  cpu.reset();
+  cpu.set_pc(0x10F0);
+  // Clear negative flag
+  cpu.set_flag(nes::Flag::NEGATIVE, false);
+  // Write BPL instruction with offset that crosses page boundary
+  bus.write(0x10F0, static_cast<nes::u8>(nes::Opcode::BPL_REL));
+  bus.write(0x10F1, 0x40);  // +64 offset
+
+  // Verify instruction was written properly
+  EXPECT_EQ(bus.read(0x10F0), static_cast<nes::u8>(nes::Opcode::BPL_REL));
+  EXPECT_EQ(bus.read(0x10F1), 0x40);
+
+  // Execute instruction cycles (2 base + 1 branch taken + 1 page cross)
+  execute_cycles(4);
+  // Verify PC: 0x10F0 (base) + 0x2 (instruction length) + 0x40 (offset) = 0x1132
+  EXPECT_EQ(cpu.get_pc(), 0x1132);
 }

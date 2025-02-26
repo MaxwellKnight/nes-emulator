@@ -212,6 +212,14 @@ enum class Opcode : u8 {
   BCC_REL = 0x90,  // Branch on carry clear Relative
   BCS_REL = 0xB0,  // Branch on carry set Relative
   BEQ_REL = 0xF0,  // Branch on result zero Relative
+  BMI_REL = 0x30,  // Branch on result minus Relative
+  BNE_REL = 0xD0,  // Branch on result not zero Relative
+  BPL_REL = 0x10,  // Branch on result plus Relative
+
+  // Control-Flow operations
+  JMP_ABS = 0x4C,  // Jump Absolute
+  JMP_IND = 0x6C,  // Jump Indirect
+  BRK_IMP = 0x00,  // Break Implied
 
   // Flag operations (implied addressing)
   SEC_IMP = 0x38,  // Set Carry Flag

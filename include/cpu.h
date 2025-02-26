@@ -43,6 +43,7 @@ class CPU {
   u16 absolute_y();
   u16 indirect_x();
   u16 indirect_y();
+  u16 absolute_indirect();
   u16 relative();
 
   // Operations that require an address
@@ -77,6 +78,12 @@ class CPU {
   void op_bcc(u16 addr);
   void op_bcs(u16 addr);
   void op_beq(u16 addr);
+  void op_bmi(u16 addr);
+  void op_bne(u16 addr);
+  void op_bpl(u16 addr);
+  // Control-Flow operations
+  void op_jmp(u16 addr);
+  void op_jmp_ind(u16 addr);
 
   // Operations that don't require an address (implied operations)
   // Transfer operations
