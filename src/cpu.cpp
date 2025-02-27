@@ -280,6 +280,7 @@ u16 CPU::get_pc() const { return _PC; }
 u8 CPU::get_sp() const { return _SP; }
 u8 CPU::get_status() const { return _status; }
 u8 CPU::get_remaining_cycles() const { return _cycles; }
+Instruction CPU::get_instruction(const Opcode opcode) const { return _instruction_table[(u8)opcode]; }
 
 // Setters
 void CPU::set_sp(const u8 sp) { _SP = sp; }

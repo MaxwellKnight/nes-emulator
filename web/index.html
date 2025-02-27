@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NES 6502 CPU Debugger</title>
+    <style>
+        :root {
+            --primary-color: #3498db;
+            --secondary-color: #2c3e50;
+            --background-color: #1e1e1e;
+            --panel-color: #252526;
+            --border-color: #333;
+            --text-color: #eee;
+            --highlight-color: #e74c3c;
+            --success-color: #2ecc71;
+            --warning-color: #f39c12;
+        }
+        
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Courier New', monospace;
+        }
+        
+        body {
+            background-color: var(--background-color);
+            color: var(--text-color);
+            padding: 10px;
+            display: grid;
+            grid-template-columns: 1fr 300px;
+            grid-template-rows: auto 1fr 200px;
+            grid-template-areas:
+                "header controls"
+                "disassembly registers"
+                "memory memory";
+            gap: 10px;
+            height: 100vh;
+            overflow: hidden;
+        }
+        
+        .panel {
+            background-color: var(--panel-color);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            padding: 10px;
+            overflow: auto;
+        }
+        
+        .header {
+            grid-area: header;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .controls {
+            grid-area: controls;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .disassembly {
+            grid-area: disassembly;
+        }
+        
+        .registers {
+            grid-area: registers;
+        }
+        
+        .memory {
+            grid-area: memory;
+        }
+        
+        h2 {
+            margin-bottom: 10px;
+            font-size: 16px;
+            color: var(--primary-color);
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 5px;
+        }
+        
+        /* Disassembly styling */
+        .instruction {
+            display: grid;
+            grid-template-columns: 60px 30px 120px 200px;
+            padding: 2px 5px;
+            white-space: nowrap;
+        }
+        
+        .instruction.current {
+            background-color: rgba(231, 76, 60, 0.3);
+            border-left: 3px solid var(--highlight-color);
+        }
+        
+        .instruction:hover {
+            background-color: rgba(52, 152, 219, 0.2);
+        }
+        
+        /* Register styling */
+        .register-grid {
+            display: grid;
+            grid-template-columns: 30px 60px;
+            gap: 5px;
+            margin-bottom: 15px;
+        }
+        
+        .register-label {
+            font-weight: bold;
+            color: var(--primary-color);
+        }
+        
+        .register-value {
+            color: var(--text-color);
+            text-align: right;
+        }
+        
+        /* Flag styling */
+        .flags-grid {
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            gap: 5px;
+            margin-bottom: 15px;
+        }
+        
+        .flag {
+            text-align: center;
+            font-weight: bold;
+        }
+        
+        .flag.active {
+            color: var(--success-color);
+        }
+        
+        .flag.inactive {
+            color: var(--border-color);
+        }
+        
+        /* Memory styling */
+        .memory-grid {
+            display: grid;
+            grid-template-columns: 80px repeat(16, 25px) 200px;
+            font-size: 12px;
+            gap: 5px;
+        }
+        
+        .memory-header {
+            font-weight: bold;
+            color: var(--primary-color);
+        }
+        
+        .memory-row {
+            display: contents;
+        }
+        
+        .memory-address {
+            color: var(--primary-color);
+        }
+        
+        .memory-cell {
+            text-align: center;
+        }
+        
+        .memory-ascii {
+            font-family: monospace;
+        }
+        
+        /* Button styling */
+        button {
+            background-color: var(--secondary-color);
+            color: var(--text-color);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            padding: 8px 12px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        
+        button:hover {
+            background-color: var(--primary-color);
+        }
+        
+        button:disabled {
+            background-color: var(--border-color);
+            cursor: not-allowed;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 5px;
+        }
+        
+        input {
+            background-color: var(--panel-color);
+            color: var(--text-color);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            padding: 8px;
+        }
+        
+        /* Stats styling */
+        .stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        
+        .stat-item {
+            display: flex;
+            justify-content: space-between;
+        }
+        
+        .stat-label {
+            color: var(--primary-color);
+        }
+    </style>
+</head>
+<body>
+    <div class="panel header">
+        <h1>NES 6502 CPU Debugger</h1>
+        <div class="button-group">
+            <button id="loadRomButton">Load ROM</button>
+            <input type="file" id="romFile" style="display:none">
+        </div>
+    </div>
+    
+    <div class="panel controls">
+        <h2>Controls</h2>
+        <div class="button-group">
+            <button id="resetButton">Reset</button>
+            <button id="runButton">Run</button>
+            <button id="stepButton">Step</button>
+            <button id="stopButton">Stop</button>
+        </div>
+        
+        <div style="margin-top: 20px;">
+            <h2>Breakpoints</h2>
+            <div style="display: flex; gap: 5px; margin-bottom: 10px;">
+                <input type="text" id="breakpointAddress" placeholder="Address (hex)" style="flex: 1;">
+                <button id="addBreakpointButton">Add</button>
+            </div>
+            <div id="breakpointsList" style="max-height: 100px; overflow-y: auto;">
+                <!-- Breakpoints will be listed here -->
+            </div>
+        </div>
+        
+        <div class="stats">
+            <div class="stat-item">
+                <span class="stat-label">Instructions:</span>
+                <span id="instructionCount">0</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">Cycles:</span>
+                <span id="cycleCount">0</span>
+            </div>
+        </div>
+    </div>
+    
+    <div class="panel disassembly">
+        <h2>Disassembly</h2>
+        <div id="disassemblyView">
+            <!-- Disassembled instructions will be shown here -->
+        </div>
+    </div>
+    
+    <div class="panel registers">
+        <h2>Registers</h2>
+        <div class="register-grid">
+            <div class="register-label">A</div>
+            <div class="register-value" id="reg-a">$00</div>
+            
+            <div class="register-label">X</div>
+            <div class="register-value" id="reg-x">$00</div>
+            
+            <div class="register-label">Y</div>
+            <div class="register-value" id="reg-y">$00</div>
+            
+            <div class="register-label">SP</div>
+            <div class="register-value" id="reg-sp">$FF</div>
+            
+            <div class="register-label">PC</div>
+            <div class="register-value" id="reg-pc">$0000</div>
+        </div>
+        
+        <h2>Status Flags</h2>
+        <div class="flags-grid">
+            <div class="flag" id="flag-n">N</div>
+            <div class="flag" id="flag-v">V</div>
+            <div class="flag" id="flag-u">-</div>
+            <div class="flag" id="flag-b">B</div>
+            <div class="flag" id="flag-d">D</div>
+            <div class="flag" id="flag-i">I</div>
+            <div class="flag" id="flag-z">Z</div>
+            <div class="flag" id="flag-c">C</div>
+        </div>
+    </div>
+    <div class="panel memory">
+        <h2>Memory</h2>
+        <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+            <input type="text" id="memoryAddress" placeholder="Address (hex)" style="width: 120px;">
+            <button id="jumpToAddressButton">Jump</button>
+            <div style="flex: 1;"></div>
+            <select id="memoryPage">
+                <option value="zeropage">Zero Page ($0000-$00FF)</option>
+                <option value="stack">Stack ($0100-$01FF)</option>
+                <option value="ram">RAM ($0200-$07FF)</option>
+                <option value="vectors">Vectors ($FFFA-$FFFF)</option>
+            </select>
+        </div>
+        <div class="memory-grid" id="memoryView">
+            <!-- Memory view will be populated here -->
+        </div>
+    </div>
+    
+    <script src="nes-debugger.js"></script>
+    <script src="debugger-ui.js"></script>
+</body>
+</html>

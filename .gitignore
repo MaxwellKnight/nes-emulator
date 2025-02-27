@@ -1,5 +1,6 @@
 bin/
 build/
+build_wasm/
 compile_commands.json
 .cache
 .clang-format

@@ -139,6 +139,7 @@ class CPU {
   u8 get_status() const;
   u8 get_remaining_cycles() const;
   bool get_flag(Flag flag) const;
+  Instruction get_instruction(const Opcode opcode) const;
 
   // Setters
   void set_sp(u8 sp);

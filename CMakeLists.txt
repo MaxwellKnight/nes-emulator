@@ -1,45 +1,65 @@
-# Root CMakeLists.txt
-cmake_minimum_required(VERSION 3.14)
-project(6502emu VERSION 1.0.0 LANGUAGES CXX)
+cmake_minimum_required(VERSION 3.10)
+project(nes_emulator)
 
-# Set C++ standard
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_EXTENSIONS OFF)
 
-# Setup output directories
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
-set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
-
-# Find Google Test
-find_package(GTest REQUIRED)
-
-# Add compiler warnings
-if(MSVC)
-    add_compile_options(/W4)
-else()
-    add_compile_options(-Wall)
-endif()
-
-# Collect source files
-file(GLOB_RECURSE SOURCES "src/*.cpp")
-list(FILTER SOURCES EXCLUDE REGEX ".*main\\.cpp$")
-file(GLOB_RECURSE TEST_SOURCES "tests/*.cpp")
+# Options
+option(BUILD_WASM "Build WebAssembly version" OFF)
+option(BUILD_TESTS "Build tests" ON)
 
 # Include directories
-include_directories(${PROJECT_SOURCE_DIR}/include)
-
-# Main executable
-add_executable(6502emu src/main.cpp ${SOURCES})
-
-# Test executable
-enable_testing()
-add_executable(run_tests ${SOURCES} ${TEST_SOURCES})
-target_link_libraries(run_tests PRIVATE 
-    GTest::GTest 
-    GTest::Main
+include_directories(
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
 
-# Add tests to CTest
-add_test(NAME UnitTests COMMAND run_tests)
+# Only include GTest for non-WASM builds with tests enabled
+if(NOT BUILD_WASM AND BUILD_TESTS)
+    find_package(GTest REQUIRED)
+endif()
+
+# Define source files
+set(CORE_SOURCES
+    src/cpu.cpp
+    src/bus.cpp
+    src/debugger.cpp
+)
+
+if(BUILD_WASM)
+    # WebAssembly build
+    set(SOURCES
+        ${CORE_SOURCES}
+        src/wasm_main.cpp
+    )
+    
+    # Add executable
+    add_executable(nes_debugger ${SOURCES})
+    
+    # Emscripten specific settings
+    set(CMAKE_EXECUTABLE_SUFFIX ".js")
+    
+    # Export the C functions to JavaScript
+    set_target_properties(nes_debugger PROPERTIES
+        LINK_FLAGS "-s WASM=1 -s EXPORTED_RUNTIME_METHODS=['cwrap','ccall'] -s ALLOW_MEMORY_GROWTH=1 -s EXPORT_ALL=1 -s EXPORTED_FUNCTIONS=['_debugger_step','_debugger_run','_debugger_stop','_debugger_reset','_debugger_is_running','_debugger_add_breakpoint','_debugger_remove_breakpoint','_debugger_clear_breakpoints','_debugger_get_register_a','_debugger_get_register_x','_debugger_get_register_y','_debugger_get_register_sp','_debugger_get_register_pc','_debugger_get_register_status','_debugger_get_status_flag','_debugger_read_memory','_debugger_write_memory','_debugger_get_instruction_count','_debugger_get_cycle_count','_debugger_disassemble_around_pc','_debugger_disassemble_range','_malloc','_free'] -s NO_EXIT_RUNTIME=1 -s ENVIRONMENT='web' -O3"
+    )
+else()
+    # Regular build
+    set(SOURCES
+        ${CORE_SOURCES}
+        src/main.cpp
+    )
+    
+    # Add executable
+    add_executable(nes_emulator ${SOURCES})
+    
+    # Tests are only built if requested
+    if(BUILD_TESTS)
+        enable_testing()
+        
+        # Add test executables here
+        # Example:
+        # add_executable(cpu_tests tests/cpu_test_main.cpp ${CORE_SOURCES})
+        # target_link_libraries(cpu_tests GTest::GTest GTest::Main)
+        # add_test(NAME cpu_tests COMMAND cpu_tests)
+    endif()
+endif()
