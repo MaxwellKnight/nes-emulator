@@ -215,11 +215,16 @@ enum class Opcode : u8 {
   BMI_REL = 0x30,  // Branch on result minus Relative
   BNE_REL = 0xD0,  // Branch on result not zero Relative
   BPL_REL = 0x10,  // Branch on result plus Relative
+  BVS_REL = 0x70,  // Branch on overflow clear Relative
+  BVC_REL = 0x50,  // Branch on overflow set Relative
 
   // Control-Flow operations
   JMP_ABS = 0x4C,  // Jump Absolute
   JMP_IND = 0x6C,  // Jump Indirect
   BRK_IMP = 0x00,  // Break Implied
+  JSR_ABS = 0x20,  // Jump to subroutine Implied
+  RTI_IMP = 0x40,  // Return from interrupt
+  RTS_IMP = 0x60,  // Return from subroutine
 
   // Flag operations (implied addressing)
   SEC_IMP = 0x38,  // Set Carry Flag
@@ -229,6 +234,9 @@ enum class Opcode : u8 {
   CLD_IMP = 0xD8,  // Clear Decimal Flag
   CLI_IMP = 0x58,  // Clear Interrupt Disable Flag
   CLV_IMP = 0xB8,  // Clear Overflow  Flag
+
+  // NOP
+  NOP_IMP = 0xEA,  // No operation
 };
 
 enum class Flag : u8 {

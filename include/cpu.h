@@ -77,11 +77,16 @@ class CPU {
   void op_bmi(u16 addr);
   void op_bne(u16 addr);
   void op_bpl(u16 addr);
+  void op_bvc(u16 addr);
+  void op_bvs(u16 addr);
   // Control-Flow operations
   void op_jmp(u16 addr);
+  void op_jsr(u16 addr);
   void op_jmp_ind(u16 addr);
 
   // Operations that don't require an address (implied operations)
+  // No operation
+  void op_nop();
   // Transfer operations
   void op_tax();
   void op_tay();
@@ -112,6 +117,10 @@ class CPU {
   void op_sec();
   void op_sed();
   void op_sei();
+  // Control-Flow operations
+  void op_brk();
+  void op_rti();
+  void op_rts();
 
  public:
   CPU(Bus &bus_ref);
@@ -135,6 +144,7 @@ class CPU {
   void set_sp(u8 sp);
   void set_pc(u16 sp);
   void set_flag(const Flag flag, const bool value);
+  void set_status(const u8 status);
 
   // Memory access methods
   u8 read_byte(u16 address);

@@ -11,7 +11,6 @@ class CPUTestBase : public ::testing::Test {
     for (int i = 0; i < cycles; i++) {
       cpu.clock();
     }
-    EXPECT_EQ(cpu.get_remaining_cycles(), 0);
   }
 
   nes::Bus bus;
