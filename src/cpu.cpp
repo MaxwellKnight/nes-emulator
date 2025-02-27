@@ -399,12 +399,7 @@ u16 CPU::indirect_y() {
 
 u16 CPU::relative() {
   u8 offset = read_byte(_PC++);
-  u16 rel_addr = offset;
-  // Sign extend for negative values
-  if (offset & 0x80) {
-    rel_addr |= 0xFF00;
-  }
-  return rel_addr;
+  return offset;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -587,137 +582,72 @@ void CPU::op_dec(const u16 addr) {
 // Branching operations
 // BCC - Branch on Carry Clear
 void CPU::op_bcc(const u16 offset) {
-  // If branch is not taken, just continue to next instruction
   if (get_flag(Flag::CARRY) == false) {
-    // Calculate new address (PC is already pointing to next instruction)
-    u16 new_pc = _PC + offset;
-
-    // Add cycle for taking branch
+    int8_t signed_offset = static_cast<int8_t>(offset);
+    u16 old_page = _PC & 0xFF00;
+    _PC += signed_offset;
     _cycles++;
-
-    // Check if page boundary is crossed
-    // Compare the high byte (page) of the old and new PC
-    bool page_crossed = ((_PC & 0xFF00) != (new_pc & 0xFF00));
-
-    // Update PC
-    _PC = new_pc;
-
-    if (page_crossed && offset < 0x80) {  // Only add for positive offsets
+    if ((_PC & 0xFF00) != old_page) {
       _cycles++;
     }
   }
 }
 
-// BCS - Branch on Carry Set
 void CPU::op_bcs(const u16 offset) {
   if (get_flag(Flag::CARRY) == true) {
-    // Calculate new address
-    u16 new_pc = _PC + offset;
-
-    // Add cycle for taking branch
+    int8_t signed_offset = static_cast<int8_t>(offset);
+    u16 old_page = _PC & 0xFF00;
+    _PC += signed_offset;
     _cycles++;
-
-    // Check if page boundary is crossed
-    bool page_crossed = ((_PC & 0xFF00) != (new_pc & 0xFF00));
-
-    // Update PC
-    _PC = new_pc;
-
-    // Special case: For negative offsets in these specific tests,
-    // don't add the extra cycle for page boundary crossing
-    if (page_crossed && offset < 0x80) {  // Only add for positive offsets
+    if ((_PC & 0xFF00) != old_page) {
       _cycles++;
     }
   }
 }
 
-// BEQ - Branch on Result Zero
 void CPU::op_beq(const u16 offset) {
   if (get_flag(Flag::ZERO) == true) {
-    // Calculate new address
-    u16 new_pc = _PC + offset;
-
-    // Add cycle for taking branch
+    int8_t signed_offset = static_cast<int8_t>(offset);
+    u16 old_page = _PC & 0xFF00;
+    _PC += signed_offset;
     _cycles++;
-
-    // Check if page boundary is crossed
-    bool page_crossed = ((_PC & 0xFF00) != (new_pc & 0xFF00));
-
-    // Update PC
-    _PC = new_pc;
-
-    // Special case: For negative offsets in these specific tests,
-    // don't add the extra cycle for page boundary crossing
-    if (page_crossed && offset < 0x80) {  // Only add for positive offsets
+    if ((_PC & 0xFF00) != old_page) {
       _cycles++;
     }
   }
 }
 
-// BMI - Branch on Result Minus
 void CPU::op_bmi(const u16 offset) {
   if (get_flag(Flag::NEGATIVE) == true) {
-    // Calculate new address
-    u16 new_pc = _PC + offset;
-
-    // Add cycle for taking branch
+    int8_t signed_offset = static_cast<int8_t>(offset);
+    u16 old_page = _PC & 0xFF00;
+    _PC += signed_offset;
     _cycles++;
-
-    // Check if page boundary is crossed
-    bool page_crossed = ((_PC & 0xFF00) != (new_pc & 0xFF00));
-
-    // Update PC
-    _PC = new_pc;
-
-    // Special case: For negative offsets in these specific tests,
-    // don't add the extra cycle for page boundary crossing
-    if (page_crossed && offset < 0x80) {  // Only add for positive offsets
+    if ((_PC & 0xFF00) != old_page) {
       _cycles++;
     }
   }
 }
 
-// BNE - Branch on Result Not Zero
 void CPU::op_bne(const u16 offset) {
   if (get_flag(Flag::ZERO) == false) {
-    // Calculate new address
-    u16 new_pc = _PC + offset;
-
-    // Add cycle for taking branch
+    int8_t signed_offset = static_cast<int8_t>(offset);
+    u16 old_page = _PC & 0xFF00;
+    _PC += signed_offset;
     _cycles++;
-
-    // Check if page boundary is crossed
-    bool page_crossed = ((_PC & 0xFF00) != (new_pc & 0xFF00));
-
-    // Update PC
-    _PC = new_pc;
-
-    // Special case: For negative offsets in these specific tests,
-    // don't add the extra cycle for page boundary crossing
-    if (page_crossed && offset < 0x80) {  // Only add for positive offsets
+    if ((_PC & 0xFF00) != old_page) {
       _cycles++;
     }
   }
 }
 
-// BPL - Branch on Result Plus
 void CPU::op_bpl(const u16 offset) {
   if (get_flag(Flag::NEGATIVE) == false) {
-    // Calculate new address
-    u16 new_pc = _PC + offset;
-
-    // Add cycle for taking branch
+    int8_t signed_offset = static_cast<int8_t>(offset);
+    u16 old_page = _PC & 0xFF00;
+    _PC += signed_offset;
     _cycles++;
-
-    // Check if page boundary is crossed
-    bool page_crossed = ((_PC & 0xFF00) != (new_pc & 0xFF00));
-
-    // Update PC
-    _PC = new_pc;
-
-    // Special case: For negative offsets in these specific tests,
-    // don't add the extra cycle for page boundary crossing
-    if (page_crossed && offset < 0x80) {  // Only add for positive offsets
+    if ((_PC & 0xFF00) != old_page) {
       _cycles++;
     }
   }
@@ -725,21 +655,11 @@ void CPU::op_bpl(const u16 offset) {
 
 void CPU::op_bvc(const u16 offset) {
   if (get_flag(Flag::OVERFLOW_) == false) {
-    // Calculate new address
-    u16 new_pc = _PC + offset;
-
-    // Add cycle for taking branch
+    int8_t signed_offset = static_cast<int8_t>(offset);
+    u16 old_page = _PC & 0xFF00;
+    _PC += signed_offset;
     _cycles++;
-
-    // Check if page boundary is crossed
-    bool page_crossed = ((_PC & 0xFF00) != (new_pc & 0xFF00));
-
-    // Update PC
-    _PC = new_pc;
-
-    // Special case: For negative offsets in these specific tests,
-    // don't add the extra cycle for page boundary crossing
-    if (page_crossed && offset < 0x80) {  // Only add for positive offsets
+    if ((_PC & 0xFF00) != old_page) {
       _cycles++;
     }
   }
@@ -747,21 +667,11 @@ void CPU::op_bvc(const u16 offset) {
 
 void CPU::op_bvs(const u16 offset) {
   if (get_flag(Flag::OVERFLOW_) == true) {
-    // Calculate new address
-    u16 new_pc = _PC + offset;
-
-    // Add cycle for taking branch
+    int8_t signed_offset = static_cast<int8_t>(offset);
+    u16 old_page = _PC & 0xFF00;
+    _PC += signed_offset;
     _cycles++;
-
-    // Check if page boundary is crossed
-    bool page_crossed = ((_PC & 0xFF00) != (new_pc & 0xFF00));
-
-    // Update PC
-    _PC = new_pc;
-
-    // Special case: For negative offsets in these specific tests,
-    // don't add the extra cycle for page boundary crossing
-    if (page_crossed && offset < 0x80) {  // Only add for positive offsets
+    if ((_PC & 0xFF00) != old_page) {
       _cycles++;
     }
   }
