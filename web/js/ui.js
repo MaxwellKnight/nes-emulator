@@ -9,7 +9,6 @@ class DebuggerUI {
 		// Check if the debugger is already loaded
 		if (this.debugger && this.debugger.isLoaded) {
 			console.log('Debugger already loaded, initializing immediately');
-			this.setupEventListeners();
 			this.updateUI();
 			console.log('NES Debugger loaded and ready');
 			this.testMemoryAccess();
@@ -17,7 +16,6 @@ class DebuggerUI {
 			// If not loaded, register for the onLoad callback
 			this.debugger.onLoad(() => {
 				console.log('Debugger onLoad callback triggered');
-				this.setupEventListeners();
 				this.updateUI();
 				console.log('NES Debugger loaded and ready');
 				this.testMemoryAccess();
@@ -25,6 +23,7 @@ class DebuggerUI {
 		} else {
 			console.error('Debugger not available or missing onLoad method');
 		}
+		this.setupEventListeners();
 	}
 
 	testMemoryAccess() {
