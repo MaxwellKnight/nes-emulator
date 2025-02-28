@@ -5,3 +5,4 @@ build_tests/
 compile_commands.json
 .cache
 .clang-format
+*.wasm
