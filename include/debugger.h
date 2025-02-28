@@ -56,6 +56,7 @@ class Debugger {
   u16 get_register_pc() const;
   u8 get_register_status() const;
   u8 get_status_flag(nes::Flag flag) const;
+  void set_pc(u16 address);
 
   // Memory access
   u8 read_memory(u16 address) const;
@@ -102,7 +103,7 @@ EMSCRIPTEN_EXPORT u8 debugger_get_register_y();
 EMSCRIPTEN_EXPORT u8 debugger_get_register_sp();
 EMSCRIPTEN_EXPORT u16 debugger_get_register_pc();
 EMSCRIPTEN_EXPORT u8 debugger_get_register_status();
-EMSCRIPTEN_EXPORT u8 debugger_get_status_flag(nes::Flag flag);
+EMSCRIPTEN_EXPORT u8 debugger_get_status_flag(int flag);
 
 EMSCRIPTEN_EXPORT u8 debugger_read_memory(u16 address);
 EMSCRIPTEN_EXPORT void debugger_write_memory(u16 address, u8 value);

@@ -25,6 +25,20 @@ set(CORE_SOURCES
 )
 
 if(BUILD_WASM)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -s WASM=1 -s ASSERTIONS=1 -s ALLOW_MEMORY_GROWTH=1")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -s EXPORTED_RUNTIME_METHODS=['ccall','cwrap']")
+  
+  # List all your exported functions here
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -s EXPORTED_FUNCTIONS=['_debugger_step','_debugger_run','_debugger_stop','_debugger_reset','_debugger_is_running','_debugger_add_breakpoint','_debugger_remove_breakpoint','_debugger_clear_breakpoints','_debugger_get_register_a','_debugger_get_register_x','_debugger_get_register_y','_debugger_get_register_sp','_debugger_get_register_pc','_debugger_get_register_status','_debugger_get_status_flag','_debugger_read_memory','_debugger_write_memory','_debugger_get_instruction_count','_debugger_get_cycle_count','_debugger_disassemble_around_pc','_debugger_disassemble_range','_main_loop','_malloc','_free']")
+  
+  # This option can help with signature mismatches
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -s DISABLE_EXCEPTION_CATCHING=0")
+  
+  # For debugging purposes
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g4 -s DEMANGLE_SUPPORT=1")
+endif()
+
+if(BUILD_WASM)
     # WebAssembly build
     set(SOURCES
         ${CORE_SOURCES}

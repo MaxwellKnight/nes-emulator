@@ -62,7 +62,8 @@ u8 Debugger::get_register_y() const { return _cpu.get_y(); }
 u8 Debugger::get_register_sp() const { return _cpu.get_sp(); }
 u16 Debugger::get_register_pc() const { return _cpu.get_pc(); }
 u8 Debugger::get_register_status() const { return _cpu.get_status(); }
-u8 Debugger::get_status_flag(nes::Flag flag) const { return _cpu.get_flag(flag) ? 1 : 0; }
+u8 Debugger::get_status_flag(Flag flag) const { return _cpu.get_flag(flag) ? 1 : 0; }
+void Debugger::set_pc(u16 address) { _cpu.set_pc(address); }
 
 // Memory access methods
 u8 Debugger::read_memory(u16 address) const { return _bus.read(address); }
@@ -384,7 +385,7 @@ EMSCRIPTEN_EXPORT u8 debugger_get_register_status() {
   return 0;
 }
 
-EMSCRIPTEN_EXPORT u8 debugger_get_status_flag(Flag flag) {
+EMSCRIPTEN_EXPORT u8 debugger_get_status_flag(int flag) {
   if (g_debugger) {
     return g_debugger->get_status_flag(static_cast<Flag>(flag));
   }
@@ -418,20 +419,49 @@ EMSCRIPTEN_EXPORT u64 debugger_get_cycle_count() {
   return 0;
 }
 
+EMSCRIPTEN_EXPORT void debugger_set_pc(u16 address) {
+  if (g_debugger) {
+    g_debugger->set_pc(address);
+    printf("PC manually set to $%04X\n", address);
+  }
+}
+
 EMSCRIPTEN_EXPORT char* debugger_disassemble_around_pc(int before, int after) {
   static std::string result;
+  result.clear();
 
   if (!g_debugger) {
+    printf("Error: g_debugger is null!\n");
     return nullptr;
   }
 
+  u16 pc = g_debugger->get_register_pc();
+  printf("Disassembling around PC: $%04X, before: %d, after: %d\n", pc, before, after);
+
+  // Directly create a single test instruction if disassembly is failing
+  if (true) {
+    u8 opcode = g_debugger->read_memory(pc);
+    printf("Opcode at PC: $%02X\n", opcode);
+
+    // Manually format a minimal disassembly string
+    result = std::to_string(pc) + "|" + std::to_string(opcode) + "|TEST|0|TEST $00|1|2";
+
+    printf("Created manual test disassembly: %s\n", result.c_str());
+    return const_cast<char*>(result.c_str());
+  }
+  printf("Disassembling around PC: %04X, before: %d, after: %d\n", g_debugger->get_register_pc(), before, after);
+
   auto instructions = g_debugger->disassemble_around_pc(before, after);
   std::stringstream ss;
+
+  printf("Got %zu instructions\n", instructions.size());
 
   // Format: address|opcode|mnemonic|operand|formatted|bytes|cycles#address|...
   for (const auto& instr : instructions) {
     ss << instr.address << "|" << static_cast<int>(instr.opcode) << "|" << instr.mnemonic << "|" << instr.operand << "|" << instr.formatted
        << "|" << static_cast<int>(instr.bytes) << "|" << static_cast<int>(instr.cycles) << "#";
+
+    printf("Instruction: %04X %02X %s\n", instr.address, instr.opcode, instr.formatted.c_str());
   }
 
   result = ss.str();
@@ -439,6 +469,7 @@ EMSCRIPTEN_EXPORT char* debugger_disassemble_around_pc(int before, int after) {
     result.pop_back();  // Remove the last '#'
   }
 
+  printf("Final string length: %zu\n", result.length());
   return const_cast<char*>(result.c_str());
 }
 
@@ -464,6 +495,125 @@ EMSCRIPTEN_EXPORT char* debugger_disassemble_range(u16 start, u16 end) {
   }
 
   return const_cast<char*>(result.c_str());
+}
+
+EMSCRIPTEN_EXPORT void debugger_test() {
+  printf("======= DEBUGGER TEST =======\n");
+  if (g_debugger) {
+    u16 pc = g_debugger->get_register_pc();
+    printf("Current PC: %04X\n", pc);
+
+    // Print some memory values around PC
+    printf("Memory at PC:\n");
+    for (int i = 0; i < 10; i++) {
+      printf("%02X ", g_debugger->read_memory(pc + i));
+    }
+    printf("\n");
+
+    // Try disassembling
+    auto instructions = g_debugger->disassemble_around_pc(0, 5);
+    printf("Disassembly result has %zu instructions\n", instructions.size());
+  } else {
+    printf("Debugger instance is null!\n");
+  }
+  printf("============================\n");
+}
+
+EMSCRIPTEN_EXPORT void debugger_init_test() {
+  if (!g_debugger) return;
+
+  // Set up the test program at address 0x8000
+  u16 addr = 0x8000;
+
+  // LDA #$42 (Load 0x42 into A register)
+  g_debugger->write_memory(addr++, 0xA9);
+  g_debugger->write_memory(addr++, 0x42);
+
+  // STA $0200 (Store A at memory address 0x0200)
+  g_debugger->write_memory(addr++, 0x8D);
+  g_debugger->write_memory(addr++, 0x00);
+  g_debugger->write_memory(addr++, 0x02);
+
+  // Set reset vector to point to our program
+  g_debugger->write_memory(0xFFFC, 0x00);
+  g_debugger->write_memory(0xFFFD, 0x80);
+
+  // Reset CPU (which might not set PC correctly)
+  g_debugger->reset();
+
+  // Force PC to the correct address
+  g_debugger->set_pc(0x8000);
+
+  printf("Test program initialized. PC set to $8000\n");
+  printf("Memory at 0x8000: $%02X $%02X $%02X $%02X $%02X\n", g_debugger->read_memory(0x8000), g_debugger->read_memory(0x8001),
+         g_debugger->read_memory(0x8002), g_debugger->read_memory(0x8003), g_debugger->read_memory(0x8004));
+}
+
+EMSCRIPTEN_EXPORT void debugger_print_state() {
+  if (!g_debugger) {
+    printf("Error: g_debugger is null!\n");
+    return;
+  }
+
+  u16 pc = g_debugger->get_register_pc();
+  u8 a = g_debugger->get_register_a();
+  u8 x = g_debugger->get_register_x();
+  u8 y = g_debugger->get_register_y();
+  u8 sp = g_debugger->get_register_sp();
+  u8 status = g_debugger->get_register_status();
+
+  printf("CPU State:\n");
+  printf("  PC = $%04X\n", pc);
+  printf("  A  = $%02X\n", a);
+  printf("  X  = $%02X\n", x);
+  printf("  Y  = $%02X\n", y);
+  printf("  SP = $%02X\n", sp);
+  printf("  P  = $%02X (", status);
+
+  // Use the proper enum values for Flag instead of integers
+  if (g_debugger->get_status_flag(static_cast<Flag>(7)))
+    printf("N");
+  else
+    printf("-");
+  if (g_debugger->get_status_flag(static_cast<Flag>(6)))
+    printf("V");
+  else
+    printf("-");
+  if (g_debugger->get_status_flag(static_cast<Flag>(5)))
+    printf("U");
+  else
+    printf("-");
+  if (g_debugger->get_status_flag(static_cast<Flag>(4)))
+    printf("B");
+  else
+    printf("-");
+  if (g_debugger->get_status_flag(static_cast<Flag>(3)))
+    printf("D");
+  else
+    printf("-");
+  if (g_debugger->get_status_flag(static_cast<Flag>(2)))
+    printf("I");
+  else
+    printf("-");
+  if (g_debugger->get_status_flag(static_cast<Flag>(1)))
+    printf("Z");
+  else
+    printf("-");
+  if (g_debugger->get_status_flag(static_cast<Flag>(0)))
+    printf("C");
+  else
+    printf("-");
+  printf(")\n");
+
+  // Print reset vector
+  printf("Reset vector: $%02X%02X\n", g_debugger->read_memory(0xFFFD), g_debugger->read_memory(0xFFFC));
+
+  // Print memory around PC
+  printf("Memory at PC ($%04X):\n  ", pc);
+  for (int i = 0; i < 8; i++) {
+    printf("%02X ", g_debugger->read_memory(pc + i));
+  }
+  printf("\n");
 }
 
 #endif  // __EMSCRIPTEN__

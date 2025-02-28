@@ -1,6 +1,6 @@
 class NESDebugger {
 	constructor() {
-		this.module = null;
+		this.module = window.Module;
 		this.isLoaded = false;
 		this.onLoadCallbacks = [];
 		this.onBreakCallbacks = [];
@@ -10,28 +10,17 @@ class NESDebugger {
 	// Initialize the debugger with the WASM module
 	async init() {
 		return new Promise((resolve, reject) => {
-			// Set up the Module configuration
 			window.Module = {
 				onRuntimeInitialized: () => {
-					this.module = window.Module;
-					this.setupFunctions();
-					this.isLoaded = true;
-					this.onLoadCallbacks.forEach(callback => callback());
+					// Verify all functions are correctly set up
+					console.log('Functions available:', {
+						writeMemory: !!this.module.cwrap('debugger_write_memory', null, ['number', 'number']),
+						readMemory: !!this.module.cwrap('debugger_read_memory', 'number', ['number']),
+						disassemble: !!this.module.cwrap('debugger_disassemble_around_pc', 'string', ['number', 'number'])
+					});
 					resolve();
-				},
-				print: (text) => {
-					console.log('WASM stdout:', text);
-				},
-				printErr: (text) => {
-					console.error('WASM stderr:', text);
 				}
 			};
-
-			// Load the WASM JavaScript glue code
-			const script = document.createElement('script');
-			script.src = 'nes_debugger.js';
-			script.onerror = () => reject(new Error('Failed to load WASM module'));
-			document.body.appendChild(script);
 		});
 	}
 
@@ -248,7 +237,7 @@ class NESDebugger {
 	}
 
 	// Load a binary file into memory at the specified address
-	loadBinary(data, startAddr) {
+	loadBinary(data, startAddr = 0x8000) {
 		if (!this.isLoaded) return;
 
 		for (let i = 0; i < data.length; i++) {
@@ -256,18 +245,91 @@ class NESDebugger {
 		}
 	}
 
-	// Load a ROM file (simplified for this example)
-	loadROM(data) {
-		// In a real NES emulator, ROM loading would be more complex
-		// This is a simplified version that just loads at a fixed address
-		this.loadBinary(data, 0x8000);
+	// Load a ROM file 
+	loadROM(data, startAddr = 0x8000) {
+		// Load the binary data into memory
+		this.loadBinary(data, startAddr);
 
-		// Set reset vector to point to the start of ROM
-		this.writeMemory(0xFFFC, 0x00);
-		this.writeMemory(0xFFFD, 0x80);
+		// Set reset vector to point to the start address
+		this.writeMemory(0xFFFC, startAddr & 0xFF);
+		this.writeMemory(0xFFFD, (startAddr >> 8) & 0xFF);
 
 		// Reset the CPU to start execution
 		this.reset();
+	}
+
+	// Load opcodes directly from an array or text
+	loadOpcodes(opcodes, startAddr = 0x8000) {
+		if (!this.isLoaded) return;
+
+		let opcodeArray;
+		if (typeof opcodes === 'string') {
+			// If opcodes is a string, parse it as hex values
+			opcodeArray = this.parseOpcodeString(opcodes);
+		} else if (Array.isArray(opcodes)) {
+			// If opcodes is already an array, use it directly
+			opcodeArray = opcodes;
+		} else if (opcodes instanceof Uint8Array) {
+			// If opcodes is a Uint8Array, convert to regular array
+			opcodeArray = Array.from(opcodes);
+		} else {
+			console.error('Invalid opcodes format. Expected string, array, or Uint8Array.');
+			return;
+		}
+
+		// Load the opcodes into memory
+		this.loadBinary(opcodeArray, startAddr);
+
+		// Set reset vector to point to the start address
+		this.writeMemory(0xFFFC, startAddr & 0xFF);
+		this.writeMemory(0xFFFD, (startAddr >> 8) & 0xFF);
+
+		// Reset the CPU to start execution
+		this.reset();
+	}
+
+	// Parse opcodes from a string (e.g., "A2 0A 8E 00 00")
+	parseOpcodeString(opcodeStr) {
+		// Remove comments and any non-hex characters
+		const cleanedStr = opcodeStr.replace(/;.*$/gm, '')  // Remove comments
+			.replace(/[^0-9A-Fa-f\s,]/g, '')  // Remove non-hex, non-whitespace, non-comma chars
+			.trim();
+
+		// Split by whitespace or commas
+		const hexValues = cleanedStr.split(/[\s,]+/);
+
+		// Convert hex strings to numbers
+		const opcodes = [];
+		for (const hex of hexValues) {
+			if (hex) {  // Skip empty strings
+				const value = parseInt(hex, 16);
+				if (!isNaN(value) && value >= 0 && value <= 255) {
+					opcodes.push(value);
+				} else {
+					console.warn(`Skipping invalid opcode value: ${hex}`);
+				}
+			}
+		}
+
+		return opcodes;
+	}
+
+	// Load a program with the given name
+	loadExampleProgram(programName) {
+		// Define some example programs
+		const examplePrograms = {
+			'counter': 'A2 0A 8E 00 00 A2 03 8E 01 00 AC 00 00 A9 00 18 6D 01 00 88 D0 FA 8D 02 00 EA EA EA',
+			'fibonacci': 'A9 01 85 00 A9 01 85 01 A5 00 18 65 01 85 02 A5 01 85 00 A5 02 85 01 A5 01 C9 55 90 EF 00',
+			'loop': 'A2 0A CA 8E 00 02 E0 00 D0 F8 EA EA EA',
+		};
+
+		if (examplePrograms[programName]) {
+			this.loadOpcodes(examplePrograms[programName]);
+			return true;
+		} else {
+			console.error(`Example program "${programName}" not found.`);
+			return false;
+		}
 	}
 }
 

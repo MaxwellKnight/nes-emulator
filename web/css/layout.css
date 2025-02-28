@@ -1,0 +1,253 @@
+:root {
+    --primary-color: #007bff;
+    --secondary-color: #6c757d;
+    --success-color: #28a745;
+    --warning-color: #ffc107;
+    --danger-color: #dc3545;
+    --info-color: #17a2b8;
+
+    /* Dark theme vars */
+    --dark-bg: #1a1a1a;
+    --dark-bg-secondary: #252526;
+    --dark-border: #444;
+    --dark-text: #eee;
+
+    /* Light theme vars */
+    --light-bg: #f8f9fa;
+    --light-bg-secondary: #ffffff;
+    --light-border: #dee2e6;
+    --light-text: #212529;
+}
+
+
+body {
+    transition: background-color 0.3s, color 0.3s;
+    padding: 1rem;
+    height: 100vh;
+    overflow: hidden;
+}
+
+.panel {
+    background-color: var(--panel-bg);
+    border: 1px solid var(--panel-border);
+    border-radius: 8px;
+    padding: 15px;
+    overflow: auto;
+    height: 100%;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    transition: background-color 0.3s, border-color 0.3s;
+}
+
+.instruction {
+    padding: 5px 8px;
+    white-space: nowrap;
+    border-radius: 4px;
+    transition: background-color 0.2s;
+}
+
+.instruction.current {
+    background-color: var(--disassembly-highlight);
+    border-left: 3px solid var(--danger-color);
+}
+
+.instruction:hover {
+    background-color: rgba(13, 110, 253, 0.1);
+}
+
+.memory-cell:hover {
+    background-color: rgba(13, 110, 253, 0.1);
+    cursor: pointer;
+}
+
+.main-grid {
+    display: grid;
+    grid-template-columns: 1fr 350px;
+    grid-template-rows: auto 1fr 280px;
+    grid-template-areas:
+        "header header"
+        "disassembly sidebar"
+        "memory sidebar";
+    gap: 15px;
+    height: calc(100vh - 30px);
+}
+
+.header-area {
+    grid-area: header;
+}
+
+.sidebar-area {
+    grid-area: sidebar;
+}
+
+.disassembly-area {
+    grid-area: disassembly;
+}
+
+.memory-area {
+    grid-area: memory;
+}
+
+.section-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 15px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--panel-border);
+}
+
+.section-header i {
+    margin-right: 8px;
+}
+
+.section-title {
+    margin: 0;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--primary-color);
+}
+
+.register-grid {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 8px 15px;
+    margin-bottom: 20px;
+}
+
+.register-label {
+    font-weight: 600;
+    color: var(--primary-color);
+}
+
+.register-value {
+    font-family: 'JetBrains Mono', 'Courier New', monospace;
+    text-align: right;
+    padding: 2px 8px;
+    border-radius: 4px;
+    background-color: rgba(13, 110, 253, 0.1);
+}
+
+.flags-grid {
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    gap: 8px;
+    margin-bottom: 20px;
+}
+
+.memory-view-container {
+    font-family: 'JetBrains Mono', 'Courier New', monospace;
+}
+
+.memory-row {
+    display: flex;
+    margin-bottom: 4px;
+}
+
+.memory-address {
+    width: 80px;
+    font-weight: 600;
+    color: var(--primary-color);
+}
+
+.memory-cell {
+    width: 30px;
+    text-align: center;
+    margin-right: 4px;
+    padding: 0 2px;
+    border-radius: 3px;
+}
+
+.memory-ascii {
+    margin-left: 10px;
+    padding-left: 10px;
+    border-left: 1px solid var(--panel-border);
+}
+
+.theme-toggle {
+    cursor: pointer;
+    padding: 5px 10px;
+    border-radius: 30px;
+    display: inline-flex;
+    align-items: center;
+    transition: all 0.3s;
+}
+
+.code-font {
+    font-family: 'JetBrains Mono', 'Courier New', monospace;
+}
+
+/* Tab styling */
+.nav-tabs {
+    border-bottom: 1px solid var(--panel-border);
+}
+
+.nav-tabs .nav-link {
+    border: none;
+    border-bottom: 3px solid transparent;
+    border-radius: 0;
+    color: var(--bs-body-color);
+    padding: 8px 10px;
+    margin-right: 5px;
+}
+
+.nav-tabs .nav-link:hover {
+    border-bottom-color: rgba(13, 110, 253, 0.3);
+}
+
+.nav-tabs .nav-link.active {
+    background-color: transparent;
+    border-bottom-color: var(--primary-color);
+    color: var(--primary-color);
+    font-weight: 600;
+}
+
+.tab-content {
+    padding: 15px 0;
+}
+
+/* Opcode input field */
+#opcodeInput {
+    font-family: 'JetBrains Mono', 'Courier New', monospace;
+    resize: none;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.05);
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 0, 0, 0.3);
+}
+
+[data-bs-theme="dark"] ::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+[data-bs-theme="dark"] ::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+[data-bs-theme="dark"] ::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+/* Tooltip enhancements */
+.tooltip-inner {
+    max-width: 200px;
+    padding: 8px 12px;
+    color: #fff;
+    text-align: center;
+    background-color: #000;
+    border-radius: 4px;
+}
