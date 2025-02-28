@@ -1,4 +1,5 @@
 #include "../include/cpu.h"
+#include <stdexcept>
 #include <string>
 #include "types.h"
 

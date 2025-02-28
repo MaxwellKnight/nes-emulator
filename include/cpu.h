@@ -1,5 +1,6 @@
 #pragma once
 #include <array>
+#include <cstddef>
 #include "bus.h"
 #include "types.h"
 

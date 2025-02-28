@@ -4,22 +4,20 @@ class DebuggerUI {
 		this.breakpoints = new Set();
 		this.currentMemoryPage = 0x0000;
 		this.memoryPageSize = 0x100;
-		this.theme = 'dark';
+		this.theme = 'light';
 
 		this.debugger.onLoad(() => {
 			this.setupEventListeners();
 			this.updateUI();
 			console.log('NES Debugger loaded and ready');
-			// Load the test program
-			window.nesDebugger.module._debugger_init_test();
-
-			// Print CPU and memory state
-			window.nesDebugger.module._debugger_print_state();
-
-			// Try a disassembly with the modifications
-			const disassembly = window.nesDebugger._disassembleAroundPC(5, 10);
-			console.log("Disassembly result:", disassembly);
-			console.log(this.debugger);
+			// Test memory write and read directly
+			console.log("Testing memory read/write directly:");
+			window.nesDebugger.writeMemory(0x8000, 0xA9); // LDA immediate
+			window.nesDebugger.writeMemory(0x8001, 0x42); // #$42
+			console.log("Memory at $8000 after direct write:",
+				"0x" + window.nesDebugger.readMemory(0x8000).toString(16).toUpperCase());
+			console.log("Memory at $8001 after direct write:",
+				"0x" + window.nesDebugger.readMemory(0x8001).toString(16).toUpperCase());
 		});
 
 		this.debugger.init().catch(err => {

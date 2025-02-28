@@ -1,6 +1,6 @@
 class NESDebugger {
 	constructor() {
-		this.module = window.Module;
+		this.module = null;
 		this.isLoaded = false;
 		this.onLoadCallbacks = [];
 		this.onBreakCallbacks = [];
@@ -10,17 +10,28 @@ class NESDebugger {
 	// Initialize the debugger with the WASM module
 	async init() {
 		return new Promise((resolve, reject) => {
+			// Set up the Module configuration
 			window.Module = {
 				onRuntimeInitialized: () => {
-					// Verify all functions are correctly set up
-					console.log('Functions available:', {
-						writeMemory: !!this.module.cwrap('debugger_write_memory', null, ['number', 'number']),
-						readMemory: !!this.module.cwrap('debugger_read_memory', 'number', ['number']),
-						disassemble: !!this.module.cwrap('debugger_disassemble_around_pc', 'string', ['number', 'number'])
-					});
+					this.module = window.Module;
+					this.setupFunctions();
+					this.isLoaded = true;
+					this.onLoadCallbacks.forEach(callback => callback());
 					resolve();
+				},
+				print: (text) => {
+					console.log('WASM stdout:', text);
+				},
+				printErr: (text) => {
+					console.error('WASM stderr:', text);
 				}
 			};
+
+			// Load the WASM JavaScript glue code
+			const script = document.createElement('script');
+			script.src = 'nes_debugger.js';
+			script.onerror = () => reject(new Error('Failed to load WASM module'));
+			document.body.appendChild(script);
 		});
 	}
 

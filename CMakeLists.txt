@@ -1,87 +1,92 @@
 cmake_minimum_required(VERSION 3.10)
-project(nes_emulator)
+project(CPU_Emulator VERSION 1.0)
+
+# Set C++ standard
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
 
-# Options
-option(BUILD_WASM "Build WebAssembly version" OFF)
-option(BUILD_TESTS "Build tests" ON)
-
-# Include directories
-include_directories(
-    ${CMAKE_CURRENT_SOURCE_DIR}/include
+# Add compile definitions for required headers
+add_compile_definitions(
+    NEED_CSTDDEF
+    NEED_STDEXCEPT
 )
 
-# Only include GTest for non-WASM builds with tests enabled
-if(NOT BUILD_WASM AND BUILD_TESTS)
-    find_package(GTest REQUIRED)
-endif()
+# Include directories
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
 
-# Define source files
-set(CORE_SOURCES
-    src/cpu.cpp
+# Source files for the main library
+set(SOURCES
     src/bus.cpp
+    src/cpu.cpp
     src/debugger.cpp
 )
 
-if(BUILD_WASM)
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -s WASM=1 -s ASSERTIONS=1 -s ALLOW_MEMORY_GROWTH=1")
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -s EXPORTED_RUNTIME_METHODS=['ccall','cwrap']")
-  
-  # List all your exported functions here
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -s EXPORTED_FUNCTIONS=['_debugger_step','_debugger_run','_debugger_stop','_debugger_reset','_debugger_is_running','_debugger_add_breakpoint','_debugger_remove_breakpoint','_debugger_clear_breakpoints','_debugger_get_register_a','_debugger_get_register_x','_debugger_get_register_y','_debugger_get_register_sp','_debugger_get_register_pc','_debugger_get_register_status','_debugger_get_status_flag','_debugger_read_memory','_debugger_write_memory','_debugger_get_instruction_count','_debugger_get_cycle_count','_debugger_disassemble_around_pc','_debugger_disassemble_range','_main_loop','_malloc','_free']")
-  
-  # This option can help with signature mismatches
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -s DISABLE_EXCEPTION_CATCHING=0")
-  
-  # For debugging purposes
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g4 -s DEMANGLE_SUPPORT=1")
-endif()
-
-if(BUILD_WASM)
-    # WebAssembly build
-    set(SOURCES
-        ${CORE_SOURCES}
-        src/wasm_main.cpp
+# Detect if we're compiling for WebAssembly with Emscripten
+if(EMSCRIPTEN)
+    # WebAssembly build configuration
+    message(STATUS "Configuring for WebAssembly build")
+    
+    # Add library with the core functionality
+    add_library(cpu_core STATIC ${SOURCES})
+    
+    # Add WebAssembly executable
+    add_executable(cpu_wasm src/wasm_main.cpp)
+    target_link_libraries(cpu_wasm cpu_core)
+    
+    # Emscripten-specific flags
+    set(EM_LINK_FLAGS 
+        "--bind -s WASM=1 -s MODULARIZE=1 -s EXPORT_NAME='CPUEmulator' -s ALLOW_MEMORY_GROWTH=1 -s EXPORTED_RUNTIME_METHODS=['ccall','cwrap'] -s NO_EXIT_RUNTIME=1")
+    
+    # Export main as CPU_wasm
+    set_target_properties(cpu_wasm PROPERTIES
+        OUTPUT_NAME "cpu_wasm"
+        SUFFIX ".js"
+        LINK_FLAGS "${EM_LINK_FLAGS}"
     )
 
-    # Add executable
-    add_executable(nes_debugger ${SOURCES})
-
-    # Emscripten specific settings
-    set(CMAKE_EXECUTABLE_SUFFIX ".js")
-
-    # Export the C functions to JavaScript
-    set_target_properties(nes_debugger PROPERTIES
-        LINK_FLAGS "-s WASM=1 -s EXPORTED_RUNTIME_METHODS=['cwrap','ccall'] -s ALLOW_MEMORY_GROWTH=1 -s EXPORT_ALL=1 -s EXPORTED_FUNCTIONS=['_debugger_step','_debugger_run','_debugger_stop','_debugger_reset','_debugger_is_running','_debugger_add_breakpoint','_debugger_remove_breakpoint','_debugger_clear_breakpoints','_debugger_get_register_a','_debugger_get_register_x','_debugger_get_register_y','_debugger_get_register_sp','_debugger_get_register_pc','_debugger_get_register_status','_debugger_get_status_flag','_debugger_read_memory','_debugger_write_memory','_debugger_get_instruction_count','_debugger_get_cycle_count','_debugger_disassemble_around_pc','_debugger_disassemble_range','_malloc','_free'] -s NO_EXIT_RUNTIME=1 -s ENVIRONMENT='web' -O3"
+    # Copy the generated files to the web directory
+    add_custom_command(TARGET cpu_wasm POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy 
+            ${CMAKE_BINARY_DIR}/cpu_wasm.js
+            ${CMAKE_BINARY_DIR}/cpu_wasm.wasm
+            ${CMAKE_SOURCE_DIR}/web/js/
+        COMMENT "Copying WebAssembly files to web directory"
     )
 else()
-    # Regular build - check if main.cpp exists before building the executable
-    if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/src/main.cpp")
-        set(SOURCES
-            ${CORE_SOURCES}
-            src/main.cpp
-        )
+    # Native build configuration for testing
+    message(STATUS "Configuring for native build")
+    
+    # Add library with the core functionality
+    add_library(cpu_core STATIC ${SOURCES})
+    
+    # Add Google Test
+    enable_testing()
+    
+    # Find GTest package
+    find_package(GTest REQUIRED)
+    include_directories(${GTEST_INCLUDE_DIRS})
 
-        # Add executable
-        add_executable(nes_emulator ${SOURCES})
-    endif()
-
-    # Tests are only built if requested
-    if(BUILD_TESTS)
-        enable_testing()
-
-        # Add test executables here - one for each test file
-        file(GLOB TEST_SOURCES tests/cpu_test_*.cpp)
-        foreach(TEST_FILE ${TEST_SOURCES})
-            # Extract the file name without extension
-            get_filename_component(TEST_NAME ${TEST_FILE} NAME_WE)
-            # Create an executable for each test file
-            add_executable(${TEST_NAME} ${TEST_FILE} ${CORE_SOURCES})
-            # Link with GTest
-            target_link_libraries(${TEST_NAME} GTest::GTest GTest::Main)
-            # Add to CTest
-            add_test(NAME ${TEST_NAME} COMMAND ${TEST_NAME})
-        endforeach()
-    endif()
+    # Function to add test executables
+    function(add_cpu_test test_name test_file)
+        add_executable(${test_name} ${test_file})
+        target_link_libraries(${test_name} cpu_core ${GTEST_BOTH_LIBRARIES} pthread)
+        add_test(NAME ${test_name} COMMAND ${test_name})
+    endfunction()
+    
+    # Add all test executables
+    add_cpu_test(cpu_test_addr_mode tests/cpu_test_addr_mode.cpp)
+    add_cpu_test(cpu_test_arithmetic tests/cpu_test_arithmetic.cpp)
+    add_cpu_test(cpu_test_branch tests/cpu_test_branch.cpp)
+    add_cpu_test(cpu_test_control_flow tests/cpu_test_control_flow.cpp)
+    add_cpu_test(cpu_test_flags tests/cpu_test_flags.cpp)
+    add_cpu_test(cpu_test_increment_decrement tests/cpu_test_increment_decrement.cpp)
+    add_cpu_test(cpu_test_init tests/cpu_test_init.cpp)
+    add_cpu_test(cpu_test_load tests/cpu_test_load.cpp)
+    add_cpu_test(cpu_test_logic tests/cpu_test_logic.cpp)
+    add_cpu_test(cpu_test_nop tests/cpu_test_nop.cpp)
+    add_cpu_test(cpu_test_shift_rotate tests/cpu_test_shift_rotate.cpp)
+    add_cpu_test(cpu_test_stack tests/cpu_test_stack.cpp)
+    add_cpu_test(cpu_test_store tests/cpu_test_store.cpp)
+    add_cpu_test(cpu_test_transfer tests/cpu_test_transfer.cpp)
 endif()

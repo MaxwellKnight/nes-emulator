@@ -1,9 +1,34 @@
-version: '3'
 services:
-  nes-debugger:
-    build: .
-    ports:
-      - "8080:8080"
+  build:
+    build:
+      context: .
+      dockerfile: Dockerfile
     volumes:
-      - ./web:/app/web
-      - ./build_wasm:/app/build_wasm
+      - .:/app
+    command: build_all.sh
+
+  wasm:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - .:/app
+    command: build_wasm.sh
+
+  test:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - .:/app
+    command: build_and_test.sh
+
+  shell:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - .:/app
+    command: /bin/bash
+    tty: true
+    stdin_open: true
