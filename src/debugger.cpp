@@ -436,19 +436,6 @@ EMSCRIPTEN_EXPORT char* debugger_disassemble_around_pc(int before, int after) {
   }
 
   u16 pc = g_debugger->get_register_pc();
-  printf("Disassembling around PC: $%04X, before: %d, after: %d\n", pc, before, after);
-
-  // Directly create a single test instruction if disassembly is failing
-  if (true) {
-    u8 opcode = g_debugger->read_memory(pc);
-    printf("Opcode at PC: $%02X\n", opcode);
-
-    // Manually format a minimal disassembly string
-    result = std::to_string(pc) + "|" + std::to_string(opcode) + "|TEST|0|TEST $00|1|2";
-
-    printf("Created manual test disassembly: %s\n", result.c_str());
-    return const_cast<char*>(result.c_str());
-  }
   printf("Disassembling around PC: %04X, before: %d, after: %d\n", g_debugger->get_register_pc(), before, after);
 
   auto instructions = g_debugger->disassemble_around_pc(before, after);
