@@ -54,6 +54,7 @@ class NESDebugger {
 		this.getRegisterY = this.module.cwrap('debugger_get_register_y', 'number', []);
 		this.getRegisterSP = this.module.cwrap('debugger_get_register_sp', 'number', []);
 		this.getRegisterPC = this.module.cwrap('debugger_get_register_pc', 'number', []);
+		this.setPC = this.module.cwrap('debugger_set_pc', 'number', []);
 		this.getRegisterStatus = this.module.cwrap('debugger_get_register_status', 'number', []);
 		this.getStatusFlag = this.module.cwrap('debugger_get_status_flag', 'number', ['number']);
 
@@ -239,7 +240,6 @@ class NESDebugger {
 		this.loadBinary(data, startAddr);
 		// Set reset vector to point to the start address
 		this.writeMemory(0xFFFD, (startAddr >> 8) & 0xFF);
-		this.reset();
 	}
 
 	loadOpcodes(opcodes, startAddr = 0x8000) {
