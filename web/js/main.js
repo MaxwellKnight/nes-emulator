@@ -1,51 +1,86 @@
 document.addEventListener('DOMContentLoaded', function() {
-	// Extended initialization timeout
+	console.log('DOM content loaded, setting up initialization...');
 	const initializationTimeout = setTimeout(() => {
 		console.error('Debugger initialization timed out');
-		// Optional: Provide user feedback or fallback
-		alert('Failed to initialize NES Debugger. Please refresh the page.');
-	}, 10000); // 10 seconds timeout
+	}, 30000);
 
-	function safeInitialize() {
+	window.initializeNESDebugger = function() {
 		try {
-			// Detailed module status check
-			console.log('Module initialization attempt', {
-				moduleExists: !!window.Module,
-				calledRun: window.Module?.calledRun,
-				initialized: window.Module?.__initialized
-			});
-
-			// Defensive checks
-			if (!window.Module || window.Module.__initialized) {
-				console.warn('Module not ready or already initialized');
-				return;
+			if (!window.nesDebugger) {
+				window.nesDebugger = new NESDebugger();
 			}
 
-			// Initialize components
-			window.nesDebugger = new NESDebugger();
-			window.debuggerUI = new DebuggerUI();
+			window.nesDebugger.module = Module;
+			window.nesDebugger.setupFunctions();
+			window.nesDebugger.isLoaded = true;
 
-			// Initialize tooltips
-			const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
-			tooltipTriggerList.forEach(tooltipTriggerEl => {
-				new bootstrap.Tooltip(tooltipTriggerEl);
-			});
+			if (!window.debuggerUI) {
+				window.debuggerUI = new DebuggerUI();
+			}
 
-			console.log('Debugger initialized successfully');
+			if (typeof bootstrap !== 'undefined') {
+				const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
+				tooltipTriggerList.forEach(tooltipTriggerEl => {
+					new bootstrap.Tooltip(tooltipTriggerEl);
+				});
+			}
 
-			// Clear timeout on successful initialization
+			Module.__initialized = true;
 			clearTimeout(initializationTimeout);
+			if (window.debuggerUI && typeof window.debuggerUI.updateUI === 'function') {
+				window.debuggerUI.updateUI();
+			}
+
+			const event = new CustomEvent('debugger-ready');
+			window.dispatchEvent(event);
 		} catch (error) {
-			console.error('Debugger initialization failed:', error);
-			console.error('Error details:', error.stack);
+			if (document.getElementById('status-message')) {
+				document.getElementById('status-message').textContent = 'Initialization error: ' + error.message;
+			}
+		}
+	};
+
+	function loadWasmModule() {
+		const script = document.createElement('script');
+		script.src = 'js/cpu_wasm.js';
+
+		script.onload = function() {
+			checkModuleReady();
+		};
+
+		script.onerror = function(e) {
+			console.error('Failed to load WASM script', e);
+		};
+
+		document.body.appendChild(script);
+	}
+
+	function checkModuleReady() {
+		if (window.CPUEmulator) {
+			try {
+				window.CPUEmulator().then(function(module) {
+					window.Module = module;
+
+					setTimeout(function() {
+						window.initializeNESDebugger();
+					}, 100);
+				}).catch(function(err) {
+					console.error('Error creating CPUEmulator instance:', err);
+				});
+			} catch (error) {
+				console.error('Error initializing CPUEmulator:', error);
+				setTimeout(checkModuleReady, 500);
+			}
+		}
+		else if (window.Module && typeof window.Module.ccall === 'function') {
+			setTimeout(function() {
+				window.initializeNESDebugger();
+			}, 100);
+		}
+		else {
+			setTimeout(checkModuleReady, 500);
 		}
 	}
 
-	// Multiple initialization strategies
-	window.addEventListener('wasm-ready', safeInitialize);
-
-	// Fallback initialization
-	if (window.Module?.calledRun) {
-		safeInitialize();
-	}
+	loadWasmModule();
 });

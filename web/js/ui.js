@@ -6,23 +6,40 @@ class DebuggerUI {
 		this.memoryPageSize = 0x100;
 		this.theme = 'light';
 
-		this.debugger.onLoad(() => {
+		// Check if the debugger is already loaded
+		if (this.debugger && this.debugger.isLoaded) {
+			console.log('Debugger already loaded, initializing immediately');
 			this.setupEventListeners();
 			this.updateUI();
 			console.log('NES Debugger loaded and ready');
-			// Test memory write and read directly
-			console.log("Testing memory read/write directly:");
-			window.nesDebugger.writeMemory(0x8000, 0xA9); // LDA immediate
-			window.nesDebugger.writeMemory(0x8001, 0x42); // #$42
-			console.log("Memory at $8000 after direct write:",
-				"0x" + window.nesDebugger.readMemory(0x8000).toString(16).toUpperCase());
-			console.log("Memory at $8001 after direct write:",
-				"0x" + window.nesDebugger.readMemory(0x8001).toString(16).toUpperCase());
-		});
+			this.testMemoryAccess();
+		} else if (this.debugger && typeof this.debugger.onLoad === 'function') {
+			// If not loaded, register for the onLoad callback
+			this.debugger.onLoad(() => {
+				console.log('Debugger onLoad callback triggered');
+				this.setupEventListeners();
+				this.updateUI();
+				console.log('NES Debugger loaded and ready');
+				this.testMemoryAccess();
+			});
+		} else {
+			console.error('Debugger not available or missing onLoad method');
+		}
+	}
 
-		this.debugger.init().catch(err => {
-			console.error('Failed to initialize debugger:', err);
-		});
+	testMemoryAccess() {
+		// Test memory write and read directly
+		try {
+			console.log("Testing memory read/write directly:");
+			this.debugger.writeMemory(0x8000, 0xA9); // LDA immediate
+			this.debugger.writeMemory(0x8001, 0x42); // #$42
+			console.log("Memory at $8000 after direct write:",
+				"0x" + this.debugger.readMemory(0x8000).toString(16).toUpperCase());
+			console.log("Memory at $8001 after direct write:",
+				"0x" + this.debugger.readMemory(0x8001).toString(16).toUpperCase());
+		} catch (error) {
+			console.error('Memory access test failed:', error);
+		}
 	}
 
 	setupEventListeners() {
@@ -624,6 +641,4 @@ class DebuggerUI {
 	}
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-	window.debuggerUI = new DebuggerUI();
-});
+window.debuggerUI = new DebuggerUI();
