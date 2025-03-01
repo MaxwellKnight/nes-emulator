@@ -23,6 +23,7 @@ class DebuggerUI {
 		} else {
 			console.error('Debugger not available or missing onLoad method');
 		}
+		this.testMemoryAccess();
 		this.setupEventListeners();
 	}
 
@@ -464,7 +465,6 @@ class DebuggerUI {
 		view.innerHTML = '';
 
 		const instructions = this.debugger.disassembleAroundPC(10, 20);
-		console.log("Raw disassembly string:", instructions);
 		const pc = this.debugger.getRegisterPC();
 
 		for (const instr of instructions) {
