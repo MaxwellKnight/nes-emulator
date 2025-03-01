@@ -11,16 +11,16 @@ A 6502 microprocessor emulator for the Nintendo Entertainment System (NES) writt
 ### Build and Run
 ```bash
 # Build all (native + WebAssembly)
-docker-compose run build
+docker compose run build
 
 # Build WebAssembly only
-docker-compose run wasm
+docker compose run wasm
 
 # Run tests
-docker-compose run test
+docker compose run test
 
 # Open interactive shell
-docker-compose run shell
+docker compose run shell
 ```
 
 ## Development
