@@ -86,7 +86,7 @@ class NESDebugger {
 		this.onBreakCallbacks.push(callback);
 	}
 
-	startContinuousExecution(updateIntervalMs = 1000000) {
+	startContinuousExecution(updateIntervalMs = 16) {
 		if (!this.isLoaded) return;
 
 		this.run();
@@ -103,7 +103,7 @@ class NESDebugger {
 			const maxTimeSlice = 10; // Max 10ms per frame for execution
 
 			while (this.isRunning() && performance.now() - startTime < maxTimeSlice) {
-				this._mainLoop(); // Run one instruction
+				this.step(); // Run one instruction
 			}
 
 			this.animationFrame = requestAnimationFrame(executionLoop);
@@ -180,23 +180,65 @@ class NESDebugger {
 
 	disassembleAroundPC(instructionsBefore = 10, instructionsAfter = 20) {
 		if (!this.isLoaded) return [];
-
 		const str = this._disassembleAroundPC(instructionsBefore, instructionsAfter);
+		console.log(str);
 		if (!str) return [];
 
 		// Parse the custom format: address|opcode|mnemonic|operand|formatted|bytes|cycles#address|...
-		return str.split('#').map(item => {
+		const rawEntries = str.split('#');
+		const parsedEntries = [];
+
+		for (let i = 0; i < rawEntries.length; i++) {
+			const item = rawEntries[i].trim();
+			if (!item) continue;
+
 			const parts = item.split('|');
-			return {
-				address: parseInt(parts[0], 10),
-				opcode: parseInt(parts[1], 10),
-				mnemonic: parts[2],
-				operand: parseInt(parts[3], 10),
-				formatted: parts[4],
-				bytes: parseInt(parts[5], 10),
-				cycles: parseInt(parts[6], 10)
-			};
-		});
+			if (parts.length < 7) {
+				console.warn('Invalid instruction format:', item);
+				continue;
+			}
+
+			// Parse with safety checks
+			const address = parseInt(parts[0], 10);
+			const opcode = parseInt(parts[1], 10);
+			const mnemonic = parts[2] || '';
+			const operand = parseInt(parts[3], 10);
+			const formatted = parts[4] || '';
+			const bytes = parseInt(parts[5], 10);
+			const cycles = parseInt(parts[6], 10);
+
+			// Skip entries that look like parsing errors
+			if (mnemonic === String(opcode)) {
+				console.warn('Skipping invalid entry where mnemonic equals opcode:', item);
+				continue;
+			}
+
+			// Fix LDX and LDA with immediate addressing that might be missing their operand in formatting
+			let fixedFormatted = formatted;
+
+			if (opcode === 0xA2 && formatted === "LDX ") { // LDX #imm
+				fixedFormatted = "LDX #$" + operand.toString(16).toUpperCase().padStart(2, '0');
+			} else if (opcode === 0xA9 && formatted === "LDA ") { // LDA #imm
+				fixedFormatted = "LDA #$" + operand.toString(16).toUpperCase().padStart(2, '0');
+			}
+
+			// Create instruction object with fixed values
+			parsedEntries.push({
+				address: isNaN(address) ? null : address,
+				opcode: isNaN(opcode) ? 0 : opcode,
+				mnemonic: mnemonic,
+				operand: isNaN(operand) ? 0 : operand,
+				formatted: fixedFormatted,
+				bytes: isNaN(bytes) ? (opcode === 0xA2 || opcode === 0xA9 ? 2 : 1) : bytes,
+				cycles: isNaN(cycles) ? (opcode === 0xA2 || opcode === 0xA9 ? 2 : 1) : cycles
+			});
+		}
+
+		// Filter out any remaining invalid entries
+		return parsedEntries.filter(entry =>
+			entry.address !== null &&
+			entry.mnemonic !== String(entry.opcode)
+		);
 	}
 
 	disassembleRange(startAddr, endAddr) {
