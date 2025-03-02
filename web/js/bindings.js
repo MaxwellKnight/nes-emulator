@@ -180,65 +180,63 @@ class NESDebugger {
 
 	disassembleAroundPC(instructionsBefore = 10, instructionsAfter = 20) {
 		if (!this.isLoaded) return [];
-		const str = this._disassembleAroundPC(instructionsBefore, instructionsAfter);
-		console.log(str);
-		if (!str) return [];
+		const rawString = this._disassembleAroundPC(instructionsBefore, instructionsAfter);
 
-		// Parse the custom format: address|opcode|mnemonic|operand|formatted|bytes|cycles#address|...
-		const rawEntries = str.split('#');
-		const parsedEntries = [];
+		if (!rawString) return [];
 
-		for (let i = 0; i < rawEntries.length; i++) {
-			const item = rawEntries[i].trim();
-			if (!item) continue;
+		const instructions = [];
+		const regex = /(\d+)\|(\d+)\|([\w.]+)\|(\d+)\|([\w\s$#,()]+)\|(\d+)\|(\d+)/g;
 
-			const parts = item.split('|');
-			if (parts.length < 7) {
-				console.warn('Invalid instruction format:', item);
-				continue;
-			}
+		let match;
+		while ((match = regex.exec(rawString)) !== null) {
+			const instr = {
+				address: parseInt(match[1], 10),
+				opcode: parseInt(match[2], 10),
+				mnemonic: match[3],
+				operand: parseInt(match[4], 10),
+				formatted: match[5],
+				bytes: parseInt(match[6], 10),
+				cycles: parseInt(match[7], 10)
+			};
 
-			// Parse with safety checks
-			const address = parseInt(parts[0], 10);
-			const opcode = parseInt(parts[1], 10);
-			const mnemonic = parts[2] || '';
-			const operand = parseInt(parts[3], 10);
-			const formatted = parts[4] || '';
-			const bytes = parseInt(parts[5], 10);
-			const cycles = parseInt(parts[6], 10);
-
-			// Skip entries that look like parsing errors
-			if (mnemonic === String(opcode)) {
-				console.warn('Skipping invalid entry where mnemonic equals opcode:', item);
-				continue;
-			}
-
-			// Fix LDX and LDA with immediate addressing that might be missing their operand in formatting
-			let fixedFormatted = formatted;
-
-			if (opcode === 0xA2 && formatted === "LDX ") { // LDX #imm
-				fixedFormatted = "LDX #$" + operand.toString(16).toUpperCase().padStart(2, '0');
-			} else if (opcode === 0xA9 && formatted === "LDA ") { // LDA #imm
-				fixedFormatted = "LDA #$" + operand.toString(16).toUpperCase().padStart(2, '0');
-			}
-
-			// Create instruction object with fixed values
-			parsedEntries.push({
-				address: isNaN(address) ? null : address,
-				opcode: isNaN(opcode) ? 0 : opcode,
-				mnemonic: mnemonic,
-				operand: isNaN(operand) ? 0 : operand,
-				formatted: fixedFormatted,
-				bytes: isNaN(bytes) ? (opcode === 0xA2 || opcode === 0xA9 ? 2 : 1) : bytes,
-				cycles: isNaN(cycles) ? (opcode === 0xA2 || opcode === 0xA9 ? 2 : 1) : cycles
-			});
+			instructions.push(instr);
 		}
 
-		// Filter out any remaining invalid entries
-		return parsedEntries.filter(entry =>
-			entry.address !== null &&
-			entry.mnemonic !== String(entry.opcode)
-		);
+		// Fix up any entries that weren't matched by the regex
+		// This is a brute force approach that searches for entries with specific opcodes
+		if (!instructions.some(i => i.opcode === 162)) { // LDX
+			// Try to find LDX entries manually
+			const ldxRegex = /(\d+)\|162\|LDX\|(\d+)\|.*?(\d+)\|(\d+)/g;
+			while ((match = ldxRegex.exec(rawString)) !== null) {
+				instructions.push({
+					address: parseInt(match[1], 10),
+					opcode: 162,
+					mnemonic: "LDX",
+					operand: parseInt(match[2], 10),
+					formatted: `LDX #$${parseInt(match[2], 10).toString(16).toUpperCase().padStart(2, '0')}`,
+					bytes: parseInt(match[3], 10) || 2,
+					cycles: parseInt(match[4], 10) || 2
+				});
+			}
+		}
+
+		if (!instructions.some(i => i.opcode === 169)) { // LDA
+			const ldaRegex = /(\d+)\|169\|LDA\|(\d+)\|.*?(\d+)\|(\d+)/g;
+			while ((match = ldaRegex.exec(rawString)) !== null) {
+				instructions.push({
+					address: parseInt(match[1], 10),
+					opcode: 169,
+					mnemonic: "LDA",
+					operand: parseInt(match[2], 10),
+					formatted: `LDA #$${parseInt(match[2], 10).toString(16).toUpperCase().padStart(2, '0')}`,
+					bytes: parseInt(match[3], 10) || 2,
+					cycles: parseInt(match[4], 10) || 2
+				});
+			}
+		}
+
+		instructions.sort((a, b) => a.address - b.address);
+		return instructions;
 	}
 
 	disassembleRange(startAddr, endAddr) {

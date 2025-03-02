@@ -487,8 +487,14 @@ std::string Debugger::format_instruction(u8 opcode, u16 operand, u8 bytes, u16 i
   const auto& instruction = _cpu.get_instruction((Opcode)opcode);
   std::string mnemonic = (instruction.name != nullptr && instruction.name[0] != '\0') ? instruction.name : "???";
 
-  // Start with the mnemonic
-  ss << mnemonic;
+  // Start with the mnemonic - NO SPACE for immediate mode
+  if (opcode == 0xA2 || opcode == 0xA9) {
+    // For LDX #imm and LDA #imm, don't add a space after the mnemonic
+    ss << mnemonic;
+  } else {
+    // For all other instructions, add the mnemonic with a space
+    ss << mnemonic << " ";
+  }
 
   // Force immediate addressing mode for specific opcodes
   std::string addr_mode;
@@ -500,8 +506,9 @@ std::string Debugger::format_instruction(u8 opcode, u16 operand, u8 bytes, u16 i
     addr_mode = _addressing_mode_table[opcode];
   }
 
-  // For all addressing modes except implied, add a space before the operand
-  if (addr_mode != "IMP") {
+  // For modes other than implied and immediate opcodes that we've already handled,
+  // add a space before the operand
+  if (addr_mode != "IMP" && opcode != 0xA2 && opcode != 0xA9) {
     ss << " ";
   }
 
