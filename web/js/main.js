@@ -1,23 +1,51 @@
 document.addEventListener('DOMContentLoaded', function() {
 	console.log('DOM content loaded, setting up initialization...');
-	const initializationTimeout = setTimeout(() => {
-		console.error('Debugger initialization timed out');
-	}, 30000);
 
-	window.initializeNESDebugger = function() {
-		try {
-			if (!window.nesDebugger) {
-				window.nesDebugger = new NESDebugger();
+	// Create a promise for debugger initialization
+	const debuggerReady = new Promise((resolve, reject) => {
+		const timeout = setTimeout(() => {
+			reject(new Error('Debugger initialization timed out'));
+		}, 30000);
+
+		// Load the WASM module
+		const script = document.createElement('script');
+		script.src = 'js/cpu_wasm.js';
+		script.onerror = () => reject(new Error('Failed to load WASM script'));
+		script.onload = () => {
+			// Initialize the CPU emulator
+			if (window.CPUEmulator) {
+				window.CPUEmulator()
+					.then(module => {
+						window.Module = module;
+						clearTimeout(timeout);
+						resolve(module);
+					})
+					.catch(err => reject(err));
+			} else if (window.Module && typeof window.Module.ccall === 'function') {
+				clearTimeout(timeout);
+				resolve(window.Module);
+			} else {
+				reject(new Error('CPUEmulator or Module not available'));
 			}
+		};
 
-			window.nesDebugger.module = Module;
+		document.body.appendChild(script);
+	});
+
+	// Handle the initialization
+	debuggerReady
+		.then(module => {
+			// Initialize the debugger
+			window.nesDebugger = window.nesDebugger || new NESDebugger();
+			window.nesDebugger.module = module;
 			window.nesDebugger.setupFunctions();
 			window.nesDebugger.isLoaded = true;
 
-			if (!window.debuggerUI) {
-				window.debuggerUI = new DebuggerUI();
-			}
+			// Initialize the UI
+			window.debuggerUI = window.debuggerUI || new DebuggerUI();
+			window.debuggerUI.updateUI();
 
+			// Initialize tooltips if bootstrap is available
 			if (typeof bootstrap !== 'undefined') {
 				const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
 				tooltipTriggerList.forEach(tooltipTriggerEl => {
@@ -25,62 +53,15 @@ document.addEventListener('DOMContentLoaded', function() {
 				});
 			}
 
-			Module.__initialized = true;
-			clearTimeout(initializationTimeout);
-			if (window.debuggerUI && typeof window.debuggerUI.updateUI === 'function') {
-				window.debuggerUI.updateUI();
+			// Mark as initialized and dispatch event
+			module.__initialized = true;
+			window.dispatchEvent(new CustomEvent('debugger-ready'));
+		})
+		.catch(error => {
+			console.error('Initialization error:', error);
+			const statusEl = document.getElementById('status-message');
+			if (statusEl) {
+				statusEl.textContent = 'Initialization error: ' + error.message;
 			}
-
-			const event = new CustomEvent('debugger-ready');
-			window.dispatchEvent(event);
-		} catch (error) {
-			if (document.getElementById('status-message')) {
-				document.getElementById('status-message').textContent = 'Initialization error: ' + error.message;
-			}
-		}
-	};
-
-	function loadWasmModule() {
-		const script = document.createElement('script');
-		script.src = 'js/cpu_wasm.js';
-
-		script.onload = function() {
-			checkModuleReady();
-		};
-
-		script.onerror = function(e) {
-			console.error('Failed to load WASM script', e);
-		};
-
-		document.body.appendChild(script);
-	}
-
-	function checkModuleReady() {
-		if (window.CPUEmulator) {
-			try {
-				window.CPUEmulator().then(function(module) {
-					window.Module = module;
-
-					setTimeout(function() {
-						window.initializeNESDebugger();
-					}, 100);
-				}).catch(function(err) {
-					console.error('Error creating CPUEmulator instance:', err);
-				});
-			} catch (error) {
-				console.error('Error initializing CPUEmulator:', error);
-				setTimeout(checkModuleReady, 500);
-			}
-		}
-		else if (window.Module && typeof window.Module.ccall === 'function') {
-			setTimeout(function() {
-				window.initializeNESDebugger();
-			}, 100);
-		}
-		else {
-			setTimeout(checkModuleReady, 500);
-		}
-	}
-
-	loadWasmModule();
+		});
 });

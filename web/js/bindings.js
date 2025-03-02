@@ -1,4 +1,5 @@
 class NESDebugger {
+	bin
 	constructor() {
 		this.module = null;
 		this.isLoaded = false;
@@ -85,7 +86,7 @@ class NESDebugger {
 		this.onBreakCallbacks.push(callback);
 	}
 
-	startContinuousExecution(updateIntervalMs = 16) {
+	startContinuousExecution(updateIntervalMs = 1000000) {
 		if (!this.isLoaded) return;
 
 		this.run();
@@ -228,7 +229,7 @@ class NESDebugger {
 		return memory;
 	}
 
-	loadBinary(data, startAddr = 0x8000) {
+	loadBinary(data, startAddr = 0x0200) {
 		if (!this.isLoaded) return;
 
 		for (let i = 0; i < data.length; i++) {
@@ -236,13 +237,14 @@ class NESDebugger {
 		}
 	}
 
-	loadROM(data, startAddr = 0x8000) {
+	loadROM(data, startAddr = 0x0200) {
 		this.loadBinary(data, startAddr);
 		// Set reset vector to point to the start address
 		this.writeMemory(0xFFFD, (startAddr >> 8) & 0xFF);
 	}
 
-	loadOpcodes(opcodes, startAddr = 0x8000) {
+	loadOpcodes(opcodes, startAddr = 0x0200) {
+		console.log("loadOpcodes function", opcodes);
 		if (!this.isLoaded) return;
 
 		let opcodeArray;

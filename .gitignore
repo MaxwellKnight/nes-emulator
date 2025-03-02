@@ -3,6 +3,7 @@ build/
 native_build/
 wasm_build/
 build_wasm/
+web/js/cpu_wasm.js
 compile_commands.json
 .cache
 .clang-format

@@ -6,39 +6,14 @@ class DebuggerUI {
 		this.memoryPageSize = 0x100;
 		this.theme = 'light';
 
-		// Check if the debugger is already loaded
-		if (this.debugger && this.debugger.isLoaded) {
-			console.log('Debugger already loaded, initializing immediately');
-			this.updateUI();
-			console.log('NES Debugger loaded and ready');
-			this.testMemoryAccess();
-		} else if (this.debugger && typeof this.debugger.onLoad === 'function') {
-			// If not loaded, register for the onLoad callback
-			this.debugger.onLoad(() => {
-				console.log('Debugger onLoad callback triggered');
-				this.updateUI();
-				console.log('NES Debugger loaded and ready');
-				this.testMemoryAccess();
-			});
-		} else {
-			console.error('Debugger not available or missing onLoad method');
-		}
-		this.testMemoryAccess();
 		this.setupEventListeners();
-	}
 
-	testMemoryAccess() {
-		// Test memory write and read directly
-		try {
-			console.log("Testing memory read/write directly:");
-			this.debugger.writeMemory(0x8000, 0xA9); // LDA immediate
-			this.debugger.writeMemory(0x8001, 0x42); // #$42
-			console.log("Memory at $8000 after direct write:",
-				"0x" + this.debugger.readMemory(0x8000).toString(16).toUpperCase());
-			console.log("Memory at $8001 after direct write:",
-				"0x" + this.debugger.readMemory(0x8001).toString(16).toUpperCase());
-		} catch (error) {
-			console.error('Memory access test failed:', error);
+		window.addEventListener('debugger-ready', () => {
+			this.updateUI();
+		});
+
+		if (this.debugger && this.debugger.isLoaded) {
+			this.updateUI();
 		}
 	}
 
@@ -47,30 +22,25 @@ class DebuggerUI {
 		document.getElementById('runButton').addEventListener('click', () => this.run());
 		document.getElementById('stepButton').addEventListener('click', () => this.step());
 		document.getElementById('stopButton').addEventListener('click', () => this.stop());
-
 		document.getElementById('addBreakpointButton').addEventListener('click', () => this.addBreakpoint());
-
 		document.getElementById('jumpToAddressButton').addEventListener('click', () => this.jumpToMemoryAddress());
 		document.getElementById('memoryPage').addEventListener('change', () => this.changeMemoryPage());
-
 		document.getElementById('loadRomButton').addEventListener('click', () => {
 			document.getElementById('romFile').click();
 		});
 
 		document.getElementById('romFile').addEventListener('change', (e) => {
+			this.debugger.setPC(0x0200);
 			this.loadROMFile(e.target.files[0]);
 		});
 
-		// Add event listener for the opcode textarea and load button
 		document.getElementById('loadOpcodesButton').addEventListener('click', () => {
+			this.debugger.setPC(0x0200);
 			this.loadOpcodesFromText();
 		});
 
-		// Add event listener for theme toggle
 		document.getElementById('themeToggle').addEventListener('click', () => this.toggleTheme());
-
 		window.addEventListener('nes-debugger-update', () => this.updateUI());
-
 		document.getElementById('disassemblyView').addEventListener('click', (e) => {
 			const row = e.target.closest('.instruction');
 			if (row) {
@@ -79,7 +49,6 @@ class DebuggerUI {
 			}
 		});
 
-		// Memory cell click event for editing values
 		document.getElementById('memoryView').addEventListener('click', (e) => {
 			const cell = e.target.closest('.memory-cell');
 			if (cell && cell.dataset.address) {
@@ -87,7 +56,6 @@ class DebuggerUI {
 			}
 		});
 
-		// Initialize tooltips
 		this.initTooltips();
 	}
 
@@ -131,6 +99,7 @@ class DebuggerUI {
 
 	stop() {
 		this.debugger.stopContinuousExecution();
+		this.updateUI();
 		this.showToast('Execution stopped', 'warning');
 	}
 
@@ -460,56 +429,205 @@ class DebuggerUI {
 		document.getElementById('flag-c').textContent = flags.C ? '1' : '0';
 	}
 
+	parseIntSafe(str, defaultValue = 0) {
+		if (str === undefined || str === null || str === '') {
+			return defaultValue;
+		}
+		const parsed = parseInt(str, 10);
+		return isNaN(parsed) ? defaultValue : parsed;
+	}
+
+	// Function to safely parse disassembly data from the C++ backend
+	parseDisassemblyInstructions(rawString) {
+		if (!rawString) {
+			console.error('Empty disassembly data received');
+			return [];
+		}
+
+		// Each instruction is separated by '#'
+		const instructions = rawString.split('#');
+
+		// Process each instruction
+		const result = [];
+		let nextAddr = null; // Track expected address for next instruction
+
+		for (let i = 0; i < instructions.length; i++) {
+			const instrStr = instructions[i].trim();
+			if (!instrStr) continue;
+
+			// Each instruction field is separated by '|'
+			const parts = instrStr.split('|');
+
+			// Need at least address, opcode, mnemonic
+			if (parts.length < 3) {
+				console.warn('Incomplete instruction data:', instrStr);
+				continue;
+			}
+
+			// Try to get the expected fields
+			const addr = parseIntSafe(parts[0]);
+			const opcode = parseIntSafe(parts[1]);
+			const mnemonic = parts[2] || 'UNK';
+			const operand = parseIntSafe(parts[3], 0);
+			const formatted = parts[4] || mnemonic;
+			const bytes = parseIntSafe(parts[5], 1);
+			const cycles = parseIntSafe(parts[6], 0);
+
+			// If we got a weird address but we know what it should be, fix it
+			const finalAddr = isNaN(addr) || addr <= 0 ? nextAddr : addr;
+
+			// Create the instruction object with valid data
+			const instr = {
+				address: finalAddr,
+				opcode: opcode,
+				mnemonic: mnemonic,
+				operand: operand,
+				formatted: formatted,
+				bytes: bytes,
+				cycles: cycles
+			};
+
+			// Calculate next expected address
+			if (finalAddr !== null && bytes > 0) {
+				nextAddr = finalAddr + bytes;
+			} else {
+				nextAddr = null;
+			}
+
+			result.push(instr);
+		}
+
+		// Now go through and fix any remaining address issues
+		for (let i = 0; i < result.length; i++) {
+			if (isNaN(result[i].address) || result[i].address === null) {
+				// If this isn't the first instruction, calculate from previous
+				if (i > 0 && result[i - 1].address !== null && result[i - 1].bytes > 0) {
+					result[i].address = result[i - 1].address + result[i - 1].bytes;
+				} else {
+					// Can't determine a valid address
+					result[i].address = 0;
+				}
+			}
+		}
+
+		return result;
+	}
+
+	// Modify your existing disassembleAroundPC to use this function
+	disassembleAroundPC(before, after) {
+		const rawData = Module.ccall(
+			'debugger_disassemble_around_pc',
+			'string',
+			['number', 'number'],
+			[before, after]
+		);
+
+		return parseDisassemblyInstructions(rawData);
+	}
+
+	// And similarly for disassembleRange
+	disassembleRange(start, end) {
+		const rawData = Module.ccall(
+			'debugger_disassemble_range',
+			'string',
+			['number', 'number'],
+			[start, end]
+		);
+
+		return parseDisassemblyInstructions(rawData);
+	}
+
+	// And update the updateDisassembly method to better handle the instruction data
 	updateDisassembly() {
 		const view = document.getElementById('disassemblyView');
 		view.innerHTML = '';
 
-		const instructions = this.debugger.disassembleAroundPC(10, 20);
-		const pc = this.debugger.getRegisterPC();
+		try {
+			// Get disassembly data
+			const instructions = this.debugger.disassembleAroundPC(5, 20);
+			console.log("Disassembled instructions:", instructions);
 
-		for (const instr of instructions) {
-			const row = document.createElement('div');
-			row.className = 'instruction d-flex mb-1 py-1 px-2 rounded';
-			row.dataset.address = instr.address.toString(16);
+			const pc = this.debugger.getRegisterPC();
 
-			if (instr.address === pc) {
-				row.className += ' current';
+			// Display each instruction
+			let lastAddr = null;
+			for (let i = 0; i < instructions.length; i++) {
+				const instr = instructions[i];
+				// Skip instructions with invalid addresses or that seem to be parsing errors
+				if (instr.address === 0 || instr.mnemonic === String(instr.opcode)) {
+					console.warn('Skipping invalid instruction:', instr);
+					continue;
+				}
+
+				// Check for address continuity - may indicate a parsing issue
+				if (lastAddr !== null && instr.address !== lastAddr + instructions[i - 1].bytes) {
+					console.warn('Address discontinuity detected:', lastAddr, 'to', instr.address);
+				}
+				lastAddr = instr.address;
+
+				const row = document.createElement('div');
+				row.className = 'instruction d-flex mb-1 py-1 px-2 rounded';
+				row.dataset.address = instr.address.toString(16);
+
+				if (instr.address === pc) {
+					row.className += ' current';
+				}
+
+				if (this.breakpoints.has(instr.address)) {
+					row.className += ' border-warning border-start border-3';
+				}
+
+				const addrSpan = document.createElement('span');
+				addrSpan.className = 'me-3 text-primary';
+				addrSpan.style.width = '60px';
+				addrSpan.textContent = `$${instr.address.toString(16).toUpperCase().padStart(4, '0')}`;
+
+				const opcodeSpan = document.createElement('span');
+				opcodeSpan.className = 'me-3 text-secondary';
+				opcodeSpan.style.width = '30px';
+				opcodeSpan.textContent = `${instr.opcode.toString(16).toUpperCase().padStart(2, '0')}`;
+
+				const mnemonicSpan = document.createElement('span');
+				mnemonicSpan.className = 'me-3 fw-bold';
+				mnemonicSpan.style.width = '50px';
+				mnemonicSpan.textContent = instr.mnemonic;
+
+				const operandsSpan = document.createElement('span');
+				operandsSpan.className = '';
+
+				// Extract operands part from formatted string
+				if (instr.operand) {
+					// Fallback if formatting didn't work
+					operandsSpan.textContent = String(instr.operand);
+				}
+				else if (instr.formatted && instr.mnemonic) {
+					// If formatted string includes the mnemonic, extract the rest
+					if (instr.formatted.indexOf(instr.mnemonic) === 0) {
+						const operandPart = instr.formatted.substring(instr.mnemonic.length).trim();
+						operandsSpan.textContent = operandPart;
+					} else {
+						operandsSpan.textContent = instr.formatted;
+					}
+				}
+				else {
+					operandsSpan.textContent = "";
+				}
+
+				const bytesSpan = document.createElement('span');
+				bytesSpan.className = 'ms-auto text-muted small';
+				bytesSpan.textContent = `${instr.bytes} bytes, ${instr.cycles} cycles`;
+
+				row.appendChild(addrSpan);
+				row.appendChild(opcodeSpan);
+				row.appendChild(mnemonicSpan);
+				row.appendChild(operandsSpan);
+				row.appendChild(bytesSpan);
+
+				view.appendChild(row);
 			}
-
-			if (this.breakpoints.has(instr.address)) {
-				row.className += ' border-warning border-start border-3';
-			}
-
-			const addrSpan = document.createElement('span');
-			addrSpan.className = 'me-3 text-primary';
-			addrSpan.style.width = '60px';
-			addrSpan.textContent = `$${instr.address.toString(16).toUpperCase().padStart(4, '0')}`;
-
-			const opcodeSpan = document.createElement('span');
-			opcodeSpan.className = 'me-3 text-secondary';
-			opcodeSpan.style.width = '30px';
-			opcodeSpan.textContent = `${instr.opcode.toString(16).toUpperCase().padStart(2, '0')}`;
-
-			const mnemonicSpan = document.createElement('span');
-			mnemonicSpan.className = 'me-3 fw-bold';
-			mnemonicSpan.style.width = '50px';
-			mnemonicSpan.textContent = instr.mnemonic;
-
-			const operandsSpan = document.createElement('span');
-			operandsSpan.className = '';
-			operandsSpan.textContent = instr.formatted.substring(instr.mnemonic.length);
-
-			const bytesSpan = document.createElement('span');
-			bytesSpan.className = 'ms-auto text-muted small';
-			bytesSpan.textContent = `${instr.bytes} bytes, ${instr.cycles} cycles`;
-
-			row.appendChild(addrSpan);
-			row.appendChild(opcodeSpan);
-			row.appendChild(mnemonicSpan);
-			row.appendChild(operandsSpan);
-			row.appendChild(bytesSpan);
-
-			view.appendChild(row);
+		} catch (e) {
+			console.error('Error in disassembly:', e);
+			view.innerHTML = '<div class="alert alert-danger">Error disassembling code: ' + e.message + '</div>';
 		}
 	}
 

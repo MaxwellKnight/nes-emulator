@@ -1,5 +1,6 @@
 #include "debugger.h"
 #include <iomanip>
+#include <iostream>
 #include <sstream>
 #include "types.h"
 
@@ -7,6 +8,7 @@ namespace nes {
 // Global instance for WASM exports
 static Debugger* g_debugger = nullptr;
 
+void print_disassembled_instruction(const DisassembledInstruction& instruction);
 Debugger::Debugger(CPU& cpu, Bus& bus)
   : _cpu(cpu)
   , _bus(bus)
@@ -15,6 +17,203 @@ Debugger::Debugger(CPU& cpu, Bus& bus)
   , _cycle_count(0) {
   // Set global instance for WASM exports
   g_debugger = this;
+
+  // Initialize addressing mode lookup table
+  init_addressing_mode_table();
+}
+
+// Initialize the addressing mode lookup table
+void Debugger::init_addressing_mode_table() {
+  // Initialize all to implicit addressing by default
+  _addressing_mode_table.fill("IMP");
+
+  // Load/Store operations
+  // LDA
+  _addressing_mode_table[static_cast<u8>(Opcode::LDA_IMM)] = "IMM";
+  _addressing_mode_table[static_cast<u8>(Opcode::LDA_ZPG)] = "ZPG";
+  _addressing_mode_table[static_cast<u8>(Opcode::LDA_ZPX)] = "ZPX";
+  _addressing_mode_table[static_cast<u8>(Opcode::LDA_ABS)] = "ABS";
+  _addressing_mode_table[static_cast<u8>(Opcode::LDA_ABX)] = "ABX";
+  _addressing_mode_table[static_cast<u8>(Opcode::LDA_ABY)] = "ABY";
+  _addressing_mode_table[static_cast<u8>(Opcode::LDA_IZX)] = "IZX";
+  _addressing_mode_table[static_cast<u8>(Opcode::LDA_IZY)] = "IZY";
+
+  // LDX
+  _addressing_mode_table[static_cast<u8>(Opcode::LDX_IMM)] = "IMM";
+  _addressing_mode_table[static_cast<u8>(Opcode::LDX_ZPG)] = "ZPG";
+  _addressing_mode_table[static_cast<u8>(Opcode::LDX_ZPY)] = "ZPY";
+  _addressing_mode_table[static_cast<u8>(Opcode::LDX_ABS)] = "ABS";
+  _addressing_mode_table[static_cast<u8>(Opcode::LDX_ABY)] = "ABY";
+
+  // LDY
+  _addressing_mode_table[static_cast<u8>(Opcode::LDY_IMM)] = "IMM";
+  _addressing_mode_table[static_cast<u8>(Opcode::LDY_ZPG)] = "ZPG";
+  _addressing_mode_table[static_cast<u8>(Opcode::LDY_ZPX)] = "ZPX";
+  _addressing_mode_table[static_cast<u8>(Opcode::LDY_ABS)] = "ABS";
+  _addressing_mode_table[static_cast<u8>(Opcode::LDY_ABX)] = "ABX";
+
+  // STA
+  _addressing_mode_table[static_cast<u8>(Opcode::STA_ZPG)] = "ZPG";
+  _addressing_mode_table[static_cast<u8>(Opcode::STA_ZPX)] = "ZPX";
+  _addressing_mode_table[static_cast<u8>(Opcode::STA_ABS)] = "ABS";
+  _addressing_mode_table[static_cast<u8>(Opcode::STA_ABX)] = "ABX";
+  _addressing_mode_table[static_cast<u8>(Opcode::STA_ABY)] = "ABY";
+  _addressing_mode_table[static_cast<u8>(Opcode::STA_IZX)] = "IZX";
+  _addressing_mode_table[static_cast<u8>(Opcode::STA_IZY)] = "IZY";
+
+  // STX
+  _addressing_mode_table[static_cast<u8>(Opcode::STX_ZPG)] = "ZPG";
+  _addressing_mode_table[static_cast<u8>(Opcode::STX_ZPY)] = "ZPY";
+  _addressing_mode_table[static_cast<u8>(Opcode::STX_ABS)] = "ABS";
+
+  // STY
+  _addressing_mode_table[static_cast<u8>(Opcode::STY_ZPG)] = "ZPG";
+  _addressing_mode_table[static_cast<u8>(Opcode::STY_ZPX)] = "ZPX";
+  _addressing_mode_table[static_cast<u8>(Opcode::STY_ABS)] = "ABS";
+
+  // Arithmetic operations
+  // ADC
+  _addressing_mode_table[static_cast<u8>(Opcode::ADC_IMM)] = "IMM";
+  _addressing_mode_table[static_cast<u8>(Opcode::ADC_ZPG)] = "ZPG";
+  _addressing_mode_table[static_cast<u8>(Opcode::ADC_ZPX)] = "ZPX";
+  _addressing_mode_table[static_cast<u8>(Opcode::ADC_ABS)] = "ABS";
+  _addressing_mode_table[static_cast<u8>(Opcode::ADC_ABX)] = "ABX";
+  _addressing_mode_table[static_cast<u8>(Opcode::ADC_ABY)] = "ABY";
+  _addressing_mode_table[static_cast<u8>(Opcode::ADC_IZX)] = "IZX";
+  _addressing_mode_table[static_cast<u8>(Opcode::ADC_IZY)] = "IZY";
+
+  // SBC
+  _addressing_mode_table[static_cast<u8>(Opcode::SBC_IMM)] = "IMM";
+  _addressing_mode_table[static_cast<u8>(Opcode::SBC_ZPG)] = "ZPG";
+  _addressing_mode_table[static_cast<u8>(Opcode::SBC_ZPX)] = "ZPX";
+  _addressing_mode_table[static_cast<u8>(Opcode::SBC_ABS)] = "ABS";
+  _addressing_mode_table[static_cast<u8>(Opcode::SBC_ABX)] = "ABX";
+  _addressing_mode_table[static_cast<u8>(Opcode::SBC_ABY)] = "ABY";
+  _addressing_mode_table[static_cast<u8>(Opcode::SBC_IZX)] = "IZX";
+  _addressing_mode_table[static_cast<u8>(Opcode::SBC_IZY)] = "IZY";
+
+  // CMP
+  _addressing_mode_table[static_cast<u8>(Opcode::CMP_IMM)] = "IMM";
+  _addressing_mode_table[static_cast<u8>(Opcode::CMP_ZPG)] = "ZPG";
+  _addressing_mode_table[static_cast<u8>(Opcode::CMP_ZPX)] = "ZPX";
+  _addressing_mode_table[static_cast<u8>(Opcode::CMP_ABS)] = "ABS";
+  _addressing_mode_table[static_cast<u8>(Opcode::CMP_ABX)] = "ABX";
+  _addressing_mode_table[static_cast<u8>(Opcode::CMP_ABY)] = "ABY";
+  _addressing_mode_table[static_cast<u8>(Opcode::CMP_IZX)] = "IZX";
+  _addressing_mode_table[static_cast<u8>(Opcode::CMP_IZY)] = "IZY";
+
+  // CPX
+  _addressing_mode_table[static_cast<u8>(Opcode::CPX_IMM)] = "IMM";
+  _addressing_mode_table[static_cast<u8>(Opcode::CPX_ZPG)] = "ZPG";
+  _addressing_mode_table[static_cast<u8>(Opcode::CPX_ABS)] = "ABS";
+
+  // CPY
+  _addressing_mode_table[static_cast<u8>(Opcode::CPY_IMM)] = "IMM";
+  _addressing_mode_table[static_cast<u8>(Opcode::CPY_ZPG)] = "ZPG";
+  _addressing_mode_table[static_cast<u8>(Opcode::CPY_ABS)] = "ABS";
+
+  // Logical operations
+  // AND
+  _addressing_mode_table[static_cast<u8>(Opcode::AND_IMM)] = "IMM";
+  _addressing_mode_table[static_cast<u8>(Opcode::AND_ZPG)] = "ZPG";
+  _addressing_mode_table[static_cast<u8>(Opcode::AND_ZPX)] = "ZPX";
+  _addressing_mode_table[static_cast<u8>(Opcode::AND_ABS)] = "ABS";
+  _addressing_mode_table[static_cast<u8>(Opcode::AND_ABX)] = "ABX";
+  _addressing_mode_table[static_cast<u8>(Opcode::AND_ABY)] = "ABY";
+  _addressing_mode_table[static_cast<u8>(Opcode::AND_IZX)] = "IZX";
+  _addressing_mode_table[static_cast<u8>(Opcode::AND_IZY)] = "IZY";
+
+  // ORA
+  _addressing_mode_table[static_cast<u8>(Opcode::ORA_IMM)] = "IMM";
+  _addressing_mode_table[static_cast<u8>(Opcode::ORA_ZPG)] = "ZPG";
+  _addressing_mode_table[static_cast<u8>(Opcode::ORA_ZPX)] = "ZPX";
+  _addressing_mode_table[static_cast<u8>(Opcode::ORA_ABS)] = "ABS";
+  _addressing_mode_table[static_cast<u8>(Opcode::ORA_ABX)] = "ABX";
+  _addressing_mode_table[static_cast<u8>(Opcode::ORA_ABY)] = "ABY";
+  _addressing_mode_table[static_cast<u8>(Opcode::ORA_IZX)] = "IZX";
+  _addressing_mode_table[static_cast<u8>(Opcode::ORA_IZY)] = "IZY";
+
+  // EOR
+  _addressing_mode_table[static_cast<u8>(Opcode::EOR_IMM)] = "IMM";
+  _addressing_mode_table[static_cast<u8>(Opcode::EOR_ZPG)] = "ZPG";
+  _addressing_mode_table[static_cast<u8>(Opcode::EOR_ZPX)] = "ZPX";
+  _addressing_mode_table[static_cast<u8>(Opcode::EOR_ABS)] = "ABS";
+  _addressing_mode_table[static_cast<u8>(Opcode::EOR_ABX)] = "ABX";
+  _addressing_mode_table[static_cast<u8>(Opcode::EOR_ABY)] = "ABY";
+  _addressing_mode_table[static_cast<u8>(Opcode::EOR_IZX)] = "IZX";
+  _addressing_mode_table[static_cast<u8>(Opcode::EOR_IZY)] = "IZY";
+
+  // BIT
+  _addressing_mode_table[static_cast<u8>(Opcode::BIT_ZPG)] = "ZPG";
+  _addressing_mode_table[static_cast<u8>(Opcode::BIT_ABS)] = "ABS";
+
+  // Shifts and rotates
+  // ASL
+  _addressing_mode_table[static_cast<u8>(Opcode::ASL_ACC)] = "ACC";
+  _addressing_mode_table[static_cast<u8>(Opcode::ASL_ZPG)] = "ZPG";
+  _addressing_mode_table[static_cast<u8>(Opcode::ASL_ZPX)] = "ZPX";
+  _addressing_mode_table[static_cast<u8>(Opcode::ASL_ABS)] = "ABS";
+  _addressing_mode_table[static_cast<u8>(Opcode::ASL_ABX)] = "ABX";
+
+  // LSR
+  _addressing_mode_table[static_cast<u8>(Opcode::LSR_ACC)] = "ACC";
+  _addressing_mode_table[static_cast<u8>(Opcode::LSR_ZPG)] = "ZPG";
+  _addressing_mode_table[static_cast<u8>(Opcode::LSR_ZPX)] = "ZPX";
+  _addressing_mode_table[static_cast<u8>(Opcode::LSR_ABS)] = "ABS";
+  _addressing_mode_table[static_cast<u8>(Opcode::LSR_ABX)] = "ABX";
+
+  // ROL
+  _addressing_mode_table[static_cast<u8>(Opcode::ROL_ACC)] = "ACC";
+  _addressing_mode_table[static_cast<u8>(Opcode::ROL_ZPG)] = "ZPG";
+  _addressing_mode_table[static_cast<u8>(Opcode::ROL_ZPX)] = "ZPX";
+  _addressing_mode_table[static_cast<u8>(Opcode::ROL_ABS)] = "ABS";
+  _addressing_mode_table[static_cast<u8>(Opcode::ROL_ABX)] = "ABX";
+
+  // ROR
+  _addressing_mode_table[static_cast<u8>(Opcode::ROR_ACC)] = "ACC";
+  _addressing_mode_table[static_cast<u8>(Opcode::ROR_ZPG)] = "ZPG";
+  _addressing_mode_table[static_cast<u8>(Opcode::ROR_ZPX)] = "ZPX";
+  _addressing_mode_table[static_cast<u8>(Opcode::ROR_ABS)] = "ABS";
+  _addressing_mode_table[static_cast<u8>(Opcode::ROR_ABX)] = "ABX";
+
+  // Increments and decrements
+  // INC
+  _addressing_mode_table[static_cast<u8>(Opcode::INC_ZPG)] = "ZPG";
+  _addressing_mode_table[static_cast<u8>(Opcode::INC_ZPX)] = "ZPX";
+  _addressing_mode_table[static_cast<u8>(Opcode::INC_ABS)] = "ABS";
+  _addressing_mode_table[static_cast<u8>(Opcode::INC_ABX)] = "ABX";
+
+  // DEC
+  _addressing_mode_table[static_cast<u8>(Opcode::DEC_ZPG)] = "ZPG";
+  _addressing_mode_table[static_cast<u8>(Opcode::DEC_ZPX)] = "ZPX";
+  _addressing_mode_table[static_cast<u8>(Opcode::DEC_ABS)] = "ABS";
+  _addressing_mode_table[static_cast<u8>(Opcode::DEC_ABX)] = "ABX";
+
+  // INX, DEX, INY, DEY are implied
+
+  // Control flow
+  // JMP
+  _addressing_mode_table[static_cast<u8>(Opcode::JMP_ABS)] = "ABS";
+  _addressing_mode_table[static_cast<u8>(Opcode::JMP_IND)] = "IND";
+
+  // JSR
+  _addressing_mode_table[static_cast<u8>(Opcode::JSR_ABS)] = "ABS";
+
+  // Branches
+  _addressing_mode_table[static_cast<u8>(Opcode::BCC_REL)] = "REL";
+  _addressing_mode_table[static_cast<u8>(Opcode::BCS_REL)] = "REL";
+  _addressing_mode_table[static_cast<u8>(Opcode::BEQ_REL)] = "REL";
+  _addressing_mode_table[static_cast<u8>(Opcode::BMI_REL)] = "REL";
+  _addressing_mode_table[static_cast<u8>(Opcode::BNE_REL)] = "REL";
+  _addressing_mode_table[static_cast<u8>(Opcode::BPL_REL)] = "REL";
+  _addressing_mode_table[static_cast<u8>(Opcode::BVC_REL)] = "REL";
+  _addressing_mode_table[static_cast<u8>(Opcode::BVS_REL)] = "REL";
+
+  // RTI and RTS are implied
+
+  // Stack operations are all implied
+
+  // Flag operations are all implied
 }
 
 // Execute one instruction
@@ -85,6 +284,23 @@ std::vector<u8> Debugger::get_stack() const {
 u64 Debugger::get_instruction_count() const { return _instruction_count; }
 u64 Debugger::get_cycle_count() const { return _cycle_count; }
 
+// Get the number of bytes for a specific opcode
+u8 Debugger::get_instruction_bytes(u8 opcode) const {
+  std::string addr_mode = _addressing_mode_table[opcode];
+
+  if (addr_mode == "IMP" || addr_mode == "ACC") {
+    return 1;  // Just the opcode
+  } else if (addr_mode == "IMM" || addr_mode == "ZPG" || addr_mode == "ZPX" || addr_mode == "ZPY" || addr_mode == "IZX" ||
+             addr_mode == "IZY" || addr_mode == "REL") {
+    return 2;  // Opcode + 1 byte operand
+  } else if (addr_mode == "ABS" || addr_mode == "ABX" || addr_mode == "ABY" || addr_mode == "IND") {
+    return 3;  // Opcode + 2 byte operand
+  }
+
+  // Default/unknown
+  return 1;
+}
+
 DisassembledInstruction Debugger::disassemble_instruction(u16 address) const {
   DisassembledInstruction result;
   result.address = address;
@@ -93,36 +309,45 @@ DisassembledInstruction Debugger::disassemble_instruction(u16 address) const {
   result.opcode = opcode;
 
   const auto& instruction = _cpu.get_instruction((Opcode)opcode);
-  result.mnemonic = instruction.name;
+  const char* name = instruction.name;
+  result.mnemonic = (name != nullptr && name[0] != '\0') ? name : "???";
   result.cycles = instruction.cycles;
 
+  // Get addressing mode and determine instruction bytes
+  std::string addr_mode = _addressing_mode_table[opcode];
+  u8 bytes = get_instruction_bytes(opcode);
+  result.bytes = bytes;
+
+  // Read operand based on instruction size
   u16 operand = 0;
-  u8 bytes = 1;  // All instructions have at least 1 byte (opcode)
-
-  if (instruction.is_implied) {
-    // Implied addressing has no operand
-    result.bytes = 1;
-  } else {
-    // Determine addressing mode and operand size
-    std::string addr_mode = address_mode_string(opcode);
-
-    if (addr_mode == "IMM" || addr_mode == "ZPG" || addr_mode == "ZPX" || addr_mode == "ZPY" || addr_mode == "IZX" || addr_mode == "IZY" ||
-        addr_mode == "REL") {
-      // 1-byte operand
-      operand = read_memory(address + 1);
-      bytes = 2;
-    } else if (addr_mode == "ABS" || addr_mode == "ABX" || addr_mode == "ABY" || addr_mode == "IND") {
-      // 2-byte operand
-      u8 low = read_memory(address + 1);
-      u8 high = read_memory(address + 2);
-      operand = (high << 8) | low;
-      bytes = 3;
+  if (bytes >= 2) {
+    operand = read_memory(address + 1);
+    if (bytes == 3) {
+      operand |= (static_cast<u16>(read_memory(address + 2)) << 8);
     }
   }
-
   result.operand = operand;
-  result.bytes = bytes;
-  result.formatted = format_instruction(opcode, operand, bytes);
+
+  // Format the instruction with proper addressing mode syntax
+  result.formatted = format_instruction(opcode, operand, bytes, address);
+
+  // Double-check we always have a formatted string
+  if (result.formatted.empty()) {
+    // If formatting failed for any reason, create a basic fallback
+    std::stringstream ss;
+    ss << result.mnemonic;
+
+    if (bytes > 1) {
+      ss << " ";
+      if (bytes == 2) {
+        ss << "$" << std::hex << std::uppercase << std::setw(2) << std::setfill('0') << (operand & 0xFF);
+      } else {
+        ss << "$" << std::hex << std::uppercase << std::setw(4) << std::setfill('0') << operand;
+      }
+    }
+
+    result.formatted = ss.str();
+  }
 
   return result;
 }
@@ -135,68 +360,115 @@ std::vector<DisassembledInstruction> Debugger::disassemble_range(u16 start, u16 
     DisassembledInstruction instr = disassemble_instruction(addr);
     instructions.push_back(instr);
     addr += instr.bytes;
+
+    // Safety check to prevent infinite loops with invalid opcodes
+    if (instr.bytes == 0) {
+      break;
+    }
   }
 
   return instructions;
 }
 
+// Find instruction boundaries before PC using instruction length table
 std::vector<DisassembledInstruction> Debugger::disassemble_around_pc(int instructions_before, int instructions_after) const {
   u16 pc = get_register_pc();
-  std::vector<u16> before_addresses;
-  u16 current = pc;
 
-  // As a simple approach, I'll try disassembling from various points before PC
-  // and keep ones that end exactly at PC
-  for (int i = 1; i <= instructions_before * 3; i++) {
-    if (current <= i) break;
+  // First, build a map of potential valid instruction starts
+  std::unordered_map<u16, bool> valid_starts;
 
-    u16 test_addr = current - i;
-    std::vector<DisassembledInstruction> test_instrs = disassemble_range(test_addr, current - 1);
+  // Try to find valid instruction starts before PC
+  // We'll scan a reasonable range before PC (up to 3*instructions_before bytes)
+  int max_scan_distance = instructions_before * 3;
+  u16 scan_start = (pc > max_scan_distance) ? (pc - max_scan_distance) : 0;
 
-    u16 end_addr = test_addr;
-    for (const auto& instr : test_instrs) {
-      end_addr += instr.bytes;
-    }
+  for (u16 addr = scan_start; addr < pc; addr++) {
+    valid_starts[addr] = true;
+  }
 
-    if (end_addr == current) {
-      // We found a valid instruction that ends exactly at PC
-      if (before_addresses.size() < instructions_before) {
-        before_addresses.insert(before_addresses.begin(), test_addr);
-      } else {
-        before_addresses.erase(before_addresses.begin());
-        before_addresses.insert(before_addresses.begin(), test_addr);
+  // Invalidate addresses that would be in the middle of other instructions
+  for (u16 addr = scan_start; addr < pc; addr++) {
+    if (valid_starts[addr]) {
+      u8 opcode = read_memory(addr);
+
+      // Skip invalid opcodes by treating them as 1-byte
+      const auto& instruction = _cpu.get_instruction((Opcode)opcode);
+      if (instruction.name == nullptr || instruction.name[0] == '\0' || instruction.cycles == 0) {
+        continue;  // Skip to next address
+      }
+
+      u8 instr_bytes = get_instruction_bytes(opcode);
+
+      // Mark addresses inside this instruction as invalid starts
+      for (u8 i = 1; i < instr_bytes && (addr + i) < pc; i++) {
+        valid_starts[addr + i] = false;
       }
     }
   }
 
-  u16 start_addr = before_addresses.empty() ? pc : before_addresses[0];
+  // Now find the most likely instruction boundaries before PC
+  std::vector<u16> before_addresses;
 
-  u16 end_addr = pc;
-  for (int i = 0; i < instructions_after; i++) {
-    DisassembledInstruction instr = disassemble_instruction(end_addr);
-    end_addr += instr.bytes;
-  }
+  // Start from PC and work backwards to find valid instructions
+  u16 current = pc;
+  while (before_addresses.size() < instructions_before && current > scan_start) {
+    // Try to find a valid instruction that ends at current
+    bool found = false;
 
-  std::vector<DisassembledInstruction> all_instructions = disassemble_range(start_addr, end_addr);
-  std::vector<DisassembledInstruction> result;
-  int pc_index = -1;
+    for (u16 addr = current - 3; addr < current; addr++) {
+      if (addr >= scan_start && valid_starts[addr]) {
+        u8 opcode = read_memory(addr);
 
-  for (size_t i = 0; i < all_instructions.size(); i++) {
-    if (all_instructions[i].address == pc) {
-      pc_index = i;
-      break;
+        // Verify it's a valid opcode
+        const auto& instruction = _cpu.get_instruction((Opcode)opcode);
+        if (instruction.name == nullptr || instruction.name[0] == '\0' || instruction.cycles == 0) {
+          continue;  // Skip invalid opcodes
+        }
+
+        u8 instr_bytes = get_instruction_bytes(opcode);
+
+        if (addr + instr_bytes == current) {
+          before_addresses.insert(before_addresses.begin(), addr);
+          current = addr;
+          found = true;
+          break;
+        }
+      }
+    }
+
+    if (!found) {
+      // If we can't find a valid instruction ending at current,
+      // just step back by one byte and try again
+      current--;
     }
   }
 
-  if (pc_index == -1) {
-    return all_instructions;
+  // Now get instructions at and after PC
+  std::vector<DisassembledInstruction> result;
+
+  // Add instructions before PC
+  for (u16 addr : before_addresses) {
+    result.push_back(disassemble_instruction(addr));
   }
 
-  int start_index = std::max(0, pc_index - instructions_before);
-  int end_index = std::min(static_cast<int>(all_instructions.size()) - 1, pc_index + instructions_after);
+  // Add instruction at PC
+  result.push_back(disassemble_instruction(pc));
 
-  for (int i = start_index; i <= end_index; i++) {
-    result.push_back(all_instructions[i]);
+  // Add instructions after PC
+  u16 next_addr = pc;
+  DisassembledInstruction pc_instr = disassemble_instruction(pc);
+  next_addr += pc_instr.bytes;
+
+  for (int i = 0; i < instructions_after && next_addr < 0xFFFF; i++) {
+    DisassembledInstruction instr = disassemble_instruction(next_addr);
+    result.push_back(instr);
+
+    // Prevent infinite loops with invalid opcodes
+    if (instr.bytes == 0) {
+      next_addr++;  // Treat as 1-byte instruction
+    } else {
+      next_addr += instr.bytes;
+    }
   }
 
   return result;
@@ -210,23 +482,37 @@ void Debugger::check_breakpoints() {
   }
 }
 
-std::string Debugger::format_instruction(u8 opcode, u16 operand, u8 bytes) const {
+std::string Debugger::format_instruction(u8 opcode, u16 operand, u8 bytes, u16 instruction_addr) const {
   std::stringstream ss;
   const auto& instruction = _cpu.get_instruction((Opcode)opcode);
-  std::string mnemonic = instruction.name;
+  std::string mnemonic = (instruction.name != nullptr && instruction.name[0] != '\0') ? instruction.name : "???";
 
-  ss << mnemonic << " ";
+  // Start with the mnemonic
+  ss << mnemonic;
 
-  std::string addr_mode = address_mode_string(opcode);
+  // Force immediate addressing mode for specific opcodes
+  std::string addr_mode;
+  if (opcode == 0xA2) {  // LDX #imm
+    addr_mode = "IMM";
+  } else if (opcode == 0xA9) {  // LDA #imm
+    addr_mode = "IMM";
+  } else {
+    addr_mode = _addressing_mode_table[opcode];
+  }
+
+  // For all addressing modes except implied, add a space before the operand
+  if (addr_mode != "IMP") {
+    ss << " ";
+  }
 
   if (addr_mode == "IMM") {
-    ss << "#$" << std::hex << std::uppercase << std::setw(2) << std::setfill('0') << static_cast<int>(operand);
+    ss << "#$" << std::hex << std::uppercase << std::setw(2) << std::setfill('0') << static_cast<int>(operand & 0xFF);
   } else if (addr_mode == "ZPG") {
-    ss << "$" << std::hex << std::uppercase << std::setw(2) << std::setfill('0') << static_cast<int>(operand);
+    ss << "$" << std::hex << std::uppercase << std::setw(2) << std::setfill('0') << static_cast<int>(operand & 0xFF);
   } else if (addr_mode == "ZPX") {
-    ss << "$" << std::hex << std::uppercase << std::setw(2) << std::setfill('0') << static_cast<int>(operand) << ",X";
+    ss << "$" << std::hex << std::uppercase << std::setw(2) << std::setfill('0') << static_cast<int>(operand & 0xFF) << ",X";
   } else if (addr_mode == "ZPY") {
-    ss << "$" << std::hex << std::uppercase << std::setw(2) << std::setfill('0') << static_cast<int>(operand) << ",Y";
+    ss << "$" << std::hex << std::uppercase << std::setw(2) << std::setfill('0') << static_cast<int>(operand & 0xFF) << ",Y";
   } else if (addr_mode == "ABS") {
     ss << "$" << std::hex << std::uppercase << std::setw(4) << std::setfill('0') << static_cast<int>(operand);
   } else if (addr_mode == "ABX") {
@@ -236,59 +522,35 @@ std::string Debugger::format_instruction(u8 opcode, u16 operand, u8 bytes) const
   } else if (addr_mode == "IND") {
     ss << "($" << std::hex << std::uppercase << std::setw(4) << std::setfill('0') << static_cast<int>(operand) << ")";
   } else if (addr_mode == "IZX") {
-    ss << "($" << std::hex << std::uppercase << std::setw(2) << std::setfill('0') << static_cast<int>(operand) << ",X)";
+    ss << "($" << std::hex << std::uppercase << std::setw(2) << std::setfill('0') << static_cast<int>(operand & 0xFF) << ",X)";
   } else if (addr_mode == "IZY") {
-    ss << "($" << std::hex << std::uppercase << std::setw(2) << std::setfill('0') << static_cast<int>(operand) << "),Y";
+    ss << "($" << std::hex << std::uppercase << std::setw(2) << std::setfill('0') << static_cast<int>(operand & 0xFF) << "),Y";
   } else if (addr_mode == "REL") {
     // Calculate relative address for branch instructions
-    int8_t offset = static_cast<int8_t>(operand);
-    u16 target = get_register_pc() + 2 + offset;
+    int8_t offset = static_cast<int8_t>(operand & 0xFF);
+    u16 target = instruction_addr + bytes + offset;
     ss << "$" << std::hex << std::uppercase << std::setw(4) << std::setfill('0') << static_cast<int>(target);
   } else if (addr_mode == "ACC") {
     ss << "A";
-  } else {
-    // Implied or unknown
-    ss << "         ";
   }
 
   return ss.str();
 }
 
-std::string Debugger::address_mode_string(u8 opcode) const {
-  const auto& instruction = _cpu.get_instruction((Opcode)opcode);
+std::string Debugger::address_mode_string(u8 opcode) const { return _addressing_mode_table[opcode]; }
 
-  if (instruction.is_implied) {
-    if (opcode == 0x0A || opcode == 0x4A || opcode == 0x2A || opcode == 0x6A) {
-      return "ACC";
-    }
-    return "IMP";
-  }
-
-  u8 bbb = (opcode >> 2) & 0x07;
-  u8 cc = opcode & 0x03;
-
-  // Branch instructions
-  if ((opcode & 0x1F) == 0x10) {
-    return "REL";
-  }
-
-  std::string name = instruction.name;
-
-  if (cc == 0x01) {
-    // (zp,X) or (zp),Y or zp or immediate or absolute
-    if (bbb == 0x00) return "IZX";
-    if (bbb == 0x01) return "ZPG";
-    if (bbb == 0x02) return "IMM";
-    if (bbb == 0x03) return "ABS";
-    if (bbb == 0x04) return "IZY";
-    if (bbb == 0x05) return "ZPX";
-    if (bbb == 0x06) return "ABY";
-    if (bbb == 0x07) return "ABX";
-  }
-
-  if (opcode == 0x6C) return "IND";
-
-  return "ABS";
+void print_disassembled_instruction(const DisassembledInstruction& instruction) {
+  std::cout << "Address:   0x" << std::hex << std::uppercase << std::setw(4) << std::setfill('0') << instruction.address << std::dec
+            << "\n";
+  std::cout << "Opcode:    0x" << std::hex << std::uppercase << std::setw(2) << std::setfill('0') << static_cast<int>(instruction.opcode)
+            << std::dec << "\n";
+  std::cout << "Mnemonic:  " << instruction.mnemonic << "\n";
+  std::cout << "Operand:   0x" << std::hex << std::uppercase << std::setw(4) << std::setfill('0') << instruction.operand << std::dec
+            << "\n";
+  std::cout << "Formatted: " << instruction.formatted << "\n";
+  std::cout << "Bytes:     " << static_cast<int>(instruction.bytes) << "\n";
+  std::cout << "Cycles:    " << static_cast<int>(instruction.cycles) << "\n";
+  std::cout << "------------------------------" << std::endl;
 }
 
 #ifdef __EMSCRIPTEN__
@@ -422,7 +684,6 @@ EMSCRIPTEN_EXPORT u64 debugger_get_cycle_count() {
 EMSCRIPTEN_EXPORT void debugger_set_pc(u16 address) {
   if (g_debugger) {
     g_debugger->set_pc(address);
-    printf("PC manually set to $%04X\n", address);
   }
 }
 
@@ -431,24 +692,43 @@ EMSCRIPTEN_EXPORT char* debugger_disassemble_around_pc(int before, int after) {
   result.clear();
 
   if (!g_debugger) {
-    printf("Error: g_debugger is null!\n");
+    std::cerr << "Error: g_debugger is null!\n";
     return nullptr;
   }
 
   u16 pc = g_debugger->get_register_pc();
-  printf("Disassembling around PC: %04X, before: %d, after: %d\n", g_debugger->get_register_pc(), before, after);
-
   auto instructions = g_debugger->disassemble_around_pc(before, after);
   std::stringstream ss;
 
-  printf("Got %zu instructions\n", instructions.size());
-
   // Format: address|opcode|mnemonic|operand|formatted|bytes|cycles#address|...
   for (const auto& instr : instructions) {
-    ss << instr.address << "|" << static_cast<int>(instr.opcode) << "|" << instr.mnemonic << "|" << instr.operand << "|" << instr.formatted
-       << "|" << static_cast<int>(instr.bytes) << "|" << static_cast<int>(instr.cycles) << "#";
+    // Ensure all values are explicitly formatted as decimal
+    ss << std::dec << instr.address << "|" << std::dec << static_cast<int>(instr.opcode) << "|"
+       << (instr.mnemonic.empty() ? ".byte" : instr.mnemonic) << "|" << std::dec << static_cast<int>(instr.operand) << "|";
 
-    printf("Instruction: %04X %02X %s\n", instr.address, instr.opcode, instr.formatted.c_str());
+    // Ensure formatted string is never empty
+    if (instr.formatted.empty()) {
+      // Default formatting
+      ss << (instr.mnemonic.empty() ? ".byte" : instr.mnemonic);
+
+      // Add operand if applicable
+      if (instr.bytes > 1) {
+        ss << " ";
+        if (instr.bytes == 2) {
+          ss << "$" << std::hex << std::uppercase << std::setw(2) << std::setfill('0') << static_cast<int>(instr.operand & 0xFF);
+        } else {
+          ss << "$" << std::hex << std::uppercase << std::setw(4) << std::setfill('0') << static_cast<int>(instr.operand);
+        }
+      }
+    } else {
+      ss << instr.formatted;
+    }
+
+    // Make sure bytes and cycles are always valid numbers
+    int bytes = (instr.bytes > 0) ? static_cast<int>(instr.bytes) : 1;
+    int cycles = (instr.cycles > 0) ? static_cast<int>(instr.cycles) : 1;
+
+    ss << "|" << std::dec << bytes << "|" << std::dec << cycles << "#";
   }
 
   result = ss.str();
@@ -456,12 +736,12 @@ EMSCRIPTEN_EXPORT char* debugger_disassemble_around_pc(int before, int after) {
     result.pop_back();  // Remove the last '#'
   }
 
-  printf("Final string length: %zu\n", result.length());
   return const_cast<char*>(result.c_str());
 }
 
 EMSCRIPTEN_EXPORT char* debugger_disassemble_range(u16 start, u16 end) {
   static std::string result;
+  result.clear();
 
   if (!g_debugger) {
     return nullptr;
@@ -472,8 +752,33 @@ EMSCRIPTEN_EXPORT char* debugger_disassemble_range(u16 start, u16 end) {
 
   // Format: address|opcode|mnemonic|operand|formatted|bytes|cycles#address|...
   for (const auto& instr : instructions) {
-    ss << instr.address << "|" << static_cast<int>(instr.opcode) << "|" << instr.mnemonic << "|" << instr.operand << "|" << instr.formatted
-       << "|" << static_cast<int>(instr.bytes) << "|" << static_cast<int>(instr.cycles) << "#";
+    // Ensure all values are explicitly formatted as decimal
+    ss << std::dec << instr.address << "|" << std::dec << static_cast<int>(instr.opcode) << "|"
+       << (instr.mnemonic.empty() ? ".byte" : instr.mnemonic) << "|" << std::dec << static_cast<int>(instr.operand) << "|";
+
+    // Ensure formatted string is never empty
+    if (instr.formatted.empty()) {
+      // Default formatting
+      ss << (instr.mnemonic.empty() ? ".byte" : instr.mnemonic);
+
+      // Add operand if applicable
+      if (instr.bytes > 1) {
+        ss << " ";
+        if (instr.bytes == 2) {
+          ss << "$" << std::hex << std::uppercase << std::setw(2) << std::setfill('0') << static_cast<int>(instr.operand & 0xFF);
+        } else {
+          ss << "$" << std::hex << std::uppercase << std::setw(4) << std::setfill('0') << static_cast<int>(instr.operand);
+        }
+      }
+    } else {
+      ss << instr.formatted;
+    }
+
+    // Make sure bytes and cycles are always valid numbers
+    int bytes = (instr.bytes > 0) ? static_cast<int>(instr.bytes) : 1;
+    int cycles = (instr.cycles > 0) ? static_cast<int>(instr.cycles) : 1;
+
+    ss << "|" << std::dec << bytes << "|" << std::dec << cycles << "#";
   }
 
   result = ss.str();
@@ -484,61 +789,9 @@ EMSCRIPTEN_EXPORT char* debugger_disassemble_range(u16 start, u16 end) {
   return const_cast<char*>(result.c_str());
 }
 
-EMSCRIPTEN_EXPORT void debugger_test() {
-  printf("======= DEBUGGER TEST =======\n");
-  if (g_debugger) {
-    u16 pc = g_debugger->get_register_pc();
-    printf("Current PC: %04X\n", pc);
-
-    // Print some memory values around PC
-    printf("Memory at PC:\n");
-    for (int i = 0; i < 10; i++) {
-      printf("%02X ", g_debugger->read_memory(pc + i));
-    }
-    printf("\n");
-
-    // Try disassembling
-    auto instructions = g_debugger->disassemble_around_pc(0, 5);
-    printf("Disassembly result has %zu instructions\n", instructions.size());
-  } else {
-    printf("Debugger instance is null!\n");
-  }
-  printf("============================\n");
-}
-
-EMSCRIPTEN_EXPORT void debugger_init_test() {
-  if (!g_debugger) return;
-
-  // Set up the test program at address 0x8000
-  u16 addr = 0x8000;
-
-  // LDA #$42 (Load 0x42 into A register)
-  g_debugger->write_memory(addr++, 0xA9);
-  g_debugger->write_memory(addr++, 0x42);
-
-  // STA $0200 (Store A at memory address 0x0200)
-  g_debugger->write_memory(addr++, 0x8D);
-  g_debugger->write_memory(addr++, 0x00);
-  g_debugger->write_memory(addr++, 0x02);
-
-  // Set reset vector to point to our program
-  g_debugger->write_memory(0xFFFC, 0x00);
-  g_debugger->write_memory(0xFFFD, 0x80);
-
-  // Reset CPU (which might not set PC correctly)
-  g_debugger->reset();
-
-  // Force PC to the correct address
-  g_debugger->set_pc(0x8000);
-
-  printf("Test program initialized. PC set to $8000\n");
-  printf("Memory at 0x8000: $%02X $%02X $%02X $%02X $%02X\n", g_debugger->read_memory(0x8000), g_debugger->read_memory(0x8001),
-         g_debugger->read_memory(0x8002), g_debugger->read_memory(0x8003), g_debugger->read_memory(0x8004));
-}
-
 EMSCRIPTEN_EXPORT void debugger_print_state() {
   if (!g_debugger) {
-    printf("Error: g_debugger is null!\n");
+    std::cerr << "Error: g_debugger is null!\n";
     return;
   }
 
