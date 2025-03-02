@@ -18,17 +18,3 @@ EMSCRIPTEN_KEEPALIVE extern "C" void main_loop() {
   }
 }
 #endif
-
-int main() {
-#ifdef __EMSCRIPTEN__
-  // In Emscripten, we'll let JavaScript call main_loop when needed
-  // No need to set up a main loop here
-#else
-  // For non-Emscripten builds, we could implement testing here
-  g_debugger.reset();
-  // For testing, just step through a few instructions
-  for (int i = 0; i < 10; i++) {
-    g_debugger.step();
-  }
-#endif
-}
