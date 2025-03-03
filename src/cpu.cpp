@@ -187,8 +187,8 @@ CPU::CPU(Bus &bus_ref)
   set_op(Opcode::DEC_ZPX, {.addressed_op = &CPU::op_dec, .mode = &CPU::zero_page_x, .cycles = 6, .name = "DEC"});
 
   // INX, INY
-  set_op(Opcode::INX_IMP, {.implied_op = &CPU::op_inx, .mode = nullptr, .cycles = 2, .name = "INX"});
-  set_op(Opcode::INY_IMP, {.implied_op = &CPU::op_iny, .mode = nullptr, .cycles = 2, .name = "INY"});
+  set_op(Opcode::INX_IMP, {.implied_op = &CPU::op_inx, .mode = nullptr, .cycles = 2, .name = "INX", .is_implied = true});
+  set_op(Opcode::INY_IMP, {.implied_op = &CPU::op_iny, .mode = nullptr, .cycles = 2, .name = "INY", .is_implied = true});
 
   // DEX, DEY
   set_op(Opcode::DEX_IMP, {.implied_op = &CPU::op_dex, .mode = nullptr, .cycles = 2, .name = "DEX", .is_implied = true});
