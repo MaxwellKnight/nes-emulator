@@ -63,28 +63,26 @@
                         <button class="nav-link active" id="controls-tab" data-bs-toggle="tab"
                             data-bs-target="#controls" type="button" role="tab" aria-controls="controls"
                             aria-selected="true">
-                            <i class="bi bi-dpad"></i> Controls
-                        </button>
-                    </li>
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link" id="registers-tab" data-bs-toggle="tab" data-bs-target="#registers"
-                            type="button" role="tab" aria-controls="registers" aria-selected="false">
-                            <i class="bi bi-clipboard-data"></i> Registers
+                            <i class="bi bi-cpu"></i> Controls
                         </button>
                     </li>
                     <li class="nav-item" role="presentation">
                         <button class="nav-link" id="input-tab" data-bs-toggle="tab" data-bs-target="#input"
                             type="button" role="tab" aria-controls="input" aria-selected="false">
-                            <i class="bi bi-input-cursor-text"></i> Input
+                            <i class="bi bi-file-code"></i> Input
                         </button>
                     </li>
                 </ul>
 
                 <!-- Tab content -->
                 <div class="tab-content">
-                    <!-- Controls Tab -->
+                    <!-- Combined Controls Tab -->
                     <div class="tab-pane fade show active" id="controls" role="tabpanel" aria-labelledby="controls-tab">
                         <div class="mb-4">
+                            <div class="section-header">
+                                <i class="bi bi-controller"></i>
+                                <h2 class="section-title">Execution Controls</h2>
+                            </div>
                             <div class="btn-group d-flex mb-3">
                                 <button id="resetButton" class="btn btn-outline-secondary" data-bs-placement="top"
                                     title="Reset CPU">
@@ -107,7 +105,7 @@
 
                         <div class="mb-4">
                             <div class="section-header">
-                                <i class="bi bi-bookmark-star"></i>
+                                <i class="bi bi-pin-angle"></i>
                                 <h2 class="section-title">Breakpoints</h2>
                             </div>
                             <div class="input-group mb-2">
@@ -124,10 +122,10 @@
                             </div>
                         </div>
 
-                        <div class="card ">
+                        <div class="card mb-4">
                             <div class="card-body">
                                 <div class="section-header mb-2">
-                                    <i class="bi bi-graph-up"></i>
+                                    <i class="bi bi-speedometer2"></i>
                                     <h2 class="section-title">Statistics</h2>
                                 </div>
                                 <div class="d-flex justify-content-between mb-2">
@@ -140,80 +138,80 @@
                                 </div>
                             </div>
                         </div>
-                    </div>
 
-                    <!-- Registers Tab -->
-                    <div class="tab-pane fade" id="registers" role="tabpanel" aria-labelledby="registers-tab">
-                        <div class="mb-4">
-                            <div class="section-header">
-                                <i class="bi bi-cpu-fill"></i>
-                                <h2 class="section-title">CPU Registers</h2>
-                            </div>
-                            <div class="register-grid">
-                                <div class="register-label">A (Accumulator)</div>
-                                <div class="register-value" id="reg-a">$00</div>
+                        <div class="card">
+                            <div class="card-body">
+                                <div class="section-header">
+                                    <i class="bi bi-clipboard-data"></i>
+                                    <h2 class="section-title">CPU Registers</h2>
+                                </div>
+                                <div class="register-grid mb-3">
+                                    <div class="register-label">A (Accumulator)</div>
+                                    <div class="register-value" id="reg-a">$00</div>
 
-                                <div class="register-label">X (Index X)</div>
-                                <div class="register-value" id="reg-x">$00</div>
+                                    <div class="register-label">X (Index X)</div>
+                                    <div class="register-value" id="reg-x">$00</div>
 
-                                <div class="register-label">Y (Index Y)</div>
-                                <div class="register-value" id="reg-y">$00</div>
+                                    <div class="register-label">Y (Index Y)</div>
+                                    <div class="register-value" id="reg-y">$00</div>
 
-                                <div class="register-label">SP (Stack Pointer)</div>
-                                <div class="register-value" id="reg-sp">$FF</div>
+                                    <div class="register-label">SP (Stack Pointer)</div>
+                                    <div class="register-value" id="reg-sp">$FF</div>
 
-                                <div class="register-label">PC (Program Counter)</div>
-                                <div class="register-value" id="reg-pc">$0000</div>
-                            </div>
-                        </div>
+                                    <div class="register-label">PC (Program Counter)</div>
+                                    <div class="register-value" id="reg-pc">$0000</div>
+                                </div>
 
-                        <div class="mb-4">
-                            <div class="section-header">
-                                <i class="bi bi-flag-fill"></i>
-                                <h2 class="section-title">Status Flags</h2>
-                            </div>
-                            <div class="flags-grid mb-3">
-                                <div class="text-center" data-bs-toggle="tooltip" data-bs-placement="top"
-                                    title="Negative">
-                                    <div>N</div>
-                                    <span id="flag-n" class="badge bg-secondary">0</span>
+                                <div class="section-header">
+                                    <i class="bi bi-signpost-split"></i>
+                                    <h2 class="section-title">Status Flags</h2>
                                 </div>
-                                <div class="text-center" data-bs-toggle="tooltip" data-bs-placement="top"
-                                    title="Overflow">
-                                    <div>V</div>
-                                    <span id="flag-v" class="badge bg-secondary">0</span>
+                                <div class="flags-grid mb-3">
+                                    <div class="text-center" data-bs-toggle="tooltip" data-bs-placement="top"
+                                        title="Negative">
+                                        <div>N</div>
+                                        <span id="flag-n" class="badge bg-secondary">0</span>
+                                    </div>
+                                    <div class="text-center" data-bs-toggle="tooltip" data-bs-placement="top"
+                                        title="Overflow">
+                                        <div>V</div>
+                                        <span id="flag-v" class="badge bg-secondary">0</span>
+                                    </div>
+                                    <div class="text-center" data-bs-toggle="tooltip" data-bs-placement="top"
+                                        title="Unused">
+                                        <div>-</div>
+                                        <span id="flag-u" class="badge bg-secondary">0</span>
+                                    </div>
+                                    <div class="text-center" data-bs-toggle="tooltip" data-bs-placement="top"
+                                        title="Break">
+                                        <div>B</div>
+                                        <span id="flag-b" class="badge bg-secondary">0</span>
+                                    </div>
+                                    <div class="text-center" data-bs-toggle="tooltip" data-bs-placement="top"
+                                        title="Decimal">
+                                        <div>D</div>
+                                        <span id="flag-d" class="badge bg-secondary">0</span>
+                                    </div>
+                                    <div class="text-center" data-bs-toggle="tooltip" data-bs-placement="top"
+                                        title="Interrupt Disable">
+                                        <div>I</div>
+                                        <span id="flag-i" class="badge bg-secondary">0</span>
+                                    </div>
+                                    <div class="text-center" data-bs-toggle="tooltip" data-bs-placement="top"
+                                        title="Zero">
+                                        <div>Z</div>
+                                        <span id="flag-z" class="badge bg-secondary">0</span>
+                                    </div>
+                                    <div class="text-center" data-bs-toggle="tooltip" data-bs-placement="top"
+                                        title="Carry">
+                                        <div>C</div>
+                                        <span id="flag-c" class="badge bg-secondary">0</span>
+                                    </div>
                                 </div>
-                                <div class="text-center" data-bs-toggle="tooltip" data-bs-placement="top"
-                                    title="Unused">
-                                    <div>-</div>
-                                    <span id="flag-u" class="badge bg-secondary">0</span>
+                                <div class="alert alert-info small">
+                                    <i class="bi bi-info-circle-fill me-2"></i>
+                                    Green badges indicate flags that are set (1), gray indicates unset (0)
                                 </div>
-                                <div class="text-center" data-bs-toggle="tooltip" data-bs-placement="top" title="Break">
-                                    <div>B</div>
-                                    <span id="flag-b" class="badge bg-secondary">0</span>
-                                </div>
-                                <div class="text-center" data-bs-toggle="tooltip" data-bs-placement="top"
-                                    title="Decimal">
-                                    <div>D</div>
-                                    <span id="flag-d" class="badge bg-secondary">0</span>
-                                </div>
-                                <div class="text-center" data-bs-toggle="tooltip" data-bs-placement="top"
-                                    title="Interrupt Disable">
-                                    <div>I</div>
-                                    <span id="flag-i" class="badge bg-secondary">0</span>
-                                </div>
-                                <div class="text-center" data-bs-toggle="tooltip" data-bs-placement="top" title="Zero">
-                                    <div>Z</div>
-                                    <span id="flag-z" class="badge bg-secondary">0</span>
-                                </div>
-                                <div class="text-center" data-bs-toggle="tooltip" data-bs-placement="top" title="Carry">
-                                    <div>C</div>
-                                    <span id="flag-c" class="badge bg-secondary">0</span>
-                                </div>
-                            </div>
-                            <div class="alert alert-info small">
-                                <i class="bi bi-info-circle-fill me-2"></i>
-                                Green badges indicate flags that are set (1), gray indicates unset (0)
                             </div>
                         </div>
                     </div>
