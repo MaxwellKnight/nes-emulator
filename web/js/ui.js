@@ -544,7 +544,7 @@ class DebuggerUI {
 
 		try {
 			// Get disassembly data
-			const instructions = this.debugger.disassembleAroundPC(5, 20);
+			const instructions = this.debugger.disassembleAroundPC(5, 30);
 			const pc = this.debugger.getRegisterPC();
 
 			// Display each instruction

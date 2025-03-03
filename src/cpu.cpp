@@ -191,8 +191,8 @@ CPU::CPU(Bus &bus_ref)
   set_op(Opcode::INY_IMP, {.implied_op = &CPU::op_iny, .mode = nullptr, .cycles = 2, .name = "INY"});
 
   // DEX, DEY
-  set_op(Opcode::DEX_IMP, {.implied_op = &CPU::op_dex, .mode = nullptr, .cycles = 2, .name = "DEX"});
-  set_op(Opcode::DEY_IMP, {.implied_op = &CPU::op_dey, .mode = nullptr, .cycles = 2, .name = "DEY"});
+  set_op(Opcode::DEX_IMP, {.implied_op = &CPU::op_dex, .mode = nullptr, .cycles = 2, .name = "DEX", .is_implied = true});
+  set_op(Opcode::DEY_IMP, {.implied_op = &CPU::op_dey, .mode = nullptr, .cycles = 2, .name = "DEY", .is_implied = true});
 
   // Branching operations
   // BCC
@@ -208,9 +208,9 @@ CPU::CPU(Bus &bus_ref)
   // Control-Flow operations
   set_op(Opcode::JMP_ABS, {.addressed_op = &CPU::op_jmp, .mode = &CPU::absolute, .cycles = 3, .name = "JMP"});
   set_op(Opcode::JMP_IND, {.addressed_op = &CPU::op_jmp, .mode = &CPU::absolute_indirect, .cycles = 5, .name = "JMP"});
-  set_op(Opcode::BRK_IMP, {.implied_op = &CPU::op_brk, .mode = nullptr, .cycles = 7, .name = "BRK"});
+  set_op(Opcode::BRK_IMP, {.implied_op = &CPU::op_brk, .mode = nullptr, .cycles = 7, .name = "BRK", .is_implied = true});
   set_op(Opcode::JSR_ABS, {.addressed_op = &CPU::op_jsr, .mode = &CPU::absolute, .cycles = 6, .name = "JSR"});
-  set_op(Opcode::RTI_IMP, {.implied_op = &CPU::op_rti, .mode = nullptr, .cycles = 6, .name = "RTI"});
+  set_op(Opcode::RTI_IMP, {.implied_op = &CPU::op_rti, .mode = nullptr, .cycles = 6, .name = "RTI", .is_implied = true});
 
   // Flags
   set_op(Opcode::SEC_IMP, {.implied_op = &CPU::op_sec, .mode = nullptr, .cycles = 2, .name = "SEC", .is_implied = true});
@@ -810,13 +810,13 @@ void CPU::op_iny() {
 
 // DEX
 void CPU::op_dex() {
-  _X = _X - 1;
+  _X = (_X - 1) & 0xFF;
   update_zero_and_negative_flags(_X);
 }
 
 // DEY
 void CPU::op_dey() {
-  _Y = _Y - 1;
+  _Y = (_Y - 1) & 0xFF;
   update_zero_and_negative_flags(_Y);
 }
 
