@@ -94,7 +94,6 @@ class DebuggerUI {
 
 	step() {
 		this.debugger.stepInstruction();
-		this.showToast('Executed one instruction', 'info');
 	}
 
 	stop() {
@@ -247,7 +246,6 @@ class DebuggerUI {
 		reader.readAsArrayBuffer(file);
 	}
 
-	// Load opcodes from text input
 	loadOpcodesFromText() {
 		const textArea = document.getElementById('opcodeInput');
 		const opcodesText = textArea.value.trim();
@@ -258,7 +256,6 @@ class DebuggerUI {
 		}
 
 		try {
-			// Parse the input text containing hex values
 			const opcodes = this.parseOpcodes(opcodesText);
 
 			if (opcodes.length === 0) {
@@ -266,16 +263,9 @@ class DebuggerUI {
 				return;
 			}
 
-			// Create Uint8Array from the parsed opcodes
 			const data = new Uint8Array(opcodes);
-
-			// Load opcodes into memory
 			this.debugger.loadROM(data);
-
-			// Update the UI to reflect the changes
 			this.updateUI();
-
-			// Show success message
 			this.showToast(`Loaded ${data.length} bytes successfully`, 'success');
 
 		} catch (e) {
@@ -284,21 +274,14 @@ class DebuggerUI {
 		}
 	}
 
-	// Parse opcode text into array of numbers
 	parseOpcodes(text) {
-		// Remove comments (anything after a semicolon on a line)
 		text = text.replace(/;.*$/gm, '');
 
-		// Remove all whitespace and split by any whitespace or commas
 		const hexValues = text.replace(/[\s,]+/g, ' ').trim().split(' ');
-
-		// Convert each hex value to a number
 		const opcodes = [];
 		for (const hex of hexValues) {
-			// Skip empty strings
 			if (!hex) continue;
 
-			// Validate hex format
 			if (!/^[0-9A-Fa-f]{1,2}$/.test(hex)) {
 				throw new Error(`Invalid opcode format: ${hex}`);
 			}
@@ -310,7 +293,6 @@ class DebuggerUI {
 		return opcodes;
 	}
 
-	// Edit memory value at address
 	promptEditMemoryValue(address) {
 		const currentValue = this.debugger.readMemory(address);
 		const newValueStr = prompt(
@@ -336,9 +318,7 @@ class DebuggerUI {
 		}
 	}
 
-	// Show toast notification
 	showToast(message, type = 'info') {
-		// Create toast container if it doesn't exist
 		let toastContainer = document.querySelector('.toast-container');
 		if (!toastContainer) {
 			toastContainer = document.createElement('div');
@@ -346,7 +326,6 @@ class DebuggerUI {
 			document.body.appendChild(toastContainer);
 		}
 
-		// Create toast element
 		const toastId = 'toast-' + Date.now();
 		const toast = document.createElement('div');
 		toast.className = `toast align-items-center text-white bg-${type} border-0`;
@@ -355,7 +334,6 @@ class DebuggerUI {
 		toast.setAttribute('aria-live', 'assertive');
 		toast.setAttribute('aria-atomic', 'true');
 
-		// Toast content
 		toast.innerHTML = `
 			<div class="d-flex">
 				<div class="toast-body">
@@ -365,9 +343,7 @@ class DebuggerUI {
 			</div>
 		`;
 
-		// Add toast to container
 		toastContainer.appendChild(toast);
-
 		// Initialize and show the toast
 		const bsToast = new bootstrap.Toast(toast, {
 			autohide: true,
@@ -381,7 +357,6 @@ class DebuggerUI {
 		});
 	}
 
-	// UI update functions
 	updateUI() {
 		this.updateRegisters();
 		this.updateFlags();
