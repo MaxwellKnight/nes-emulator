@@ -39,11 +39,16 @@ services:
       - "--api.insecure=true"
       - "--providers.docker=true"
       - "--providers.docker.exposedbydefault=false"
+      - "--entryPoints.websecure.address=:443"
+      - "--certificatesresolvers.myresolver.acme.tlschallenge=true"
+      - "--certificatesresolvers.myresolver.acme.email=max@codeknight.dev"
+      - "--certificatesresolvers.myresolver.acme.storage=/letsencrypt/acme.json"
       - "--entrypoints.web.address=:80"
     ports:
-      - "80:80"
+      - "443:443"
       - "8080:8080"
     volumes:
+      - /letsencrypt:/letsencrypt
       - /var/run/docker.sock:/var/run/docker.sock
 
   web:
@@ -59,5 +64,6 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.web.rule=Host(`129.159.132.164`)"
-      - "traefik.http.routers.web.entrypoints=web"
+      - "traefik.http.routers.web.entrypoints=websecure"
       - "traefik.http.services.web.loadbalancer.server.port=8080"
+      - "traefik.http.services.web.tls.certresolver=myresolver"
