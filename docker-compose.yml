@@ -39,18 +39,21 @@ services:
       - "--api.insecure=true"
       - "--providers.docker=true"
       - "--providers.docker.exposedbydefault=false"
-      - "--entryPoints.websecure.address=:443"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
       - "--certificatesresolvers.myresolver.acme.tlschallenge=true"
       - "--certificatesresolvers.myresolver.acme.email=max@codeknight.dev"
       - "--certificatesresolvers.myresolver.acme.storage=/letsencrypt/acme.json"
-      - "--entrypoints.web.address=:80"
+      - "--entrypoints.web.http.redirections.entrypoint.to=websecure"
+      - "--entrypoints.web.http.redirections.entrypoint.scheme=https"
     ports:
+      - "80:80"
       - "443:443"
       - "8080:8080"
     volumes:
-      - /letsencrypt:/letsencrypt
+      - letsencrypt:/letsencrypt
       - /var/run/docker.sock:/var/run/docker.sock
-
+  
   web:
     image: python:3-alpine
     volumes:
@@ -58,15 +61,13 @@ services:
     working_dir: /app
     command: python -m http.server 8080 --directory /app/web
     restart: unless-stopped
-    deploy:
-      mode: replicated
-      replicas: 3
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.web.rule=Host(`129.159.132.164`)"
       - "traefik.http.routers.web.entrypoints=websecure"
+      - "traefik.http.routers.web.tls=true"
+      - "traefik.http.routers.web.tls.certresolver=myresolver"
       - "traefik.http.services.web.loadbalancer.server.port=8080"
-      - "traefik.http.services.web.tls.certresolver=myresolver"
 
 volumes:
   letsencrypt:
