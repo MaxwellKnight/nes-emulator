@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <rect width="64" height="64" rx="8" fill="#2d3748" />
+  <rect x="12" y="12" width="40" height="40" rx="4" fill="#4a5568" stroke="#a0aec0" stroke-width="2" />
+  <rect x="28" y="8" width="8" height="4" fill="#4a5568" stroke="#a0aec0" stroke-width="2" />
+  <text x="32" y="32" font-family="Courier, monospace" font-size="14" font-weight="bold" text-anchor="middle" dominant-baseline="middle" fill="#f6e05e">6502</text>
+  <path d="M18 24 L8 24" stroke="#4fd1c5" stroke-width="1.5" />
+  <path d="M18 32 L8 32" stroke="#4fd1c5" stroke-width="1.5" />
+  <path d="M18 40 L8 40" stroke="#4fd1c5" stroke-width="1.5" />
+  <path d="M46 24 L56 24" stroke="#4fd1c5" stroke-width="1.5" />
+  <path d="M46 32 L56 32" stroke="#4fd1c5" stroke-width="1.5" />
+  <path d="M46 40 L56 40" stroke="#4fd1c5" stroke-width="1.5" />
+  <circle cx="18" cy="24" r="1.5" fill="#f6ad55" />
+  <circle cx="18" cy="32" r="1.5" fill="#f6ad55" />
+  <circle cx="18" cy="40" r="1.5" fill="#f6ad55" />
+  <circle cx="46" cy="32" r="1.5" fill="#f6ad55" />
+  <circle cx="46" cy="40" r="1.5" fill="#f6ad55" />
+</svg>
