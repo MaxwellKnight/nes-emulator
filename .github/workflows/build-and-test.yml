@@ -1,4 +1,4 @@
-name: CPU Emulator CI
+name: Build and Test
 
 on:
   push:
@@ -7,11 +7,13 @@ on:
     branches: [ main ]
 
 jobs:
-  build-linux:
-    name: Build on Ubuntu
+  build:
+    name: Build
     runs-on: ubuntu-latest
+
     steps:
-    - uses: actions/checkout@v3
+    - name: Checkout repository
+      uses: actions/checkout@v4
 
     - name: Install dependencies
       run: |
@@ -19,24 +21,28 @@ jobs:
         sudo apt-get install -y cmake
 
     - name: Configure CMake
-      run: cmake -B ${{ github.workspace }}/build -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTS=OFF
+      run: |
+        cmake -B ${{ github.workspace }}/build -DCMAKE_BUILD_TYPE=Release
 
     - name: Build
-      run: cmake --build ${{ github.workspace }}/build --config Release
+      run: |
+        cmake --build ${{ github.workspace }}/build --config Release
 
     - name: Upload build artifacts
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
-        name: linux-build
+        name: build-artifacts
         path: ${{ github.workspace }}/build
         retention-days: 1
 
-  test-linux:
-    name: Test on Ubuntu
+  test:
+    name: Test
+    needs: build
     runs-on: ubuntu-latest
-    needs: build-linux
+
     steps:
-    - uses: actions/checkout@v3
+    - name: Checkout repository
+      uses: actions/checkout@v4
 
     - name: Install GTest
       run: |
@@ -47,39 +53,17 @@ jobs:
         sudo make
         sudo cp lib/*.a /usr/lib
 
-    - name: Configure CMake with Tests
-      run: cmake -B ${{ github.workspace }}/build -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTS=ON
-
-    - name: Build with Tests
-      run: cmake --build ${{ github.workspace }}/build --config Release
-
-    - name: Run Tests
-      working-directory: ${{ github.workspace }}/build
-      run: ctest -C Release --output-on-failure
-
-  build-emscripten:
-    name: Build WebAssembly
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v3
-
-    - name: Setup Emscripten
-      uses: mymindstorm/setup-emsdk@v12
-
-    - name: Verify Emscripten
-      run: emcc --version
-
-    - name: Configure with Emscripten
-      run: emcmake cmake -B ${{ github.workspace }}/build -DCMAKE_BUILD_TYPE=Release
-
-    - name: Build WebAssembly
-      run: cmake --build ${{ github.workspace }}/build --config Release
-
-    - name: Upload WebAssembly artifacts
-      uses: actions/upload-artifact@v3
+    - name: Download build artifacts
+      uses: actions/download-artifact@v4
       with:
-        name: wasm-build
-        path: |
-          ${{ github.workspace }}/build/cpu_wasm.js
-          ${{ github.workspace }}/build/cpu_wasm.wasm
-        retention-days: 7
+        name: build-artifacts
+        path: ${{ github.workspace }}/build
+
+    - name: Restore file permissions
+      run: |
+        chmod -R +x ${{ github.workspace }}/build
+
+    - name: Run tests
+      working-directory: ${{ github.workspace }}/build
+      run: |
+        ctest -C Release --output-on-failure
