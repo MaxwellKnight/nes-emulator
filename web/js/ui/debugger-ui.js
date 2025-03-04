@@ -4,7 +4,6 @@ class DebuggerUI {
 		this.breakpoints = new Set();
 		this.currentMemoryPage = 0x0000;
 		this.memoryPageSize = 0x100;
-		this.theme = 'light';
 
 		this.setupEventListeners();
 
@@ -39,7 +38,6 @@ class DebuggerUI {
 			this.loadOpcodesFromText();
 		});
 
-		document.getElementById('themeToggle').addEventListener('click', () => this.toggleTheme());
 		window.addEventListener('nes-debugger-update', () => this.updateUI());
 		document.getElementById('disassemblyView').addEventListener('click', (e) => {
 			const row = e.target.closest('.instruction');
@@ -75,21 +73,6 @@ class DebuggerUI {
 				}
 			});
 		});
-	}
-
-	toggleTheme() {
-		const htmlElement = document.documentElement;
-		const themeToggle = document.getElementById('themeToggle');
-
-		if (htmlElement.getAttribute('data-bs-theme') === 'dark') {
-			htmlElement.setAttribute('data-bs-theme', 'light');
-			themeToggle.innerHTML = '<i class="bi bi-sun-fill me-2"></i><span>Light Mode</span>';
-			this.theme = 'light';
-		} else {
-			htmlElement.setAttribute('data-bs-theme', 'dark');
-			themeToggle.innerHTML = '<i class="bi bi-moon-stars-fill me-2"></i><span>Dark Mode</span>';
-			this.theme = 'dark';
-		}
 	}
 
 	reset() {

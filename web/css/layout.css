@@ -24,7 +24,6 @@ body {
     transition: background-color 0.3s, color 0.3s;
     padding: 1rem;
     height: 100vh;
-    overflow: hidden;
 }
 
 .panel {
@@ -250,4 +249,196 @@ body {
     text-align: center;
     background-color: #000;
     border-radius: 4px;
+}
+
+/* Base layout adjustments */
+.main-grid {
+    display: grid;
+    grid-template-columns: 1fr 350px;
+    grid-template-rows: auto 1fr 280px;
+    grid-template-areas:
+        "header header"
+        "disassembly sidebar"
+        "memory sidebar";
+    gap: 15px;
+    height: calc(100vh - 30px);
+}
+
+/* Large tablets and smaller desktops */
+@media (max-width: 1200px) {
+    .main-grid {
+        grid-template-columns: 1fr 300px;
+    }
+
+    .memory-area .section-header {
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .memory-area .d-flex.gap-2 {
+        width: 100%;
+    }
+
+    .memory-area .input-group,
+    .memory-area .form-select {
+        max-width: none;
+    }
+}
+
+/* Tablets and smaller */
+@media (max-width: 992px) {
+    .main-grid {
+        grid-template-columns: 1fr;
+        grid-template-rows: auto auto 1fr 280px;
+        grid-template-areas:
+            "header"
+            "sidebar"
+            "disassembly"
+            "memory";
+    }
+
+    .sidebar-area {
+        height: auto;
+        min-height: 300px;
+    }
+
+    .register-grid {
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    }
+}
+
+/* Mobile devices */
+@media (max-width: 768px) {
+    body {
+        padding: 0.5rem;
+    }
+
+    .main-grid {
+        height: auto;
+        min-height: calc(100vh - 16px);
+        gap: 10px;
+    }
+
+    .panel {
+        padding: 10px;
+    }
+
+    .header-area .d-flex {
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .header-area .btn-group {
+        width: 100%;
+    }
+
+    .flags-grid {
+        grid-template-columns: repeat(4, 1fr);
+        gap: 12px;
+    }
+
+    .memory-row {
+        flex-wrap: wrap;
+    }
+
+    .memory-ascii {
+        width: 100%;
+        margin-left: 80px;
+        margin-top: 4px;
+        border-left: none;
+    }
+
+    .memory-cell {
+        width: 28px;
+        margin-right: 2px;
+    }
+}
+
+/* Small mobile devices */
+@media (max-width: 576px) {
+    .header-area .theme-toggle {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .register-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .flags-grid {
+        grid-template-columns: repeat(4, 1fr);
+    }
+
+    #opcodeInput {
+        min-height: 120px;
+    }
+
+    .btn,
+    .btn-group .btn,
+    .input-group .btn,
+    .form-control,
+    .form-select {
+        width: 100%;
+        margin: 2px 0;
+    }
+
+    .input-group {
+        flex-direction: column;
+    }
+
+    .input-group>* {
+        border-radius: 4px !important;
+        margin: 2px 0;
+    }
+
+    .memory-address {
+        width: 70px;
+        font-size: 0.9em;
+    }
+
+    .memory-cell {
+        width: 26px;
+        font-size: 0.9em;
+    }
+
+    .memory-ascii {
+        margin-left: 70px;
+        font-size: 0.9em;
+    }
+}
+
+/* Ensure minimum touch target sizes */
+@media (hover: none) and (pointer: coarse) {
+
+    .btn,
+    .form-control,
+    .form-select,
+    .nav-link,
+    .memory-cell,
+    .instruction {
+        min-height: 44px;
+        padding: 10px;
+    }
+
+    .memory-cell {
+        min-height: 32px;
+    }
+}
+
+/* Dark mode adjustments for better contrast on mobile */
+@media (max-width: 768px) {
+    [data-bs-theme="dark"] .memory-cell:hover {
+        background-color: rgba(255, 255, 255, 0.1);
+    }
+
+    [data-bs-theme="dark"] .instruction:hover {
+        background-color: rgba(255, 255, 255, 0.1);
+    }
+}
+
+/* Accessibility improvements */
+@media (prefers-reduced-motion: reduce) {
+    * {
+        transition: none !important;
+    }
 }
