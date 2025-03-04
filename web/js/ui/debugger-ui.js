@@ -506,17 +506,14 @@ class DebuggerUI {
 		return parseDisassemblyInstructions(rawData);
 	}
 
-	// And update the updateDisassembly method to better handle the instruction data
 	updateDisassembly() {
 		const view = document.getElementById('disassemblyView');
 		view.innerHTML = '';
 
 		try {
-			// Get disassembly data
 			const instructions = this.debugger.disassembleAroundPC(5, 30);
 			const pc = this.debugger.getRegisterPC();
 
-			// Create a responsive container
 			const disassemblyContainer = document.createElement('div');
 			disassemblyContainer.className = 'disassembly-container';
 
@@ -524,13 +521,11 @@ class DebuggerUI {
 			for (let i = 0; i < instructions.length; i++) {
 				const instr = instructions[i];
 
-				// Skip invalid instructions
 				if (instr.address === 0 || instr.mnemonic === String(instr.opcode)) {
 					console.warn('Skipping invalid instruction:', instr);
 					continue;
 				}
 
-				// Check for address continuity
 				if (lastAddr !== null && instr.address !== lastAddr + instructions[i - 1].bytes) {
 					console.warn('Address discontinuity detected:', lastAddr, 'to', instr.address);
 				}
@@ -540,7 +535,6 @@ class DebuggerUI {
 				row.className = 'instruction row g-2 mb-1 py-1 px-2 rounded align-items-center';
 				row.dataset.address = instr.address.toString(16);
 
-				// Highlight current instruction and breakpoints
 				if (instr.address === pc) {
 					row.classList.add('current');
 				}
@@ -548,29 +542,24 @@ class DebuggerUI {
 					row.classList.add('border', 'border-warning', 'border-start', 'border-3');
 				}
 
-				// Address column
 				const addrCol = document.createElement('div');
 				addrCol.className = 'col-auto pe-3 text-primary instruction-address';
 				addrCol.textContent = `$${instr.address.toString(16).toUpperCase().padStart(4, '0')}`;
 				row.appendChild(addrCol);
 
-				// Opcode column (hidden on small screens)
 				const opcodeCol = document.createElement('div');
 				opcodeCol.className = 'col-auto px-3 text-secondary instruction-opcode d-none d-md-block';
 				opcodeCol.textContent = `${instr.opcode.toString(16).toUpperCase().padStart(2, '0')}`;
 				row.appendChild(opcodeCol);
 
-				// Mnemonic column
 				const mnemonicCol = document.createElement('div');
 				mnemonicCol.className = 'col-auto px-3 fw-bold instruction-mnemonic';
 				mnemonicCol.textContent = instr.mnemonic;
 				row.appendChild(mnemonicCol);
 
-				// Operands column
 				const operandsCol = document.createElement('div');
 				operandsCol.className = 'col instruction-operands';
 
-				// Extract operands
 				let operandText = "";
 				if (instr.operand) {
 					operandText = String(instr.operand);
@@ -584,13 +573,11 @@ class DebuggerUI {
 				operandsCol.textContent = operandText;
 				row.appendChild(operandsCol);
 
-				// Bytes and cycles column (compact on small screens)
 				const detailsCol = document.createElement('div');
 				detailsCol.className = 'col-auto text-muted small instruction-details';
 				detailsCol.textContent = `${instr.bytes} B, ${instr.cycles} cyc`;
 				row.appendChild(detailsCol);
 
-				// Mobile-friendly compact view
 				const mobileCompactView = document.createElement('div');
 				mobileCompactView.className = 'd-md-none instruction-mobile-compact small text-muted';
 				mobileCompactView.innerHTML = `
@@ -622,25 +609,27 @@ class DebuggerUI {
 		view.innerHTML = '';
 		view.classList.add('container-fluid', 'px-0');
 
-		// Responsive header row
 		const headerRow = document.createElement('div');
-		headerRow.className = 'memory-row row g-1 mb-2 px-2 py-1 bg-primary bg-opacity-10 rounded align-items-center';
+		headerRow.className = 'memory-row row g-0 mb-2 px-2 py-1 bg-primary bg-opacity-10 rounded align-items-center';
 
-		// Address header with responsive column
 		const addrHeader = document.createElement('div');
 		addrHeader.className = 'memory-header col-2 col-md-1 fw-bold text-primary text-truncate';
 		addrHeader.textContent = 'Addr';
 		headerRow.appendChild(addrHeader);
 
-		// Hex index headers with responsive columns
+		const hexHeaderContainer = document.createElement('div');
+		hexHeaderContainer.className = 'col-auto d-none d-md-flex flex-nowrap';
 		for (let i = 0; i < 16; i++) {
 			const header = document.createElement('div');
-			header.className = 'memory-header col-auto d-none d-md-block fw-bold text-primary text-center';
+			header.className = 'memory-header text-center fw-bold text-primary';
+			header.style.width = '30px';
+			header.style.minWidth = '30px';
+			header.style.maxWidth = '30px';
 			header.textContent = i.toString(16).toUpperCase();
-			headerRow.appendChild(header);
+			hexHeaderContainer.appendChild(header);
 		}
+		headerRow.appendChild(hexHeaderContainer);
 
-		// ASCII header with responsive column
 		const asciiHeader = document.createElement('div');
 		asciiHeader.className = 'memory-header col-10 col-md-4 fw-bold text-primary text-truncate';
 		asciiHeader.textContent = 'ASCII';
@@ -648,16 +637,13 @@ class DebuggerUI {
 
 		view.appendChild(headerRow);
 
-		// Calculate how many rows to display
 		const rowCount = Math.min(16, Math.ceil(this.memoryPageSize / 16));
 
-		// Add memory rows
 		for (let row = 0; row < rowCount; row++) {
 			const rowStartAddr = this.currentMemoryPage + (row * 16);
 			const memoryRow = document.createElement('div');
-			memoryRow.className = 'memory-row row g-1 mb-1 px-2 py-1 rounded align-items-center';
+			memoryRow.className = 'memory-row row g-0 mb-1 px-2 py-1 rounded align-items-center';
 
-			// Address cell with responsive column
 			const addrCell = document.createElement('div');
 			addrCell.className = 'memory-address col-2 col-md-1 text-primary text-truncate';
 			addrCell.textContent = `$${rowStartAddr.toString(16).toUpperCase().padStart(4, '0')}`;
@@ -665,7 +651,7 @@ class DebuggerUI {
 
 			let asciiText = '';
 			const hexCells = document.createElement('div');
-			hexCells.className = 'col-auto d-none d-md-flex flex-wrap';
+			hexCells.className = 'col-auto d-none d-md-flex flex-nowrap';
 
 			for (let col = 0; col < 16; col++) {
 				const addr = rowStartAddr + col;
@@ -673,6 +659,9 @@ class DebuggerUI {
 					const value = this.debugger.readMemory(addr);
 					const cell = document.createElement('div');
 					cell.className = 'memory-cell text-center';
+					cell.style.width = '30px';
+					cell.style.minWidth = '30px';
+					cell.style.maxWidth = '30px';
 					cell.classList.add('col-auto', 'd-none', 'd-md-block');
 					cell.dataset.address = addr;
 					cell.textContent = value.toString(16).toUpperCase().padStart(2, '0');
@@ -680,33 +669,31 @@ class DebuggerUI {
 					cell.setAttribute('data-bs-placement', 'top');
 					cell.setAttribute('title', `Click to edit memory at $${addr.toString(16).toUpperCase().padStart(4, '0')}`);
 
-					// Highlight current PC
 					if (addr === this.debugger.getRegisterPC()) {
 						cell.classList.add('bg-danger', 'bg-opacity-25', 'fw-bold');
 					}
 
-					// Highlight SP for stack memory page
 					if (this.currentMemoryPage === 0x0100 && addr === 0x0100 + this.debugger.getRegisterSP()) {
 						cell.classList.add('bg-success', 'bg-opacity-25', 'fw-bold');
 					}
 
 					hexCells.appendChild(cell);
 
-					// ASCII representation
 					asciiText += (value >= 32 && value <= 126) ? String.fromCharCode(value) : '.';
 				} else {
 					const cell = document.createElement('div');
 					cell.className = 'memory-cell text-center text-muted col-auto d-none d-md-block';
+					cell.style.width = '30px';
+					cell.style.minWidth = '30px';
+					cell.style.maxWidth = '30px';
 					cell.textContent = '--';
 					hexCells.appendChild(cell);
 					asciiText += ' ';
 				}
 			}
 
-			// Append hex cells
 			memoryRow.appendChild(hexCells);
 
-			// Mobile-friendly compact hex view
 			const mobileHexView = document.createElement('div');
 			mobileHexView.className = 'd-md-none col-auto mb-2';
 			mobileHexView.innerHTML = `<small class="text-muted">${Array.from({ length: 16 }, (_, col) => {
@@ -714,11 +701,9 @@ class DebuggerUI {
 				return addr <= 0xFFFF
 					? this.debugger.readMemory(addr).toString(16).toUpperCase().padStart(2, '0')
 					: '--'
-			}).join(' ')
-				}</small>`;
+			}).join(' ')}</small>`;
 			memoryRow.appendChild(mobileHexView);
 
-			// ASCII cell with responsive column
 			const asciiCell = document.createElement('div');
 			asciiCell.className = 'memory-ascii col-10 col-md-4 font-monospace text-truncate';
 			asciiCell.textContent = asciiText;
@@ -727,7 +712,6 @@ class DebuggerUI {
 			view.appendChild(memoryRow);
 		}
 
-		// Re-initialize tooltips
 		this.initTooltips();
 	}
 
@@ -742,7 +726,6 @@ class DebuggerUI {
 		document.getElementById('runButton').disabled = isRunning;
 		document.getElementById('stopButton').disabled = !isRunning;
 
-		// Update button styles based on running state
 		if (isRunning) {
 			document.getElementById('runButton').classList.add('disabled');
 			document.getElementById('stepButton').classList.add('disabled');
