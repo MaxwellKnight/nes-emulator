@@ -204,6 +204,7 @@ class NESDebugger {
 
 		// Fix up any entries that weren't matched by the regex
 		// This is a brute force approach that searches for entries with specific opcodes
+		// FIX: if not done manually then LDX, LDA are not parsed
 		if (!instructions.some(i => i.opcode === 162)) { // LDX
 			// Try to find LDX entries manually
 			const ldxRegex = /(\d+)\|162\|LDX\|(\d+)\|.*?(\d+)\|(\d+)/g;

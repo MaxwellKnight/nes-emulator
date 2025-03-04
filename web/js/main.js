@@ -1,7 +1,6 @@
 document.addEventListener('DOMContentLoaded', function() {
 	console.log('DOM content loaded, setting up initialization...');
 
-	// Create a promise for debugger initialization
 	const debuggerReady = new Promise((resolve, reject) => {
 		const timeout = setTimeout(() => {
 			reject(new Error('Debugger initialization timed out'));
@@ -32,20 +31,16 @@ document.addEventListener('DOMContentLoaded', function() {
 		document.body.appendChild(script);
 	});
 
-	// Handle the initialization
 	debuggerReady
 		.then(module => {
-			// Initialize the debugger
 			window.nesDebugger = window.nesDebugger || new NESDebugger();
 			window.nesDebugger.module = module;
 			window.nesDebugger.setupFunctions();
 			window.nesDebugger.isLoaded = true;
 
-			// Initialize the UI
 			window.debuggerUI = window.debuggerUI || new DebuggerUI();
 			window.debuggerUI.updateUI();
 
-			// Initialize tooltips if bootstrap is available
 			if (typeof bootstrap !== 'undefined') {
 				const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
 				tooltipTriggerList.forEach(tooltipTriggerEl => {
@@ -53,7 +48,6 @@ document.addEventListener('DOMContentLoaded', function() {
 				});
 			}
 
-			// Mark as initialized and dispatch event
 			module.__initialized = true;
 			window.dispatchEvent(new CustomEvent('debugger-ready'));
 		})

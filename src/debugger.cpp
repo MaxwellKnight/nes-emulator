@@ -15,16 +15,12 @@ Debugger::Debugger(CPU& cpu, Bus& bus)
   , _running(false)
   , _instruction_count(0)
   , _cycle_count(0) {
-  // Set global instance for WASM exports
   g_debugger = this;
 
-  // Initialize addressing mode lookup table
   init_addressing_mode_table();
 }
 
-// Initialize the addressing mode lookup table
 void Debugger::init_addressing_mode_table() {
-  // Initialize all to implicit addressing by default
   _addressing_mode_table.fill("IMP");
 
   // Load/Store operations
@@ -210,9 +206,8 @@ void Debugger::init_addressing_mode_table() {
   _addressing_mode_table[static_cast<u8>(Opcode::BVS_REL)] = "REL";
 
   // RTI and RTS are implied
-
+  // TODO: TRI
   // Stack operations are all implied
-
   // Flag operations are all implied
 }
 
@@ -313,12 +308,10 @@ DisassembledInstruction Debugger::disassemble_instruction(u16 address) const {
   result.mnemonic = (name != nullptr && name[0] != '\0') ? name : "???";
   result.cycles = instruction.cycles;
 
-  // Get addressing mode and determine instruction bytes
   std::string addr_mode = _addressing_mode_table[opcode];
   u8 bytes = get_instruction_bytes(opcode);
   result.bytes = bytes;
 
-  // Read operand based on instruction size
   u16 operand = 0;
   if (bytes >= 2) {
     operand = read_memory(address + 1);
@@ -327,13 +320,9 @@ DisassembledInstruction Debugger::disassemble_instruction(u16 address) const {
     }
   }
   result.operand = operand;
-
-  // Format the instruction with proper addressing mode syntax
   result.formatted = format_instruction(opcode, operand, bytes, address);
 
-  // Double-check we always have a formatted string
   if (result.formatted.empty()) {
-    // If formatting failed for any reason, create a basic fallback
     std::stringstream ss;
     ss << result.mnemonic;
 
@@ -370,11 +359,8 @@ std::vector<DisassembledInstruction> Debugger::disassemble_range(u16 start, u16 
   return instructions;
 }
 
-// Find instruction boundaries before PC using instruction length table
 std::vector<DisassembledInstruction> Debugger::disassemble_around_pc(int instructions_before, int instructions_after) const {
   u16 pc = get_register_pc();
-
-  // First, build a map of potential valid instruction starts
   std::unordered_map<u16, bool> valid_starts;
 
   // Try to find valid instruction starts before PC
@@ -406,20 +392,15 @@ std::vector<DisassembledInstruction> Debugger::disassemble_around_pc(int instruc
     }
   }
 
-  // Now find the most likely instruction boundaries before PC
   std::vector<u16> before_addresses;
-
-  // Start from PC and work backwards to find valid instructions
   u16 current = pc;
   while (before_addresses.size() < instructions_before && current > scan_start) {
-    // Try to find a valid instruction that ends at current
     bool found = false;
 
     for (u16 addr = current - 3; addr < current; addr++) {
       if (addr >= scan_start && valid_starts[addr]) {
         u8 opcode = read_memory(addr);
 
-        // Verify it's a valid opcode
         const auto& instruction = _cpu.get_instruction((Opcode)opcode);
         if (instruction.name == nullptr || instruction.name[0] == '\0' || instruction.cycles == 0) {
           continue;  // Skip invalid opcodes
@@ -443,18 +424,12 @@ std::vector<DisassembledInstruction> Debugger::disassemble_around_pc(int instruc
     }
   }
 
-  // Now get instructions at and after PC
   std::vector<DisassembledInstruction> result;
-
-  // Add instructions before PC
   for (u16 addr : before_addresses) {
     result.push_back(disassemble_instruction(addr));
   }
-
-  // Add instruction at PC
   result.push_back(disassemble_instruction(pc));
 
-  // Add instructions after PC
   u16 next_addr = pc;
   DisassembledInstruction pc_instr = disassemble_instruction(pc);
   next_addr += pc_instr.bytes;
@@ -489,10 +464,8 @@ std::string Debugger::format_instruction(u8 opcode, u16 operand, u8 bytes, u16 i
 
   // Start with the mnemonic - NO SPACE for immediate mode
   if (opcode == 0xA2 || opcode == 0xA9) {
-    // For LDX #imm and LDA #imm, don't add a space after the mnemonic
     ss << mnemonic;
   } else {
-    // For all other instructions, add the mnemonic with a space
     ss << mnemonic << " ";
   }
 
@@ -763,7 +736,6 @@ EMSCRIPTEN_EXPORT char* debugger_disassemble_range(u16 start, u16 end) {
     ss << std::dec << instr.address << "|" << std::dec << static_cast<int>(instr.opcode) << "|"
        << (instr.mnemonic.empty() ? ".byte" : instr.mnemonic) << "|" << std::dec << static_cast<int>(instr.operand) << "|";
 
-    // Ensure formatted string is never empty
     if (instr.formatted.empty()) {
       // Default formatting
       ss << (instr.mnemonic.empty() ? ".byte" : instr.mnemonic);
@@ -781,7 +753,6 @@ EMSCRIPTEN_EXPORT char* debugger_disassemble_range(u16 start, u16 end) {
       ss << instr.formatted;
     }
 
-    // Make sure bytes and cycles are always valid numbers
     int bytes = (instr.bytes > 0) ? static_cast<int>(instr.bytes) : 1;
     int cycles = (instr.cycles > 0) ? static_cast<int>(instr.cycles) : 1;
 
@@ -817,7 +788,6 @@ EMSCRIPTEN_EXPORT void debugger_print_state() {
   printf("  SP = $%02X\n", sp);
   printf("  P  = $%02X (", status);
 
-  // Use the proper enum values for Flag instead of integers
   if (g_debugger->get_status_flag(static_cast<Flag>(7)))
     printf("N");
   else
@@ -852,10 +822,8 @@ EMSCRIPTEN_EXPORT void debugger_print_state() {
     printf("-");
   printf(")\n");
 
-  // Print reset vector
   printf("Reset vector: $%02X%02X\n", g_debugger->read_memory(0xFFFD), g_debugger->read_memory(0xFFFC));
 
-  // Print memory around PC
   printf("Memory at PC ($%04X):\n  ", pc);
   for (int i = 0; i < 8; i++) {
     printf("%02X ", g_debugger->read_memory(pc + i));

@@ -418,7 +418,7 @@ class DebuggerUI {
 
 		// Process each instruction
 		const result = [];
-		let nextAddr = null; // Track expected address for next instruction
+		let nextAddr = null;
 
 		for (let i = 0; i < instructions.length; i++) {
 			const instrStr = instructions[i].trim();
@@ -433,7 +433,6 @@ class DebuggerUI {
 				continue;
 			}
 
-			// Try to get the expected fields
 			const addr = parseIntSafe(parts[0]);
 			const opcode = parseIntSafe(parts[1]);
 			const mnemonic = parts[2] || 'UNK';
@@ -445,7 +444,6 @@ class DebuggerUI {
 			// If we got a weird address but we know what it should be, fix it
 			const finalAddr = isNaN(addr) || addr <= 0 ? nextAddr : addr;
 
-			// Create the instruction object with valid data
 			const instr = {
 				address: finalAddr,
 				opcode: opcode,
@@ -456,7 +454,6 @@ class DebuggerUI {
 				cycles: cycles
 			};
 
-			// Calculate next expected address
 			if (finalAddr !== null && bytes > 0) {
 				nextAddr = finalAddr + bytes;
 			} else {
@@ -482,7 +479,6 @@ class DebuggerUI {
 		return result;
 	}
 
-	// Modify your existing disassembleAroundPC to use this function
 	disassembleAroundPC(before, after) {
 		const rawData = Module.ccall(
 			'debugger_disassemble_around_pc',
@@ -494,7 +490,6 @@ class DebuggerUI {
 		return parseDisassemblyInstructions(rawData);
 	}
 
-	// And similarly for disassembleRange
 	disassembleRange(start, end) {
 		const rawData = Module.ccall(
 			'debugger_disassemble_range',

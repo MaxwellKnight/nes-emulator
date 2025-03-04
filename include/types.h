@@ -8,7 +8,7 @@ using u32 = std::uint32_t;
 using u64 = std::uint64_t;
 using i8 = std::int8_t;
 
-class IAddressable;
+class Addressable;
 class CPU;
 
 // Interface for memory-mapped components
