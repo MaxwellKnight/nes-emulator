@@ -33,10 +33,17 @@ services:
     tty: true
     stdin_open: true
 
+  reverse-proxy:
+    image: traefik:v3.1
+    command:
+      - "--api.insecure=true"
+      - "--providers.docker"
+    ports:
+      - 80:80
+      - 8080:8080
+
   web:
     image: python:3-alpine
-    ports:
-      - 5173:8080
     volumes:
       - ./web:/app/web
     working_dir: /app
