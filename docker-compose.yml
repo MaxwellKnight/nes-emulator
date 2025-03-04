@@ -53,6 +53,9 @@ services:
     working_dir: /app
     command: python -m http.server 8080 --directory /app/web
     restart: unless-stopped
+    deploy:
+      mode: replicated
+      replicas: 3
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.web.rule=Host(`129.159.132.164`)"
