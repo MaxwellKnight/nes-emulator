@@ -10,8 +10,10 @@
         rel="stylesheet">
     <style>
     </style>
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
     <link rel="stylesheet" href="css/theme.css">
     <link rel="stylesheet" href="css/layout.css">
+    <link rel="stylesheet" href="css/animations.css">
 </head>
 
 <body>
@@ -26,11 +28,12 @@
                     <div class="theme-toggle me-3" id="themeToggle" data-bs-toggle="tooltip" data-bs-placement="bottom"
                         title="Toggle Theme">
                         <i class="bi bi-moon-stars-fill me-2"></i>
-                        <span>Dark Mode</span>
+                        <span class="d-none d-md-inline">Dark Mode</span>
                     </div>
                     <div class="btn-group">
                         <button id="loadRomButton" class="btn btn-primary">
-                            <i class="bi bi-file-earmark-binary me-2"></i>Load ROM
+                            <i class="bi bi-file-earmark-binary me-2"></i>
+                            <span class="d-none d-md-inline">Load ROM</span>
                         </button>
                         <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#helpModal">
                             <i class="bi bi-question-circle"></i>
@@ -232,8 +235,10 @@
 
                             <div class="alert alert-secondary small">
                                 <strong><i class="bi bi-info-circle-fill me-1"></i> Example:</strong><br>
-                                <code class="d-block mt-1">A2 0A 8E 00 00 A2 03 8E 01 00 AC 00 00 A9 00 18 6D 01 00 88
-                                    D0 FA 8D 02 00 EA EA EA</code>
+                                <code class="d-block mt-1">A2 00 A9 00 95 20 E8 A9
+                                    01 95 20 E8 E0 0C F0 0A
+                                    B5 1F 18 75 1E 95 20 E8
+                                    90 F2 60</code>
                             </div>
                         </div>
                     </div>
@@ -249,7 +254,7 @@
                         <h2 class="section-title">Memory</h2>
                     </div>
                     <div class="d-flex gap-2 align-items-center">
-                        <div class="input-group" style="max-width: 200px;">
+                        <div class="input-group" style="max-width: 500px;">
                             <input type="text" id="memoryAddress" class="form-control" placeholder="Address (hex)">
                             <button id="jumpToAddressButton" class="btn btn-outline-primary">
                                 <i class="bi bi-arrow-right"></i>
@@ -320,6 +325,7 @@
     <script src="js/core/debugger.js"></script>
 
     <!-- Application Scripts -->
+    <script src="js/ui/animations.js"></script>
     <script src="js/ui/debugger-ui.js"></script>
     <script src="js/ui/theme.js"></script>
     <script src="js/main.js"></script>

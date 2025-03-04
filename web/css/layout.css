@@ -6,13 +6,11 @@
     --danger-color: #dc3545;
     --info-color: #17a2b8;
 
-    /* Dark theme vars */
     --dark-bg: #1a1a1a;
     --dark-bg-secondary: #252526;
     --dark-border: #444;
     --dark-text: #eee;
 
-    /* Light theme vars */
     --light-bg: #f8f9fa;
     --light-bg-secondary: #ffffff;
     --light-border: #dee2e6;
@@ -174,7 +172,6 @@ body {
     font-family: 'JetBrains Mono', 'Courier New', monospace;
 }
 
-/* Tab styling */
 .nav-tabs {
     border-bottom: 1px solid var(--panel-border);
 }
@@ -203,13 +200,11 @@ body {
     padding: 15px 0;
 }
 
-/* Opcode input field */
 #opcodeInput {
     font-family: 'JetBrains Mono', 'Courier New', monospace;
     resize: none;
 }
 
-/* Custom scrollbar */
 ::-webkit-scrollbar {
     width: 8px;
     height: 8px;
@@ -241,7 +236,6 @@ body {
     background: rgba(255, 255, 255, 0.3);
 }
 
-/* Tooltip enhancements */
 .tooltip-inner {
     max-width: 200px;
     padding: 8px 12px;
@@ -251,7 +245,6 @@ body {
     border-radius: 4px;
 }
 
-/* Base layout adjustments */
 .main-grid {
     display: grid;
     grid-template-columns: 1fr 350px;
@@ -264,7 +257,6 @@ body {
     height: calc(100vh - 30px);
 }
 
-/* Large tablets and smaller desktops */
 @media (max-width: 1200px) {
     .main-grid {
         grid-template-columns: 1fr 300px;
@@ -285,15 +277,15 @@ body {
     }
 }
 
-/* Tablets and smaller */
 @media (max-width: 992px) {
     .main-grid {
         grid-template-columns: 1fr;
         grid-template-rows: auto auto 1fr 280px;
         grid-template-areas:
             "header"
-            "sidebar"
             "disassembly"
+            /* Prioritize disassembly */
+            "sidebar"
             "memory";
     }
 
@@ -305,9 +297,22 @@ body {
     .register-grid {
         grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
     }
+
+    .panel {
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    }
+
+    .section-header {
+        align-items: center;
+        margin-bottom: 12px;
+        padding-bottom: 10px;
+    }
+
+    .section-title {
+        font-size: 1rem;
+    }
 }
 
-/* Mobile devices */
 @media (max-width: 768px) {
     body {
         padding: 0.5rem;
@@ -324,12 +329,16 @@ body {
     }
 
     .header-area .d-flex {
-        flex-direction: column;
         gap: 10px;
+        align-items: stretch;
     }
 
     .header-area .btn-group {
         width: 100%;
+    }
+
+    .header-area .btn-group .btn {
+        margin-bottom: 8px;
     }
 
     .flags-grid {
@@ -352,9 +361,16 @@ body {
         width: 28px;
         margin-right: 2px;
     }
+
+    .btn,
+    .form-control,
+    .form-select,
+    .nav-link {
+        min-height: 44px;
+        padding: 10px;
+    }
 }
 
-/* Small mobile devices */
 @media (max-width: 576px) {
     .header-area .theme-toggle {
         width: 100%;
@@ -373,6 +389,10 @@ body {
         min-height: 120px;
     }
 
+    .memory-area .section-header>div:nth-child(2) {
+        flex-direction: column;
+    }
+
     .btn,
     .btn-group .btn,
     .input-group .btn,
@@ -380,10 +400,6 @@ body {
     .form-select {
         width: 100%;
         margin: 2px 0;
-    }
-
-    .input-group {
-        flex-direction: column;
     }
 
     .input-group>* {
@@ -407,7 +423,6 @@ body {
     }
 }
 
-/* Ensure minimum touch target sizes */
 @media (hover: none) and (pointer: coarse) {
 
     .btn,
@@ -425,7 +440,6 @@ body {
     }
 }
 
-/* Dark mode adjustments for better contrast on mobile */
 @media (max-width: 768px) {
     [data-bs-theme="dark"] .memory-cell:hover {
         background-color: rgba(255, 255, 255, 0.1);
@@ -436,9 +450,57 @@ body {
     }
 }
 
-/* Accessibility improvements */
-@media (prefers-reduced-motion: reduce) {
-    * {
-        transition: none !important;
+.disassembly-container {
+    display: flex;
+    flex-direction: column;
+}
+
+.instruction {
+    display: flex;
+    align-items: center;
+    transition: background-color 0.2s ease;
+}
+
+.instruction.current {
+    background-color: rgba(220, 53, 69, 0.1);
+    border-left: 3px solid var(--danger-color) !important;
+}
+
+@media (max-width: 768px) {
+    .instruction {
+        flex-wrap: wrap;
+        padding: 0.375rem 0.5rem;
+    }
+
+    .instruction>div {
+        margin-right: 0.5rem;
+        margin-bottom: 0.25rem;
+    }
+
+    .instruction-address {
+        width: 100%;
+        margin-bottom: 0.25rem;
+    }
+
+    .instruction-mobile-compact {
+        display: flex;
+        width: 100%;
+        align-items: center;
+        flex-wrap: wrap;
+    }
+
+    .instruction-mobile-compact>span {
+        margin-right: 0.25rem;
+        margin-bottom: 0.25rem;
+    }
+}
+
+@media (max-width: 576px) {
+    .instruction {
+        font-size: 0.9em;
+    }
+
+    .instruction-mobile-compact {
+        font-size: 0.85em;
     }
 }
