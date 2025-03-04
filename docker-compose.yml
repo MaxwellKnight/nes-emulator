@@ -67,3 +67,6 @@ services:
       - "traefik.http.routers.web.entrypoints=websecure"
       - "traefik.http.services.web.loadbalancer.server.port=8080"
       - "traefik.http.services.web.tls.certresolver=myresolver"
+
+volumes:
+  letsencrypt:
