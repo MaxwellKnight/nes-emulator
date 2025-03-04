@@ -1,4 +1,4 @@
-name: Build and Test
+name: CPU Emulator CI
 
 on:
   push:
@@ -7,20 +7,38 @@ on:
     branches: [ main ]
 
 jobs:
-  build-and-test:
-    name: ${{ matrix.os }} - Build and Test
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest]
-        build_type: [Release]
-
+  build-linux:
+    name: Build on Ubuntu
+    runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
 
-    - name: Install GTest on Ubuntu
-      if: runner.os == 'Linux'
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y cmake
+
+    - name: Configure CMake
+      run: cmake -B ${{ github.workspace }}/build -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTS=OFF
+
+    - name: Build
+      run: cmake --build ${{ github.workspace }}/build --config Release
+
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: linux-build
+        path: ${{ github.workspace }}/build
+        retention-days: 1
+
+  test-linux:
+    name: Test on Ubuntu
+    runs-on: ubuntu-latest
+    needs: build-linux
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Install GTest
       run: |
         sudo apt-get update
         sudo apt-get install -y libgtest-dev cmake
@@ -29,29 +47,39 @@ jobs:
         sudo make
         sudo cp lib/*.a /usr/lib
 
-    - name: Install GTest on Windows
-      if: runner.os == 'Windows'
-      run: |
-        git clone https://github.com/google/googletest.git
-        cd googletest
-        cmake -B build -DCMAKE_INSTALL_PREFIX=${{ github.workspace }}/gtest_install
-        cmake --build build --config ${{ matrix.build_type }} --target install
+    - name: Configure CMake with Tests
+      run: cmake -B ${{ github.workspace }}/build -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTS=ON
 
-    - name: Configure CMake (Windows)
-      if: runner.os == 'Windows'
-      run: |
-        cmake -B ${{ github.workspace }}/build -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DGTEST_ROOT=${{ github.workspace }}/gtest_install
+    - name: Build with Tests
+      run: cmake --build ${{ github.workspace }}/build --config Release
 
-    - name: Configure CMake (Ubuntu)
-      if: runner.os == 'Linux'
-      run: |
-        cmake -B ${{ github.workspace }}/build -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
-
-    - name: Build
-      run: |
-        cmake --build ${{ github.workspace }}/build --config ${{ matrix.build_type }}
-
-    - name: Test
+    - name: Run Tests
       working-directory: ${{ github.workspace }}/build
-      run: |
-        ctest -C ${{ matrix.build_type }} --output-on-failure
+      run: ctest -C Release --output-on-failure
+
+  build-emscripten:
+    name: Build WebAssembly
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Setup Emscripten
+      uses: mymindstorm/setup-emsdk@v12
+
+    - name: Verify Emscripten
+      run: emcc --version
+
+    - name: Configure with Emscripten
+      run: emcmake cmake -B ${{ github.workspace }}/build -DCMAKE_BUILD_TYPE=Release
+
+    - name: Build WebAssembly
+      run: cmake --build ${{ github.workspace }}/build --config Release
+
+    - name: Upload WebAssembly artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: wasm-build
+        path: |
+          ${{ github.workspace }}/build/cpu_wasm.js
+          ${{ github.workspace }}/build/cpu_wasm.wasm
+        retention-days: 7
