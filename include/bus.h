@@ -10,9 +10,9 @@ class Bus : public Addressable {
   ~Bus() = default;
   void write(u16 address, u8 data) override;
   void write_word(u16 address, u16 value);
-  [[nodiscard]] u8 read(u16 address) const override;
-  [[nodiscard]] u16 read_word(u16 address) const;
-  [[nodiscard]] bool handles_address(u16 address) const override;
+  u8 read(u16 address) const override;
+  u16 read_word(u16 address) const;
+  bool handles_address(u16 address) const override;
 
  private:
   static constexpr size_t _CPU_RAM_SIZE = 2 * 1024;  // 2KB

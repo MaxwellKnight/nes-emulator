@@ -62,7 +62,18 @@ class DebuggerUI {
 	initTooltips() {
 		const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
 		[...tooltipTriggerList].forEach(tooltipTriggerEl => {
-			new bootstrap.Tooltip(tooltipTriggerEl);
+			new bootstrap.Tooltip(tooltipTriggerEl, {
+				trigger: 'hover focus',
+				dismiss: 'click',
+				html: true
+			});
+
+			tooltipTriggerEl.addEventListener('click', () => {
+				const tooltip = bootstrap.Tooltip.getInstance(tooltipTriggerEl);
+				if (tooltip) {
+					tooltip.hide();
+				}
+			});
 		});
 	}
 
