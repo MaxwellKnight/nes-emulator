@@ -516,117 +516,136 @@ class DebuggerUI {
 			const instructions = this.debugger.disassembleAroundPC(5, 30);
 			const pc = this.debugger.getRegisterPC();
 
-			// Display each instruction
+			// Create a responsive container
+			const disassemblyContainer = document.createElement('div');
+			disassemblyContainer.className = 'disassembly-container';
+
 			let lastAddr = null;
 			for (let i = 0; i < instructions.length; i++) {
 				const instr = instructions[i];
-				// Skip instructions with invalid addresses or that seem to be parsing errors
+
+				// Skip invalid instructions
 				if (instr.address === 0 || instr.mnemonic === String(instr.opcode)) {
 					console.warn('Skipping invalid instruction:', instr);
 					continue;
 				}
 
-				// Check for address continuity - may indicate a parsing issue
+				// Check for address continuity
 				if (lastAddr !== null && instr.address !== lastAddr + instructions[i - 1].bytes) {
 					console.warn('Address discontinuity detected:', lastAddr, 'to', instr.address);
 				}
 				lastAddr = instr.address;
 
 				const row = document.createElement('div');
-				row.className = 'instruction d-flex mb-1 py-1 px-2 rounded';
+				row.className = 'instruction row g-2 mb-1 py-1 px-2 rounded align-items-center';
 				row.dataset.address = instr.address.toString(16);
 
+				// Highlight current instruction and breakpoints
 				if (instr.address === pc) {
-					row.className += ' current';
+					row.classList.add('current');
 				}
-
 				if (this.breakpoints.has(instr.address)) {
-					row.className += ' border-warning border-start border-3';
+					row.classList.add('border', 'border-warning', 'border-start', 'border-3');
 				}
 
-				const addrSpan = document.createElement('span');
-				addrSpan.className = 'me-3 text-primary';
-				addrSpan.style.width = '60px';
-				addrSpan.textContent = `$${instr.address.toString(16).toUpperCase().padStart(4, '0')}`;
+				// Address column
+				const addrCol = document.createElement('div');
+				addrCol.className = 'col-auto pe-3 text-primary instruction-address';
+				addrCol.textContent = `$${instr.address.toString(16).toUpperCase().padStart(4, '0')}`;
+				row.appendChild(addrCol);
 
-				const opcodeSpan = document.createElement('span');
-				opcodeSpan.className = 'me-3 text-secondary';
-				opcodeSpan.style.width = '30px';
-				opcodeSpan.textContent = `${instr.opcode.toString(16).toUpperCase().padStart(2, '0')}`;
+				// Opcode column (hidden on small screens)
+				const opcodeCol = document.createElement('div');
+				opcodeCol.className = 'col-auto px-3 text-secondary instruction-opcode d-none d-md-block';
+				opcodeCol.textContent = `${instr.opcode.toString(16).toUpperCase().padStart(2, '0')}`;
+				row.appendChild(opcodeCol);
 
-				const mnemonicSpan = document.createElement('span');
-				mnemonicSpan.className = 'me-3 fw-bold';
-				mnemonicSpan.style.width = '50px';
-				mnemonicSpan.textContent = instr.mnemonic;
+				// Mnemonic column
+				const mnemonicCol = document.createElement('div');
+				mnemonicCol.className = 'col-auto px-3 fw-bold instruction-mnemonic';
+				mnemonicCol.textContent = instr.mnemonic;
+				row.appendChild(mnemonicCol);
 
-				const operandsSpan = document.createElement('span');
-				operandsSpan.className = '';
+				// Operands column
+				const operandsCol = document.createElement('div');
+				operandsCol.className = 'col instruction-operands';
 
-				// Extract operands part from formatted string
+				// Extract operands
+				let operandText = "";
 				if (instr.operand) {
-					// Fallback if formatting didn't work
-					operandsSpan.textContent = String(instr.operand);
-				}
-				else if (instr.formatted && instr.mnemonic) {
-					// If formatted string includes the mnemonic, extract the rest
+					operandText = String(instr.operand);
+				} else if (instr.formatted && instr.mnemonic) {
 					if (instr.formatted.indexOf(instr.mnemonic) === 0) {
-						const operandPart = instr.formatted.substring(instr.mnemonic.length).trim();
-						operandsSpan.textContent = operandPart;
+						operandText = instr.formatted.substring(instr.mnemonic.length).trim();
 					} else {
-						operandsSpan.textContent = instr.formatted;
+						operandText = instr.formatted;
 					}
 				}
-				else {
-					operandsSpan.textContent = "";
-				}
+				operandsCol.textContent = operandText;
+				row.appendChild(operandsCol);
 
-				const bytesSpan = document.createElement('span');
-				bytesSpan.className = 'ms-auto text-muted small';
-				bytesSpan.textContent = `${instr.bytes} bytes, ${instr.cycles} cycles`;
+				// Bytes and cycles column (compact on small screens)
+				const detailsCol = document.createElement('div');
+				detailsCol.className = 'col-auto text-muted small instruction-details';
+				detailsCol.textContent = `${instr.bytes} B, ${instr.cycles} cyc`;
+				row.appendChild(detailsCol);
 
-				row.appendChild(addrSpan);
-				row.appendChild(opcodeSpan);
-				row.appendChild(mnemonicSpan);
-				row.appendChild(operandsSpan);
-				row.appendChild(bytesSpan);
+				// Mobile-friendly compact view
+				const mobileCompactView = document.createElement('div');
+				mobileCompactView.className = 'd-md-none instruction-mobile-compact small text-muted';
+				mobileCompactView.innerHTML = `
+                <span class="text-primary me-1">$${instr.address.toString(16).toUpperCase().padStart(4, '0')}</span>
+                <span class="text-secondary me-1">${instr.opcode.toString(16).toUpperCase().padStart(2, '0')}</span>
+                <span class="fw-bold me-1">${instr.mnemonic}</span>
+                <span>${operandText}</span>
+                <span class="ms-auto">(${instr.bytes}B, ${instr.cycles}cyc)</span>
+            `;
+				row.appendChild(mobileCompactView);
 
-				view.appendChild(row);
+				disassemblyContainer.appendChild(row);
 			}
+
+			view.appendChild(disassemblyContainer);
+
 		} catch (e) {
 			console.error('Error in disassembly:', e);
-			view.innerHTML = '<div class="alert alert-danger">Error disassembling code: ' + e.message + '</div>';
+			view.innerHTML = `
+            <div class="alert alert-danger">
+                <strong>Disassembly Error:</strong> ${e.message}
+            </div>
+        `;
 		}
 	}
 
 	updateMemoryView() {
 		const view = document.getElementById('memoryView');
 		view.innerHTML = '';
+		view.classList.add('container-fluid', 'px-0');
 
-		// Add headers
+		// Responsive header row
 		const headerRow = document.createElement('div');
-		headerRow.className = 'memory-row mb-2 px-2 py-1 bg-primary bg-opacity-10 rounded';
+		headerRow.className = 'memory-row row g-1 mb-2 px-2 py-1 bg-primary bg-opacity-10 rounded align-items-center';
 
+		// Address header with responsive column
 		const addrHeader = document.createElement('div');
-		addrHeader.className = 'memory-header fw-bold text-primary';
-		addrHeader.style.width = '80px';
-		addrHeader.textContent = 'Address';
-
+		addrHeader.className = 'memory-header col-2 col-md-1 fw-bold text-primary text-truncate';
+		addrHeader.textContent = 'Addr';
 		headerRow.appendChild(addrHeader);
 
+		// Hex index headers with responsive columns
 		for (let i = 0; i < 16; i++) {
 			const header = document.createElement('div');
-			header.className = 'memory-header fw-bold text-primary';
-			header.style.width = '30px';
+			header.className = 'memory-header col-auto d-none d-md-block fw-bold text-primary text-center';
 			header.textContent = i.toString(16).toUpperCase();
 			headerRow.appendChild(header);
 		}
 
+		// ASCII header with responsive column
 		const asciiHeader = document.createElement('div');
-		asciiHeader.className = 'memory-header fw-bold text-primary ms-2';
-		asciiHeader.style.width = '180px';
+		asciiHeader.className = 'memory-header col-10 col-md-4 fw-bold text-primary text-truncate';
 		asciiHeader.textContent = 'ASCII';
-
 		headerRow.appendChild(asciiHeader);
+
 		view.appendChild(headerRow);
 
 		// Calculate how many rows to display
@@ -635,28 +654,26 @@ class DebuggerUI {
 		// Add memory rows
 		for (let row = 0; row < rowCount; row++) {
 			const rowStartAddr = this.currentMemoryPage + (row * 16);
-
 			const memoryRow = document.createElement('div');
-			memoryRow.className = 'memory-row mb-1 px-2 py-1 rounded';
+			memoryRow.className = 'memory-row row g-1 mb-1 px-2 py-1 rounded align-items-center';
 
+			// Address cell with responsive column
 			const addrCell = document.createElement('div');
-			addrCell.className = 'memory-address text-primary';
-			addrCell.style.width = '80px';
+			addrCell.className = 'memory-address col-2 col-md-1 text-primary text-truncate';
 			addrCell.textContent = `$${rowStartAddr.toString(16).toUpperCase().padStart(4, '0')}`;
-
 			memoryRow.appendChild(addrCell);
 
 			let asciiText = '';
+			const hexCells = document.createElement('div');
+			hexCells.className = 'col-auto d-none d-md-flex flex-wrap';
 
 			for (let col = 0; col < 16; col++) {
 				const addr = rowStartAddr + col;
-
 				if (addr <= 0xFFFF) {
 					const value = this.debugger.readMemory(addr);
-
 					const cell = document.createElement('div');
 					cell.className = 'memory-cell text-center';
-					cell.style.width = '30px';
+					cell.classList.add('col-auto', 'd-none', 'd-md-block');
 					cell.dataset.address = addr;
 					cell.textContent = value.toString(16).toUpperCase().padStart(2, '0');
 					cell.setAttribute('data-bs-toggle', 'tooltip');
@@ -665,35 +682,48 @@ class DebuggerUI {
 
 					// Highlight current PC
 					if (addr === this.debugger.getRegisterPC()) {
-						cell.className += ' bg-danger bg-opacity-25 fw-bold';
+						cell.classList.add('bg-danger', 'bg-opacity-25', 'fw-bold');
 					}
 
 					// Highlight SP for stack memory page
 					if (this.currentMemoryPage === 0x0100 && addr === 0x0100 + this.debugger.getRegisterSP()) {
-						cell.className += ' bg-success bg-opacity-25 fw-bold';
+						cell.classList.add('bg-success', 'bg-opacity-25', 'fw-bold');
 					}
 
-					memoryRow.appendChild(cell);
+					hexCells.appendChild(cell);
 
 					// ASCII representation
 					asciiText += (value >= 32 && value <= 126) ? String.fromCharCode(value) : '.';
 				} else {
 					const cell = document.createElement('div');
-					cell.className = 'memory-cell text-center text-muted';
-					cell.style.width = '30px';
+					cell.className = 'memory-cell text-center text-muted col-auto d-none d-md-block';
 					cell.textContent = '--';
-					memoryRow.appendChild(cell);
-
+					hexCells.appendChild(cell);
 					asciiText += ' ';
 				}
 			}
 
-			const asciiCell = document.createElement('div');
-			asciiCell.className = 'memory-ascii ms-2 font-monospace';
-			asciiCell.style.width = '180px';
-			asciiCell.textContent = asciiText;
+			// Append hex cells
+			memoryRow.appendChild(hexCells);
 
+			// Mobile-friendly compact hex view
+			const mobileHexView = document.createElement('div');
+			mobileHexView.className = 'd-md-none col-auto mb-2';
+			mobileHexView.innerHTML = `<small class="text-muted">${Array.from({ length: 16 }, (_, col) => {
+				const addr = rowStartAddr + col;
+				return addr <= 0xFFFF
+					? this.debugger.readMemory(addr).toString(16).toUpperCase().padStart(2, '0')
+					: '--'
+			}).join(' ')
+				}</small>`;
+			memoryRow.appendChild(mobileHexView);
+
+			// ASCII cell with responsive column
+			const asciiCell = document.createElement('div');
+			asciiCell.className = 'memory-ascii col-10 col-md-4 font-monospace text-truncate';
+			asciiCell.textContent = asciiText;
 			memoryRow.appendChild(asciiCell);
+
 			view.appendChild(memoryRow);
 		}
 
