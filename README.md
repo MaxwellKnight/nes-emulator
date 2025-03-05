@@ -25,7 +25,7 @@ The debugger is accessible online at [codeknight.dev](https://codeknight.dev/), 
 ```bash
 # Clone the repository
 git clone https://github.com/MaxwellKnight/nes-emulator.git
-cd 6502-debugger
+cd nes-emulator
 
 # Build all components (native + WebAssembly)
 docker compose run build

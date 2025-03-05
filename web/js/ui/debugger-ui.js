@@ -81,6 +81,10 @@ class DebuggerUI {
 		this.showToast('CPU reset successfully', 'success');
 	}
 
+	step() {
+		this.debugger.stepInstruction();
+	}
+
 	run() {
 		this.debugger.startContinuousExecution();
 		this.setControlsDisabled(true);
