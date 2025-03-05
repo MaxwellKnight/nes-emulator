@@ -2,7 +2,7 @@
 
 An interactive 6502 microprocessor emulator and debugger for the Nintendo Entertainment System (NES), providing educational insights into retro computing. Available at [codeknight.dev](https://codeknight.dev/).
 
-![6502 Debugger Screenshot](https://ibb.co/V0wv0V3y)
+![6502 Debugger Screenshot](imgs/main-screenshot.png)
 
 ## Features
 
