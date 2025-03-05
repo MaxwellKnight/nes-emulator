@@ -59,6 +59,6 @@ services:
       replicas: 3
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.web.rule=Host(`129.159.132.164`)"
+      - "traefik.http.routers.web.rule=Host(`codeknight.dev`)"
       - "traefik.http.routers.web.entrypoints=web"
       - "traefik.http.services.web.loadbalancer.server.port=8080"
