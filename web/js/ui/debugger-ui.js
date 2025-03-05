@@ -83,17 +83,104 @@ class DebuggerUI {
 
 	run() {
 		this.debugger.startContinuousExecution();
+		this.setControlsDisabled(true);
+
+		document.getElementById('runButton').classList.add('disabled');
+		document.getElementById('stepButton').classList.add('disabled');
+		document.getElementById('stopButton').classList.remove('disabled');
+
 		this.showToast('Execution started', 'info');
 	}
 
-	step() {
-		this.debugger.stepInstruction();
-	}
 
 	stop() {
 		this.debugger.stopContinuousExecution();
+		this.setControlsDisabled(false);
+
+		document.getElementById('runButton').classList.remove('disabled');
+		document.getElementById('stepButton').classList.remove('disabled');
+		document.getElementById('stopButton').classList.add('disabled');
+
 		this.updateUI();
 		this.showToast('Execution stopped', 'warning');
+	}
+
+	setControlsDisabled(disabled) {
+		const memoryView = document.getElementById('memoryView');
+		memoryView.classList.toggle('interaction-disabled', disabled);
+
+		const disassemblyView = document.getElementById('disassemblyView');
+		disassemblyView.classList.toggle('interaction-disabled', disabled);
+
+		const inputElements = [
+			'breakpointAddress',
+			'memoryAddress',
+			'opcodeInput',
+			'memoryPage'
+		];
+
+		inputElements.forEach(id => {
+			const element = document.getElementById(id);
+			if (element) element.disabled = disabled;
+		});
+
+		const buttonElements = [
+			'resetButton',
+			'stepButton',
+			'addBreakpointButton',
+			'jumpToAddressButton',
+			'loadRomButton',
+			'loadOpcodesButton'
+		];
+
+		buttonElements.forEach(id => {
+			const element = document.getElementById(id);
+			if (element) {
+				element.disabled = disabled;
+				if (disabled) {
+					element.classList.add('disabled');
+				} else {
+					element.classList.remove('disabled');
+				}
+			}
+		});
+
+		if (disabled) {
+			const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
+			[...tooltipTriggerList].forEach(tooltipTriggerEl => {
+				const tooltip = bootstrap.Tooltip.getInstance(tooltipTriggerEl);
+				if (tooltip) {
+					tooltip.hide();
+					tooltip.disable();
+				}
+			});
+		} else {
+			const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
+			[...tooltipTriggerList].forEach(tooltipTriggerEl => {
+				const tooltip = bootstrap.Tooltip.getInstance(tooltipTriggerEl);
+				if (tooltip) {
+					tooltip.enable();
+				} else {
+					new bootstrap.Tooltip(tooltipTriggerEl, {
+						trigger: 'hover focus',
+						dismiss: 'click',
+						html: true
+					});
+				}
+			});
+		}
+
+		if (!document.getElementById('interaction-disabled-style')) {
+			const style = document.createElement('style');
+			style.id = 'interaction-disabled-style';
+			style.textContent = `
+            .interaction-disabled {
+                pointer-events: none;
+                opacity: 0.7;
+            }
+        `;
+			document.head.appendChild(style);
+		}
 	}
 
 	addBreakpoint() {
