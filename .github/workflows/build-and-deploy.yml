@@ -21,48 +21,57 @@ on:
         default: 'latest'
         type: string
 
-# Define environment variables
-env:
-  DOCKER_IMAGE: ${{ github.repository_owner_lc }}/nes-emulator
-  PLATFORMS: linux/amd64,linux/arm64
-
 jobs:
   # Re-run tests to ensure everything is OK before deploying
   verify:
     name: Verify Build and Tests
     runs-on: ubuntu-latest
+    container:
+      image: emscripten/emsdk:latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-
+      
       - name: Install dependencies
         run: |
-          sudo apt-get update
-          sudo apt-get install -y cmake build-essential
-
+          apt-get update
+          apt-get install -y build-essential cmake git
+      
       - name: Install GTest
         run: |
-          sudo apt-get install -y libgtest-dev
-          cd /usr/src/googletest
-          sudo cmake .
-          sudo cmake --build . --target install
-
-      - name: Configure
+          git clone https://github.com/google/googletest.git /googletest
+          cd /googletest
+          mkdir build
+          cd build
+          cmake .. -DBUILD_GMOCK=OFF -DINSTALL_GTEST=ON
+          make -j$(nproc)
+          make install
+          ldconfig
+      
+      - name: Build native and run tests
         run: |
-          cmake -B ${{ github.workspace }}/build-Release \
-                -DCMAKE_BUILD_TYPE=Release \
-                -DBUILD_TESTS=ON
-
-      - name: Build
+          mkdir -p native_build
+          cd native_build
+          cmake .. -DCMAKE_BUILD_TYPE=Debug
+          make -j$(nproc)
+          ctest --output-on-failure
+      
+      - name: Build WebAssembly
         run: |
-          cmake --build ${{ github.workspace }}/build-Release \
-                --config Release \
-                --parallel $(nproc)
-
-      - name: Run tests
-        working-directory: ${{ github.workspace }}/build-Release
-        run: |
-          ctest -C Release --output-on-failure --verbose
+          mkdir -p wasm_build
+          cd wasm_build
+          emcmake cmake .. -DCMAKE_BUILD_TYPE=Release
+          make -j$(nproc)
+      
+      - name: Upload WASM artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: wasm-build
+          path: |
+            wasm_build/**/*.js
+            wasm_build/**/*.wasm
+            wasm_build/**/*.html
+          retention-days: 7
 
   # Build and deploy Docker image
   docker-build-deploy:
@@ -72,69 +81,79 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
+        uses: actions/checkout@v4
+      
       - name: Extract version
-
-        id: version
+        id: extract_version
         run: |
-          VERSION=$(grep -E "VERSION [0-9]+" CMakeLists.txt | grep -oE "[0-9]+\.[0-9]+\.[0-9]+" || echo "latest")
+          # Try to extract version from CMakeLists.txt
+          if [ -f "CMakeLists.txt" ]; then
+            VERSION=$(grep -E "VERSION [0-9]+" CMakeLists.txt | grep -oE "[0-9]+\.[0-9]+\.[0-9]+" || echo "")
+          fi
+          
+          # If version not found or empty, try package.json
+          if [ -z "$VERSION" ] && [ -f "package.json" ]; then
+            VERSION=$(grep -E "\"version\":" package.json | grep -oE "[0-9]+\.[0-9]+\.[0-9]+" || echo "")
+          fi
+          
+          # Default to latest if no version found
+          if [ -z "$VERSION" ]; then
+            VERSION="latest"
+          fi
+          
           echo "VERSION=$VERSION" >> $GITHUB_ENV
           echo "version=$VERSION" >> $GITHUB_OUTPUT
-
+      
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
-
+      
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
-
-      - name: Cache Docker layers
-        uses: actions/cache@v3
-        with:
-          path: /tmp/.buildx-cache
-          key: ${{ runner.os }}-buildx-${{ github.sha }}
-          restore-keys: |
-            ${{ runner.os }}-buildx-
-
+      
       - name: Login to DockerHub
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
-
-      - name: Convert to lowercase repository name
-        id: repo_name
+      
+      - name: Lowercase Docker information
+        id: docker_info
         run: |
-          REPO_OWNER_LC=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
-          echo "repository_owner_lc=${REPO_OWNER_LC}" >> $GITHUB_ENV
-          echo "repository_owner_lc=${REPO_OWNER_LC}" >> $GITHUB_OUTPUT
-
-      - name: Set tags
-        id: set_tags
-        run: |
-          TAG=${{ github.event.inputs.tag }}
-          if [ "$TAG" = "latest" ]; then
-            TAG=${{ env.VERSION }}
+          # Convert repository name to lowercase
+          REPO_LC="${GITHUB_REPOSITORY,,}"
+          echo "REPO_LC=$REPO_LC" >> $GITHUB_ENV
+          
+          # Determine tag to use
+          TAG="${{ github.event.inputs.tag }}"
+          if [ "$TAG" = "latest" ] || [ -z "$TAG" ]; then
+            TAG="${{ env.VERSION }}"
           fi
-          DOCKER_IMAGE_LC=$(echo "${{ env.DOCKER_IMAGE }}" | tr '[:upper:]' '[:lower:]')
-          echo "TAGS=${DOCKER_IMAGE_LC}:${TAG},${DOCKER_IMAGE_LC}:latest" >> $GITHUB_ENV
-          echo "tags=${DOCKER_IMAGE_LC}:${TAG},${DOCKER_IMAGE_LC}:latest" >> $GITHUB_OUTPUT
-
-      - name: Build and push
+          
+          # Make sure we have a valid tag
+          if [ -z "$TAG" ] || [ "$TAG" = "latest" ]; then
+            TAG="latest"
+          fi
+          
+          echo "TAG=$TAG" >> $GITHUB_ENV
+      
+      - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
           context: .
           file: ./Dockerfile.prod
-          platforms: ${{ env.PLATFORMS }}
+          platforms: linux/amd64,linux/arm64
           push: true
-          tags: ${{ env.TAGS }}
+          tags: |
+            ${{ env.REPO_LC }}:${{ env.TAG }}
+            ${{ env.REPO_LC }}:latest
           cache-from: type=local,src=/tmp/.buildx-cache
           cache-to: type=local,dest=/tmp/.buildx-cache-new,mode=max
-
-      # Move cache to prevent it from growing indefinitely
+      
       - name: Move cache
         run: |
           rm -rf /tmp/.buildx-cache
           mv /tmp/.buildx-cache-new /tmp/.buildx-cache
-
+      
       - name: Create GitHub Release
         if: github.ref == 'refs/heads/main' && env.VERSION != 'latest'
         uses: softprops/action-gh-release@v1
@@ -145,9 +164,3 @@ jobs:
           draft: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Notify on Success
-        if: success()
-        run: |
-          echo "✅ Docker image has been successfully built and deployed to DockerHub."
-          echo "   Tags: ${{ env.TAGS }}"
