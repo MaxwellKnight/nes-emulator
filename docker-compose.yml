@@ -1,6 +1,3 @@
-version: '3.8'
-
-# Base configurations that can be extended
 x-build-base: &build-base
   build:
     context: .
@@ -14,7 +11,7 @@ x-web-base: &web-base
   volumes:
     - ./web:/app/web
   working_dir: /app
-  command: python -m http.server 8080 --directory /app/web
+  command: python -m http.server 5173 --directory /app/web
 
 services:
   # Development services
@@ -22,12 +19,12 @@ services:
     <<: *build-base
     profiles: [dev]
     command: build_all.sh
-  
+
   test:
     <<: *build-base
     profiles: [dev, test]
     command: build_and_test.sh
-  
+
   shell:
     <<: *build-base
     profiles: [dev]
@@ -41,7 +38,7 @@ services:
     profiles: [dev]
     restart: "no"
     ports:
-      - "8080:8080"
+      - "5173:5173"
 
   # Production services
   reverse-proxy:
@@ -64,7 +61,7 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
       - ./letsencrypt:/letsencrypt
     restart: unless-stopped
-  
+
   web-prod:
     <<: *web-base
     profiles: [prod]
@@ -83,3 +80,18 @@ services:
       - "traefik.http.routers.web-secure.tls.certresolver=myresolver"
       - "traefik.http.services.web.loadbalancer.server.port=8080"
       - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
+      - "com.centurylinklabs.watchtower.enable=true"
+
+  watchtower:
+      image: containrrr/watchtower
+      profiles: [prod]
+      volumes:
+        - /var/run/docker.sock:/var/run/docker.sock
+        - /root/.docker/config.json:/config.json
+      command: --interval 30 --cleanup --label-enable
+      labels:
+        - "com.centurylinklabs.watchtower.enable=true"
+      environment:
+        - TZ=UTC
+        - WATCHTOWER_NOTIFICATIONS=shoutrrr
+      restart: unless-stopped

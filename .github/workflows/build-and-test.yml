@@ -11,16 +11,16 @@ jobs:
   build-and-test:
     name: Build and Test
     runs-on: ubuntu-latest
-    
+
     strategy:
       matrix:
         build-type: [Release, Debug]
       fail-fast: false  # Continue with other builds if one fails
-    
+
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
-    
+
     - name: Setup cache
       uses: actions/cache@v3
       with:
@@ -30,12 +30,12 @@ jobs:
         key: ${{ runner.os }}-deps-${{ hashFiles('**/CMakeLists.txt') }}
         restore-keys: |
           ${{ runner.os }}-deps-
-    
+
     - name: Install dependencies
       run: |
         sudo apt-get update
         sudo apt-get install -y cmake build-essential
-    
+
     - name: Install GTest
       run: |
         if [ ! -d "/usr/local/lib/googletest" ]; then
@@ -46,24 +46,24 @@ jobs:
         fi
         # Verify installation
         ls -la /usr/local/lib/libgtest*
-    
+
     - name: Configure
       run: |
         cmake -B ${{ github.workspace }}/build-${{ matrix.build-type }} \
               -DCMAKE_BUILD_TYPE=${{ matrix.build-type }} \
               -DBUILD_TESTS=ON
-    
+
     - name: Build
       run: |
         cmake --build ${{ github.workspace }}/build-${{ matrix.build-type }} \
               --config ${{ matrix.build-type }} \
               --parallel $(nproc)
-    
+
     - name: Run tests
       working-directory: ${{ github.workspace }}/build-${{ matrix.build-type }}
       run: |
         ctest -C ${{ matrix.build-type }} --output-on-failure --verbose
-    
+
     - name: Upload artifacts
       if: matrix.build-type == 'Release'
       uses: actions/upload-artifact@v4
@@ -78,32 +78,32 @@ jobs:
   wasm-build:
     name: WebAssembly Build
     runs-on: ubuntu-latest
-    
+
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
-    
+
     - name: Setup Emscripten
       uses: mymindstorm/setup-emsdk@v12
       with:
         version: latest
         actions-cache-folder: 'emsdk-cache'
-    
+
     - name: Verify Emscripten installation
       run: |
         emcc --version
-    
+
     - name: Configure WebAssembly build
       run: |
         mkdir -p wasm_build
         cd wasm_build
         emcmake cmake .. -DCMAKE_BUILD_TYPE=Release
-    
+
     - name: Build WebAssembly
       working-directory: wasm_build
       run: |
         make -j$(nproc)
-    
+
     - name: Upload WebAssembly artifacts
       uses: actions/upload-artifact@v4
       with:
@@ -119,24 +119,24 @@ jobs:
     needs: [build-and-test, wasm-build]
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
-    
+
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
-    
+
     - name: Download WebAssembly artifacts
       uses: actions/download-artifact@v4
       with:
         name: wasm-artifacts
         path: ./web/build
-    
+
     - name: Setup deploy preview
       run: |
         # Set up temporary web directory
         mkdir -p preview
         cp -r ./web/* preview/
         echo "Preview deployed for PR #${{ github.event.pull_request.number }}" > preview/index.html
-    
+
     - name: Deploy preview
       uses: peaceiris/actions-gh-pages@v3
       with:

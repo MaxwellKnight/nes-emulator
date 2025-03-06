@@ -1,0 +1,146 @@
+name: Docker Build and Deploy
+
+on:
+  # Only trigger this workflow on the main branch when everything is verified
+  push:
+    branches: [ main ]
+  # Allow manual triggers
+  workflow_dispatch:
+    inputs:
+      force_deploy:
+        description: 'Force deployment even if tests fail'
+        required: false
+        default: 'false'
+        type: choice
+        options:
+          - 'false'
+          - 'true'
+      tag:
+        description: 'Custom tag to use (default: latest)'
+        required: false
+        default: 'latest'
+        type: string
+
+# Define environment variables
+env:
+  DOCKER_IMAGE: ${{ github.repository_owner }}/nes-emulator
+  PLATFORMS: linux/amd64,linux/arm64
+
+jobs:
+  # Re-run tests to ensure everything is OK before deploying
+  verify:
+    name: Verify Build and Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake build-essential
+
+      - name: Install GTest
+        run: |
+          sudo apt-get install -y libgtest-dev
+          cd /usr/src/googletest
+          sudo cmake .
+          sudo cmake --build . --target install
+
+      - name: Configure
+        run: |
+          cmake -B ${{ github.workspace }}/build-Release \
+                -DCMAKE_BUILD_TYPE=Release \
+                -DBUILD_TESTS=ON
+
+      - name: Build
+        run: |
+          cmake --build ${{ github.workspace }}/build-Release \
+                --config Release \
+                --parallel $(nproc)
+
+      - name: Run tests
+        working-directory: ${{ github.workspace }}/build-Release
+        run: |
+          ctest -C Release --output-on-failure --verbose
+
+  # Build and deploy Docker image
+  docker-build-deploy:
+    name: Docker Build and Deploy
+    needs: verify
+    if: success() || github.event.inputs.force_deploy == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Extract version
+        id: version
+        run: |
+          VERSION=$(grep -E "VERSION [0-9]+" CMakeLists.txt | grep -oE "[0-9]+\.[0-9]+\.[0-9]+" || echo "latest")
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Cache Docker layers
+        uses: actions/cache@v3
+        with:
+          path: /tmp/.buildx-cache
+          key: ${{ runner.os }}-buildx-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-buildx-
+
+      - name: Login to DockerHub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Set tags
+        id: set_tags
+        run: |
+          TAG=${{ github.event.inputs.tag }}
+          if [ "$TAG" = "latest" ]; then
+            TAG=${{ env.VERSION }}
+          fi
+          echo "TAGS=${DOCKER_IMAGE}:${TAG},${DOCKER_IMAGE}:latest" >> $GITHUB_ENV
+          echo "tags=${DOCKER_IMAGE}:${TAG},${DOCKER_IMAGE}:latest" >> $GITHUB_OUTPUT
+
+      - name: Build and push
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile.prod
+          platforms: ${{ env.PLATFORMS }}
+          push: true
+          tags: ${{ env.TAGS }}
+          cache-from: type=local,src=/tmp/.buildx-cache
+          cache-to: type=local,dest=/tmp/.buildx-cache-new,mode=max
+
+      # Move cache to prevent it from growing indefinitely
+      - name: Move cache
+        run: |
+          rm -rf /tmp/.buildx-cache
+          mv /tmp/.buildx-cache-new /tmp/.buildx-cache
+
+      - name: Create GitHub Release
+        if: github.ref == 'refs/heads/main' && env.VERSION != 'latest'
+        uses: softprops/action-gh-release@v1
+        with:
+          name: Release v${{ env.VERSION }}
+          tag_name: v${{ env.VERSION }}
+          generate_release_notes: true
+          draft: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Notify on Success
+        if: success()
+        run: |
+          echo "✅ Docker image has been successfully built and deployed to DockerHub."
+          echo "   Tags: ${{ env.TAGS }}"

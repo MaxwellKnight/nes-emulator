@@ -318,6 +318,10 @@ body {
         padding: 0.5rem;
     }
 
+    .hide-mobile {
+        display: none;
+    }
+
     .main-grid {
         height: auto;
         min-height: calc(100vh - 16px);
