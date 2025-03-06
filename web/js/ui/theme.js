@@ -20,8 +20,8 @@ themeToggle.addEventListener('click', function() {
 function updateThemeToggle(theme) {
 	const themeToggle = document.getElementById('themeToggle');
 	if (theme === 'light') {
-		themeToggle.innerHTML = '<i class="bi bi-sun-fill me-2"></i><span>Light Mode</span>';
+		themeToggle.innerHTML = '<i class="bi bi-sun-fill me-2"></i><span class="hide-mobile">Light Mode</span>';
 	} else {
-		themeToggle.innerHTML = '<i class="bi bi-moon-stars-fill me-2"></i><span>Dark Mode</span>';
+		themeToggle.innerHTML = '<i class="bi bi-moon-stars-fill me-2"></i><span class="hide-mobile">Dark Mode</span>';
 	}
 }
