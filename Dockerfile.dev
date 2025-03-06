@@ -1,4 +1,4 @@
-FROM emscripten/emsdk:latest AS emscripten-base
+FROM emscripten/emsdk:latest
 
 # Install basic tools
 RUN apt-get update && apt-get install -y \
@@ -55,5 +55,5 @@ build_wasm.sh && build_and_test.sh\n\
 && chmod +x /usr/local/bin/build_all.sh
 
 # Set the entrypoint to allow overriding the command
-ENTRYPOINT ["/bin/bash"]
+ENTRYPOINT ["/bin/bash", "-c"]
 CMD ["build_all.sh"]
