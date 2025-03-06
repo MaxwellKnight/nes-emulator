@@ -122,7 +122,7 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: .
-          file: ./Dockerfile
+          file: ./Dockerfile.prod
           platforms: ${{ env.PLATFORMS }}
           push: true
           tags: ${{ env.TAGS }}
