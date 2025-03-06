@@ -1,40 +1,52 @@
-services:
+version: '3.8'
+
+# Base configurations that can be extended
+x-build-base: &build-base
   build:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    volumes:
-      - .:/app
+    context: .
+    dockerfile: Dockerfile.dev
+  volumes:
+    - .:/app
+  restart: "no"
+
+x-web-base: &web-base
+  image: python:3-alpine
+  volumes:
+    - ./web:/app/web
+  working_dir: /app
+  command: python -m http.server 8080 --directory /app/web
+
+services:
+  # Development services
+  dev:
+    <<: *build-base
+    profiles: [dev]
     command: build_all.sh
-
-  wasm:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    volumes:
-      - .:/app
-    command: build_wasm.sh
-
+  
   test:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    volumes:
-      - .:/app
+    <<: *build-base
+    profiles: [dev, test]
     command: build_and_test.sh
-
+  
   shell:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    volumes:
-      - .:/app
+    <<: *build-base
+    profiles: [dev]
     command: /bin/bash
     tty: true
     stdin_open: true
 
+  # Web server for development
+  web-dev:
+    <<: *web-base
+    profiles: [dev]
+    restart: "no"
+    ports:
+      - "8080:8080"
+
+  # Production services
   reverse-proxy:
     image: traefik:v3.1
+    profiles: [prod]
     command:
       - "--api.insecure=true"
       - "--providers.docker=true"
@@ -51,13 +63,11 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - ./letsencrypt:/letsencrypt
-
-  web:
-    image: python:3-alpine
-    volumes:
-      - ./web:/app/web
-    working_dir: /app
-    command: python -m http.server 8080 --directory /app/web
+    restart: unless-stopped
+  
+  web-prod:
+    <<: *web-base
+    profiles: [prod]
     restart: unless-stopped
     deploy:
       mode: replicated
@@ -73,4 +83,3 @@ services:
       - "traefik.http.routers.web-secure.tls.certresolver=myresolver"
       - "traefik.http.services.web.loadbalancer.server.port=8080"
       - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
-

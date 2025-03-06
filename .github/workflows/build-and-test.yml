@@ -2,81 +2,146 @@ name: Build and Test
 
 on:
   push:
-    branches: [ main ]
+    branches: [ dev, main ]
   pull_request:
-    branches: [ main ]
+    branches: [ dev, main ]
+  workflow_dispatch:  # Allow manual triggers
 
 jobs:
-  build:
-    name: Build
+  build-and-test:
+    name: Build and Test
     runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        build-type: [Release, Debug]
+      fail-fast: false  # Continue with other builds if one fails
+    
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
-
+    
+    - name: Setup cache
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.cache/pip
+          /usr/local/lib/googletest
+        key: ${{ runner.os }}-deps-${{ hashFiles('**/CMakeLists.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-deps-
+    
     - name: Install dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y cmake
-
-    - name: Configure CMake
+        sudo apt-get install -y cmake build-essential
+    
+    - name: Install GTest
       run: |
-        cmake -B ${{ github.workspace }}/build -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTS=OFF
-
+        if [ ! -d "/usr/local/lib/googletest" ]; then
+          sudo apt-get install -y libgtest-dev
+          cd /usr/src/googletest
+          sudo cmake .
+          sudo cmake --build . --target install
+        fi
+        # Verify installation
+        ls -la /usr/local/lib/libgtest*
+    
+    - name: Configure
+      run: |
+        cmake -B ${{ github.workspace }}/build-${{ matrix.build-type }} \
+              -DCMAKE_BUILD_TYPE=${{ matrix.build-type }} \
+              -DBUILD_TESTS=ON
+    
     - name: Build
       run: |
-        cmake --build ${{ github.workspace }}/build --config Release
-
-    - name: Upload build artifacts
+        cmake --build ${{ github.workspace }}/build-${{ matrix.build-type }} \
+              --config ${{ matrix.build-type }} \
+              --parallel $(nproc)
+    
+    - name: Run tests
+      working-directory: ${{ github.workspace }}/build-${{ matrix.build-type }}
+      run: |
+        ctest -C ${{ matrix.build-type }} --output-on-failure --verbose
+    
+    - name: Upload artifacts
+      if: matrix.build-type == 'Release'
       uses: actions/upload-artifact@v4
       with:
-        name: build-artifacts
-        path: ${{ github.workspace }}/build
-        retention-days: 1
+        name: build-artifacts-${{ matrix.build-type }}
+        path: |
+          ${{ github.workspace }}/build-${{ matrix.build-type }}/**/*.a
+          ${{ github.workspace }}/build-${{ matrix.build-type }}/**/*.so
+          ${{ github.workspace }}/build-${{ matrix.build-type }}/**/*.wasm
+        retention-days: 7
 
-  test:
-    name: Test
-    needs: build
+  wasm-build:
+    name: WebAssembly Build
     runs-on: ubuntu-latest
+    
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
-
-    - name: Install GTest
+    
+    - name: Setup Emscripten
+      uses: mymindstorm/setup-emsdk@v12
+      with:
+        version: latest
+        actions-cache-folder: 'emsdk-cache'
+    
+    - name: Verify Emscripten installation
       run: |
-        sudo apt-get update
-        sudo apt-get install -y libgtest-dev cmake
-        cd /usr/src/gtest
-        sudo cmake CMakeLists.txt
-        sudo make
-        sudo cp lib/*.a /usr/lib
-
-    - name: Set up GTest environment
+        emcc --version
+    
+    - name: Configure WebAssembly build
       run: |
-        # Create GTEST_ROOT environment variable
-        echo "GTEST_ROOT=/usr" >> $GITHUB_ENV
-        # Verify GTest libraries exist
-        ls -la /usr/lib/libgtest*.a || echo "GTest libraries not found!"
+        mkdir -p wasm_build
+        cd wasm_build
+        emcmake cmake .. -DCMAKE_BUILD_TYPE=Release
+    
+    - name: Build WebAssembly
+      working-directory: wasm_build
+      run: |
+        make -j$(nproc)
+    
+    - name: Upload WebAssembly artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: wasm-artifacts
+        path: |
+          wasm_build/**/*.wasm
+          wasm_build/**/*.js
+          wasm_build/**/*.html
+        retention-days: 7
 
-    - name: Download build artifacts
+  deploy-preview:
+    name: Deploy Preview
+    needs: [build-and-test, wasm-build]
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+    
+    - name: Download WebAssembly artifacts
       uses: actions/download-artifact@v4
       with:
-        name: build-artifacts
-        path: ${{ github.workspace }}/build
-
-    - name: Restore file permissions
+        name: wasm-artifacts
+        path: ./web/build
+    
+    - name: Setup deploy preview
       run: |
-        chmod -R +x ${{ github.workspace }}/build
-
-    - name: Configure tests
-      run: |
-        cmake -B ${{ github.workspace }}/build-tests -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTS=ON
-
-    - name: Build tests
-      run: |
-        cmake --build ${{ github.workspace }}/build-tests --config Release
-
-    - name: Run tests
-      working-directory: ${{ github.workspace }}/build-tests
-      run: |
-        ctest -C Release --output-on-failure
+        # Set up temporary web directory
+        mkdir -p preview
+        cp -r ./web/* preview/
+        echo "Preview deployed for PR #${{ github.event.pull_request.number }}" > preview/index.html
+    
+    - name: Deploy preview
+      uses: peaceiris/actions-gh-pages@v3
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_dir: ./preview
+        destination_dir: pr-${{ github.event.pull_request.number }}
+        keep_files: false
+        allow_empty_commit: true
