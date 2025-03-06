@@ -113,35 +113,3 @@ jobs:
           wasm_build/**/*.js
           wasm_build/**/*.html
         retention-days: 7
-
-  deploy-preview:
-    name: Deploy Preview
-    needs: [build-and-test, wasm-build]
-    if: github.event_name == 'pull_request'
-    runs-on: ubuntu-latest
-
-    steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
-
-    - name: Download WebAssembly artifacts
-      uses: actions/download-artifact@v4
-      with:
-        name: wasm-artifacts
-        path: ./web/build
-
-    - name: Setup deploy preview
-      run: |
-        # Set up temporary web directory
-        mkdir -p preview
-        cp -r ./web/* preview/
-        echo "Preview deployed for PR #${{ github.event.pull_request.number }}" > preview/index.html
-
-    - name: Deploy preview
-      uses: peaceiris/actions-gh-pages@v3
-      with:
-        github_token: ${{ secrets.GITHUB_TOKEN }}
-        publish_dir: ./preview
-        destination_dir: pr-${{ github.event.pull_request.number }}
-        keep_files: false
-        allow_empty_commit: true
