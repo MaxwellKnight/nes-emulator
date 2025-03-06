@@ -3,6 +3,7 @@ build/
 native_build/
 wasm_build/
 build_wasm/
+letsencrypt/
 web/js/cpu_wasm.js
 compile_commands.json
 .cache
