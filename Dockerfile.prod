@@ -30,3 +30,4 @@ EXPOSE 8080
 
 # Set up Python web server to serve content
 CMD ["python3", "-m", "http.server", "8080", "--directory", "/app/web"]
+
