@@ -12,6 +12,9 @@ RUN apt-get update && apt-get install -y \
 # Set the working directory
 WORKDIR /app
 
+# Create web directory
+RUN mkdir -p /app/web
+
 # Copy source code
 COPY . .
 
@@ -20,7 +23,7 @@ RUN mkdir -p wasm_build \
     && cd wasm_build \
     && emcmake cmake .. -DCMAKE_BUILD_TYPE=Release \
     && make -j$(nproc) \
-    && cp -r public/* /app/web/
+    && cp -r *.js *.wasm *.html /app/web/ || true
 
 # Expose the web server port
 EXPOSE 8080
