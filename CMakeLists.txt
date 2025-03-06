@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.10)
-project(CPU_Emulator VERSION 1.0.0)
+project(NES_Emulator VERSION 0.1.0)
 
 # Set C++ standard
 set(CMAKE_CXX_STANDARD 17)
