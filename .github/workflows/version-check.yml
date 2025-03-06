@@ -1,0 +1,47 @@
+name: Version Check
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened]
+
+jobs:
+  check-version:
+    name: Check if version has changed
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Verify version change
+        id: version_check
+        run: |
+          # This check a VERSION variable in CMakeLists.txt
+          if git diff --name-only ${{ github.event.pull_request.base.sha }} ${{ github.event.pull_request.head.sha }} | grep -q "CMakeLists.txt"; then
+            VERSION_CHANGE=$(git diff ${{ github.event.pull_request.base.sha }} ${{ github.event.pull_request.head.sha }} CMakeLists.txt | grep -E "^\+.*VERSION")
+            if [ -n "$VERSION_CHANGE" ]; then
+              echo "✅ Version has been updated"
+              echo "version_changed=true" >> $GITHUB_OUTPUT
+            else
+              echo "⚠️ CMakeLists.txt was modified but no version change detected"
+              echo "version_changed=false" >> $GITHUB_OUTPUT
+            fi
+          else
+            echo "⚠️ This PR doesn't modify CMakeLists.txt where version is typically defined"
+            echo "version_changed=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Comment on PR
+        if: steps.version_check.outputs.version_changed == 'false'
+        uses: actions/github-script@v6
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: '⚠️ **Warning:** This PR to main branch does not include a version change. PRs to main should normally include a version bump. If this is intentional, please explain why in a comment.'
+            })
