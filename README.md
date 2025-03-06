@@ -20,22 +20,54 @@ The debugger is accessible online at [codeknight.dev](https://codeknight.dev/), 
 - Docker and Docker Compose (for containerized development)
 - Modern web browser with WebAssembly support
 
-### Local Setup
+## Local Setup
 
+### Quick Start
 ```bash
 # Clone the repository
 git clone https://github.com/MaxwellKnight/nes-emulator.git
 cd nes-emulator
 
-# Build all components (native + WebAssembly)
-docker compose run build
+# Start development environment with web server
+docker compose --profile dev up web-dev
 
-# Build WebAssembly only
-docker compose run wasm
+# Build everything (native + WebAssembly)
+docker compose run --rm dev
 
-# Run the test suite
-docker compose run test
+# Run tests
+docker compose run --rm test
+
+# Get an interactive shell
+docker compose run --rm shell
 ```
+
+### Production Preview
+```bash
+# Start production environment locally
+docker compose --profile prod up -d web-prod
+
+# Stop production services
+docker compose --profile prod down
+```
+
+Access the application at http://localhost:5173 during development or through the configured domain in production.
+
+### Local Development (without Docker)
+
+For those who prefer developing without containers:
+
+- **Requirements**: 
+  - C++17 compatible compiler
+  - CMake 3.14 or newer
+  - Google Test framework
+  - Emscripten SDK (for WebAssembly compilation)
+
+- **Building**:
+  ```bash
+  mkdir build && cd build
+  cmake ..
+  make
+  ```
 
 ## Usage Guide
 
@@ -54,25 +86,6 @@ docker compose run test
 - The register panel shows current values of A, X, Y, SP, and status flags
 - Memory can be viewed and edited in the memory panel
 - Watch specific memory addresses by adding them to the watch list
-
-## Development
-
-### Local Development (without Docker)
-
-For those who prefer developing without containers:
-
-- **Requirements**: 
-  - C++17 compatible compiler
-  - CMake 3.14 or newer
-  - Google Test framework
-  - Emscripten SDK (for WebAssembly compilation)
-
-- **Building**:
-  ```bash
-  mkdir build && cd build
-  cmake ..
-  make
-  ```
 
 ## Architecture
 
