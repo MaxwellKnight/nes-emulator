@@ -595,3 +595,236 @@ TEST_F(CPUControlFlowTest, rti_handles_break_flag_correctly) {
   EXPECT_FALSE(cpu.get_flag(nes::Flag::BREAK));
   EXPECT_TRUE(cpu.get_flag(nes::Flag::UNUSED));
 }
+
+// RTS Instruction Tests
+TEST_F(CPUControlFlowTest, rts_pulls_pc_from_stack) {
+  // Set up initial PC and stack pointer
+  cpu.reset();
+  nes::u16 initial_pc = 0x0400;
+  cpu.set_pc(initial_pc);
+  nes::u8 initial_sp = cpu.get_sp();
+
+  // Push return address (high byte first, then low byte) to stack
+  // Note: RTS expects the address-1 on stack, as it will add 1 after pulling
+  nes::u16 pushed_addr = 0x05FF;  // We push 0x05FF so RTS will jump to 0x0600
+
+  // Push PCH (high byte)
+  cpu.set_sp(initial_sp);
+  bus.write(0x0100 + initial_sp, (pushed_addr >> 8) & 0xFF);
+  cpu.set_sp(initial_sp - 1);
+
+  // Push PCL (low byte)
+  bus.write(0x0100 + (initial_sp - 1), pushed_addr & 0xFF);
+  cpu.set_sp(initial_sp - 2);
+
+  // Write RTS instruction
+  bus.write(initial_pc, static_cast<nes::u8>(nes::Opcode::RTS_IMP));
+
+  // Execute RTS instruction (takes 6 cycles)
+  execute_cycles(6);
+
+  // Verify PC was restored correctly and incremented by 1
+  EXPECT_EQ(cpu.get_pc(), pushed_addr + 1);
+}
+
+TEST_F(CPUControlFlowTest, rts_increments_sp_by_two) {
+  // Set up initial PC and stack pointer
+  cpu.reset();
+  nes::u16 initial_pc = 0x0400;
+  cpu.set_pc(initial_pc);
+  nes::u8 initial_sp = cpu.get_sp();
+
+  // Set a lower SP to simulate values already pushed
+  nes::u8 lowered_sp = initial_sp - 2;
+  cpu.set_sp(lowered_sp);
+
+  // Push return address to stack
+  nes::u16 pushed_addr = 0x05FF;
+
+  // Push PCL (low byte)
+  bus.write(0x0100 + lowered_sp + 1, pushed_addr & 0xFF);
+
+  // Push PCH (high byte)
+  bus.write(0x0100 + lowered_sp + 2, (pushed_addr >> 8) & 0xFF);
+
+  // Write RTS instruction
+  bus.write(initial_pc, static_cast<nes::u8>(nes::Opcode::RTS_IMP));
+
+  // Execute RTS instruction
+  execute_cycles(6);
+
+  // Verify SP was incremented by 2
+  EXPECT_EQ(cpu.get_sp(), lowered_sp + 2);
+}
+
+TEST_F(CPUControlFlowTest, rts_leaves_flags_unchanged) {
+  // Set up initial PC and stack pointer
+  cpu.reset();
+  nes::u16 initial_pc = 0x0400;
+  cpu.set_pc(initial_pc);
+  nes::u8 initial_sp = cpu.get_sp();
+
+  // Set some flags to test they remain unchanged
+  cpu.set_flag(nes::Flag::CARRY, true);
+  cpu.set_flag(nes::Flag::ZERO, true);
+  cpu.set_flag(nes::Flag::NEGATIVE, false);
+  cpu.set_flag(nes::Flag::DECIMAL, true);
+  cpu.set_flag(nes::Flag::OVERFLOW_, false);
+  nes::u8 initial_status = cpu.get_status();
+
+  // Push return address to stack
+  nes::u16 pushed_addr = 0x05FF;
+
+  // Push PCH (high byte)
+  cpu.set_sp(initial_sp);
+  bus.write(0x0100 + initial_sp, (pushed_addr >> 8) & 0xFF);
+  cpu.set_sp(initial_sp - 1);
+
+  // Push PCL (low byte)
+  bus.write(0x0100 + (initial_sp - 1), pushed_addr & 0xFF);
+  cpu.set_sp(initial_sp - 2);
+
+  // Write RTS instruction
+  bus.write(initial_pc, static_cast<nes::u8>(nes::Opcode::RTS_IMP));
+
+  // Execute RTS instruction
+  execute_cycles(6);
+
+  // Verify flags weren't affected
+  EXPECT_EQ(cpu.get_status(), initial_status);
+}
+
+TEST_F(CPUControlFlowTest, rts_takes_six_cycles) {
+  // Set up initial PC and stack pointer
+  cpu.reset();
+  nes::u16 initial_pc = 0x0400;
+  cpu.set_pc(initial_pc);
+  nes::u8 initial_sp = cpu.get_sp();
+
+  // Set a lower SP to simulate values already pushed
+  nes::u8 lowered_sp = initial_sp - 2;
+  cpu.set_sp(lowered_sp);
+
+  // Push return address to stack
+  nes::u16 pushed_addr = 0x05FF;
+
+  // Push PCL (low byte)
+  bus.write(0x0100 + lowered_sp + 1, pushed_addr & 0xFF);
+
+  // Push PCH (high byte)
+  bus.write(0x0100 + lowered_sp + 2, (pushed_addr >> 8) & 0xFF);
+
+  // Write RTS instruction
+  bus.write(initial_pc, static_cast<nes::u8>(nes::Opcode::RTS_IMP));
+
+  // Execute RTS instruction with exactly 6 cycles
+  execute_cycles(6);
+
+  // Verify all cycles were consumed
+  EXPECT_EQ(cpu.get_remaining_cycles(), 0);
+
+  // Verify the instruction completed (PC should be at return address + 1)
+  EXPECT_EQ(cpu.get_pc(), pushed_addr + 1);
+
+  // Try with fewer cycles (5) to confirm it doesn't complete
+  cpu.reset();
+  cpu.set_pc(initial_pc);
+  cpu.set_sp(lowered_sp);
+
+  // Setup the same stack state again
+  bus.write(0x0100 + lowered_sp + 1, pushed_addr & 0xFF);
+  bus.write(0x0100 + lowered_sp + 2, (pushed_addr >> 8) & 0xFF);
+
+  // Write RTS instruction
+  bus.write(initial_pc, static_cast<nes::u8>(nes::Opcode::RTS_IMP));
+
+  execute_cycles(5);
+
+  // Verify instruction isn't complete yet
+  EXPECT_EQ(cpu.get_remaining_cycles(), 1);
+}
+
+TEST_F(CPUControlFlowTest, jsr_followed_by_rts) {
+  // This test simulates a JSR instruction followed by RTS
+  // to test the complete subroutine mechanism
+
+  // Set up initial PC
+  cpu.reset();
+  nes::u16 initial_pc = 0x0400;
+  cpu.set_pc(initial_pc);
+  nes::u8 initial_sp = cpu.get_sp();
+
+  // Target address for JSR
+  nes::u16 subroutine_addr = 0x0600;
+
+  // Write JSR instruction at initial PC
+  bus.write(initial_pc, static_cast<nes::u8>(nes::Opcode::JSR_ABS));
+  bus.write(initial_pc + 1, subroutine_addr & 0xFF);         // Low byte
+  bus.write(initial_pc + 2, (subroutine_addr >> 8) & 0xFF);  // High byte
+
+  // Write RTS instruction at subroutine address
+  bus.write(subroutine_addr, static_cast<nes::u8>(nes::Opcode::RTS_IMP));
+
+  // Execute JSR instruction (takes 6 cycles)
+  execute_cycles(6);
+
+  // Verify PC is at subroutine address
+  EXPECT_EQ(cpu.get_pc(), subroutine_addr);
+
+  // Verify SP was decremented by 2
+  EXPECT_EQ(cpu.get_sp(), initial_sp - 2);
+
+  // Now execute RTS instruction (takes 6 cycles)
+  execute_cycles(6);
+
+  // Verify PC is back at the instruction after JSR
+  EXPECT_EQ(cpu.get_pc(), initial_pc + 3);
+
+  // Verify SP is back at original value
+  EXPECT_EQ(cpu.get_sp(), initial_sp);
+}
+
+TEST_F(CPUControlFlowTest, rts_adds_one_to_pulled_address) {
+  // Set up initial PC and stack pointer
+  cpu.reset();
+  nes::u16 initial_pc = 0x0400;
+  cpu.set_pc(initial_pc);
+  nes::u8 initial_sp = cpu.get_sp();
+
+  // Test several different addresses to verify +1 behavior
+  std::vector<nes::u16> test_addresses = {
+    0x0000,  // Edge case: lowest address
+    0x05FF,  // Normal case
+    0x0FFF,  // Page boundary
+    0xFFFF   // Edge case: highest address
+  };
+
+  for (const auto& addr : test_addresses) {
+    // Reset for each test
+    cpu.reset();
+    cpu.set_pc(initial_pc);
+    nes::u8 current_sp = cpu.get_sp();
+
+    // Push the test address to the stack
+    // Push PCH (high byte)
+    cpu.set_sp(current_sp);
+    bus.write(0x0100 + current_sp, (addr >> 8) & 0xFF);
+    cpu.set_sp(current_sp - 1);
+
+    // Push PCL (low byte)
+    bus.write(0x0100 + (current_sp - 1), addr & 0xFF);
+    cpu.set_sp(current_sp - 2);
+
+    // Write RTS instruction
+    bus.write(initial_pc, static_cast<nes::u8>(nes::Opcode::RTS_IMP));
+
+    // Execute RTS instruction
+    execute_cycles(6);
+
+    // Calculate expected address (with wrap-around for 0xFFFF)
+    nes::u16 expected_addr = (addr == 0xFFFF) ? 0x0000 : addr + 1;
+
+    // Verify PC was set to address + 1
+    EXPECT_EQ(cpu.get_pc(), expected_addr);
+  }
+}

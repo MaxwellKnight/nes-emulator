@@ -29,12 +29,12 @@ class DebuggerUI {
 		});
 
 		document.getElementById('romFile').addEventListener('change', (e) => {
-			this.debugger.setPC(0x0200);
+			this.debugger.setPC(0x0005);
 			this.loadROMFile(e.target.files[0]);
 		});
 
 		document.getElementById('loadOpcodesButton').addEventListener('click', () => {
-			this.debugger.setPC(0x0200);
+			this.debugger.setPC(0x0005);
 			this.loadOpcodesFromText();
 		});
 
@@ -52,6 +52,11 @@ class DebuggerUI {
 			if (cell && cell.dataset.address) {
 				this.promptEditMemoryValue(parseInt(cell.dataset.address, 16));
 			}
+		});
+
+		window.addEventListener('nes-brk-encountered', () => {
+			this.stop();
+			this.showToast('Program terminated with BRK instruction', 'info');
 		});
 
 		this.initTooltips();
@@ -86,19 +91,17 @@ class DebuggerUI {
 	}
 
 	run() {
-		this.debugger.startContinuousExecution();
-		this.setControlsDisabled(true);
-
 		document.getElementById('runButton').classList.add('disabled');
 		document.getElementById('stepButton').classList.add('disabled');
 		document.getElementById('stopButton').classList.remove('disabled');
+		this.setControlsDisabled(true);
 
 		this.showToast('Execution started', 'info');
+		this.debugger.startContinuousExecution();
 	}
 
 
 	stop() {
-		this.debugger.stopContinuousExecution();
 		this.setControlsDisabled(false);
 
 		document.getElementById('runButton').classList.remove('disabled');
@@ -107,6 +110,7 @@ class DebuggerUI {
 
 		this.updateUI();
 		this.showToast('Execution stopped', 'warning');
+		this.debugger.stopContinuousExecution();
 	}
 
 	setControlsDisabled(disabled) {
@@ -607,14 +611,13 @@ class DebuggerUI {
 			for (let i = 0; i < instructions.length; i++) {
 				const instr = instructions[i];
 
-				if (instr.address === 0 || instr.mnemonic === String(instr.opcode)) {
-					console.warn('Skipping invalid instruction:', instr);
-					continue;
+				if (lastAddr !== null && instr.address !== lastAddr + instructions[i - 1].bytes) {
+					const gap = instr.address - (lastAddr + instructions[i - 1].bytes);
+					if (gap > 3) {
+						console.warn(`Address discontinuity detected: ${lastAddr.toString(16)} to ${instr.address.toString(16)} (gap: ${gap} bytes)`);
+					}
 				}
 
-				if (lastAddr !== null && instr.address !== lastAddr + instructions[i - 1].bytes) {
-					console.warn('Address discontinuity detected:', lastAddr, 'to', instr.address);
-				}
 				lastAddr = instr.address;
 
 				const row = document.createElement('div');
