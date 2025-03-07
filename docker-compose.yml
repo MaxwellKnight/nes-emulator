@@ -87,7 +87,6 @@ services:
       profiles: [prod]
       volumes:
         - /var/run/docker.sock:/var/run/docker.sock
-        - /root/.docker/config.json:/config.json
       command: --interval 30 --cleanup --label-enable
       labels:
         - "com.centurylinklabs.watchtower.enable=true"
