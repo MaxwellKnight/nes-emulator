@@ -7,7 +7,7 @@ x-build-base: &build-base
   restart: "no"
 
 x-web-base: &web-base
-  image: maxwellknight/nes-emulator:latest
+  image: python:3-alpine
   volumes:
     - ./web:/app/web
   working_dir: /app
