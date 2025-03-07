@@ -211,6 +211,7 @@ CPU::CPU(Bus &bus_ref)
   set_op(Opcode::BRK_IMP, {.implied_op = &CPU::op_brk, .mode = nullptr, .cycles = 7, .name = "BRK", .is_implied = true});
   set_op(Opcode::JSR_ABS, {.addressed_op = &CPU::op_jsr, .mode = &CPU::absolute, .cycles = 6, .name = "JSR"});
   set_op(Opcode::RTI_IMP, {.implied_op = &CPU::op_rti, .mode = nullptr, .cycles = 6, .name = "RTI", .is_implied = true});
+  set_op(Opcode::RTS_IMP, {.implied_op = &CPU::op_rts, .mode = nullptr, .cycles = 6, .name = "RTS", .is_implied = true});
 
   // Flags
   set_op(Opcode::SEC_IMP, {.implied_op = &CPU::op_sec, .mode = nullptr, .cycles = 2, .name = "SEC", .is_implied = true});
@@ -860,6 +861,14 @@ void CPU::op_rti() {
   _status = status;
   _status &= ~(u8)Flag::BREAK;
   _PC = (u16)pc_low | (u16)pc_high << 8;
+}
+
+void CPU::op_rts() {
+  // Load the program counter from the stack
+  u8 pc_low = read_byte(0x0100 + ++_SP);
+  u8 pc_high = read_byte(0x0100 + ++_SP);
+  _PC = (u16)pc_low | (u16)pc_high << 8;
+  _PC += 1;  // Increment th PC by 1 so it points to the instruction after JSR
 }
 
 // Flag operations
