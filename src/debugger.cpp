@@ -25,200 +25,212 @@ void Debugger::init_addressing_mode_table() {
 
   // Load/Store operations
   // LDA
-  _addressing_mode_table[static_cast<u8>(Opcode::LDA_IMM)] = "IMM";
-  _addressing_mode_table[static_cast<u8>(Opcode::LDA_ZPG)] = "ZPG";
-  _addressing_mode_table[static_cast<u8>(Opcode::LDA_ZPX)] = "ZPX";
-  _addressing_mode_table[static_cast<u8>(Opcode::LDA_ABS)] = "ABS";
-  _addressing_mode_table[static_cast<u8>(Opcode::LDA_ABX)] = "ABX";
-  _addressing_mode_table[static_cast<u8>(Opcode::LDA_ABY)] = "ABY";
-  _addressing_mode_table[static_cast<u8>(Opcode::LDA_IZX)] = "IZX";
-  _addressing_mode_table[static_cast<u8>(Opcode::LDA_IZY)] = "IZY";
+  _addressing_mode_table[(u8)Opcode::LDA_IMM] = "IMM";
+  _addressing_mode_table[(u8)Opcode::LDA_ZPG] = "ZPG";
+  _addressing_mode_table[(u8)Opcode::LDA_ZPX] = "ZPX";
+  _addressing_mode_table[(u8)Opcode::LDA_ABS] = "ABS";
+  _addressing_mode_table[(u8)Opcode::LDA_ABX] = "ABX";
+  _addressing_mode_table[(u8)Opcode::LDA_ABY] = "ABY";
+  _addressing_mode_table[(u8)Opcode::LDA_IZX] = "IZX";
+  _addressing_mode_table[(u8)Opcode::LDA_IZY] = "IZY";
 
   // LDX
-  _addressing_mode_table[static_cast<u8>(Opcode::LDX_IMM)] = "IMM";
-  _addressing_mode_table[static_cast<u8>(Opcode::LDX_ZPG)] = "ZPG";
-  _addressing_mode_table[static_cast<u8>(Opcode::LDX_ZPY)] = "ZPY";
-  _addressing_mode_table[static_cast<u8>(Opcode::LDX_ABS)] = "ABS";
-  _addressing_mode_table[static_cast<u8>(Opcode::LDX_ABY)] = "ABY";
+  _addressing_mode_table[(u8)Opcode::LDX_IMM] = "IMM";
+  _addressing_mode_table[(u8)Opcode::LDX_ZPG] = "ZPG";
+  _addressing_mode_table[(u8)Opcode::LDX_ZPY] = "ZPY";
+  _addressing_mode_table[(u8)Opcode::LDX_ABS] = "ABS";
+  _addressing_mode_table[(u8)Opcode::LDX_ABY] = "ABY";
 
   // LDY
-  _addressing_mode_table[static_cast<u8>(Opcode::LDY_IMM)] = "IMM";
-  _addressing_mode_table[static_cast<u8>(Opcode::LDY_ZPG)] = "ZPG";
-  _addressing_mode_table[static_cast<u8>(Opcode::LDY_ZPX)] = "ZPX";
-  _addressing_mode_table[static_cast<u8>(Opcode::LDY_ABS)] = "ABS";
-  _addressing_mode_table[static_cast<u8>(Opcode::LDY_ABX)] = "ABX";
+  _addressing_mode_table[(u8)Opcode::LDY_IMM] = "IMM";
+  _addressing_mode_table[(u8)Opcode::LDY_ZPG] = "ZPG";
+  _addressing_mode_table[(u8)Opcode::LDY_ZPX] = "ZPX";
+  _addressing_mode_table[(u8)Opcode::LDY_ABS] = "ABS";
+  _addressing_mode_table[(u8)Opcode::LDY_ABX] = "ABX";
 
   // STA
-  _addressing_mode_table[static_cast<u8>(Opcode::STA_ZPG)] = "ZPG";
-  _addressing_mode_table[static_cast<u8>(Opcode::STA_ZPX)] = "ZPX";
-  _addressing_mode_table[static_cast<u8>(Opcode::STA_ABS)] = "ABS";
-  _addressing_mode_table[static_cast<u8>(Opcode::STA_ABX)] = "ABX";
-  _addressing_mode_table[static_cast<u8>(Opcode::STA_ABY)] = "ABY";
-  _addressing_mode_table[static_cast<u8>(Opcode::STA_IZX)] = "IZX";
-  _addressing_mode_table[static_cast<u8>(Opcode::STA_IZY)] = "IZY";
+  _addressing_mode_table[(u8)Opcode::STA_ZPG] = "ZPG";
+  _addressing_mode_table[(u8)Opcode::STA_ZPX] = "ZPX";
+  _addressing_mode_table[(u8)Opcode::STA_ABS] = "ABS";
+  _addressing_mode_table[(u8)Opcode::STA_ABX] = "ABX";
+  _addressing_mode_table[(u8)Opcode::STA_ABY] = "ABY";
+  _addressing_mode_table[(u8)Opcode::STA_IZX] = "IZX";
+  _addressing_mode_table[(u8)Opcode::STA_IZY] = "IZY";
 
   // STX
-  _addressing_mode_table[static_cast<u8>(Opcode::STX_ZPG)] = "ZPG";
-  _addressing_mode_table[static_cast<u8>(Opcode::STX_ZPY)] = "ZPY";
-  _addressing_mode_table[static_cast<u8>(Opcode::STX_ABS)] = "ABS";
+  _addressing_mode_table[(u8)Opcode::STX_ZPG] = "ZPG";
+  _addressing_mode_table[(u8)Opcode::STX_ZPY] = "ZPY";
+  _addressing_mode_table[(u8)Opcode::STX_ABS] = "ABS";
 
   // STY
-  _addressing_mode_table[static_cast<u8>(Opcode::STY_ZPG)] = "ZPG";
-  _addressing_mode_table[static_cast<u8>(Opcode::STY_ZPX)] = "ZPX";
-  _addressing_mode_table[static_cast<u8>(Opcode::STY_ABS)] = "ABS";
+  _addressing_mode_table[(u8)Opcode::STY_ZPG] = "ZPG";
+  _addressing_mode_table[(u8)Opcode::STY_ZPX] = "ZPX";
+  _addressing_mode_table[(u8)Opcode::STY_ABS] = "ABS";
 
   // Arithmetic operations
   // ADC
-  _addressing_mode_table[static_cast<u8>(Opcode::ADC_IMM)] = "IMM";
-  _addressing_mode_table[static_cast<u8>(Opcode::ADC_ZPG)] = "ZPG";
-  _addressing_mode_table[static_cast<u8>(Opcode::ADC_ZPX)] = "ZPX";
-  _addressing_mode_table[static_cast<u8>(Opcode::ADC_ABS)] = "ABS";
-  _addressing_mode_table[static_cast<u8>(Opcode::ADC_ABX)] = "ABX";
-  _addressing_mode_table[static_cast<u8>(Opcode::ADC_ABY)] = "ABY";
-  _addressing_mode_table[static_cast<u8>(Opcode::ADC_IZX)] = "IZX";
-  _addressing_mode_table[static_cast<u8>(Opcode::ADC_IZY)] = "IZY";
+  _addressing_mode_table[(u8)Opcode::ADC_IMM] = "IMM";
+  _addressing_mode_table[(u8)Opcode::ADC_ZPG] = "ZPG";
+  _addressing_mode_table[(u8)Opcode::ADC_ZPX] = "ZPX";
+  _addressing_mode_table[(u8)Opcode::ADC_ABS] = "ABS";
+  _addressing_mode_table[(u8)Opcode::ADC_ABX] = "ABX";
+  _addressing_mode_table[(u8)Opcode::ADC_ABY] = "ABY";
+  _addressing_mode_table[(u8)Opcode::ADC_IZX] = "IZX";
+  _addressing_mode_table[(u8)Opcode::ADC_IZY] = "IZY";
 
   // SBC
-  _addressing_mode_table[static_cast<u8>(Opcode::SBC_IMM)] = "IMM";
-  _addressing_mode_table[static_cast<u8>(Opcode::SBC_ZPG)] = "ZPG";
-  _addressing_mode_table[static_cast<u8>(Opcode::SBC_ZPX)] = "ZPX";
-  _addressing_mode_table[static_cast<u8>(Opcode::SBC_ABS)] = "ABS";
-  _addressing_mode_table[static_cast<u8>(Opcode::SBC_ABX)] = "ABX";
-  _addressing_mode_table[static_cast<u8>(Opcode::SBC_ABY)] = "ABY";
-  _addressing_mode_table[static_cast<u8>(Opcode::SBC_IZX)] = "IZX";
-  _addressing_mode_table[static_cast<u8>(Opcode::SBC_IZY)] = "IZY";
+  _addressing_mode_table[(u8)Opcode::SBC_IMM] = "IMM";
+  _addressing_mode_table[(u8)Opcode::SBC_ZPG] = "ZPG";
+  _addressing_mode_table[(u8)Opcode::SBC_ZPX] = "ZPX";
+  _addressing_mode_table[(u8)Opcode::SBC_ABS] = "ABS";
+  _addressing_mode_table[(u8)Opcode::SBC_ABX] = "ABX";
+  _addressing_mode_table[(u8)Opcode::SBC_ABY] = "ABY";
+  _addressing_mode_table[(u8)Opcode::SBC_IZX] = "IZX";
+  _addressing_mode_table[(u8)Opcode::SBC_IZY] = "IZY";
 
   // CMP
-  _addressing_mode_table[static_cast<u8>(Opcode::CMP_IMM)] = "IMM";
-  _addressing_mode_table[static_cast<u8>(Opcode::CMP_ZPG)] = "ZPG";
-  _addressing_mode_table[static_cast<u8>(Opcode::CMP_ZPX)] = "ZPX";
-  _addressing_mode_table[static_cast<u8>(Opcode::CMP_ABS)] = "ABS";
-  _addressing_mode_table[static_cast<u8>(Opcode::CMP_ABX)] = "ABX";
-  _addressing_mode_table[static_cast<u8>(Opcode::CMP_ABY)] = "ABY";
-  _addressing_mode_table[static_cast<u8>(Opcode::CMP_IZX)] = "IZX";
-  _addressing_mode_table[static_cast<u8>(Opcode::CMP_IZY)] = "IZY";
+  _addressing_mode_table[(u8)Opcode::CMP_IMM] = "IMM";
+  _addressing_mode_table[(u8)Opcode::CMP_ZPG] = "ZPG";
+  _addressing_mode_table[(u8)Opcode::CMP_ZPX] = "ZPX";
+  _addressing_mode_table[(u8)Opcode::CMP_ABS] = "ABS";
+  _addressing_mode_table[(u8)Opcode::CMP_ABX] = "ABX";
+  _addressing_mode_table[(u8)Opcode::CMP_ABY] = "ABY";
+  _addressing_mode_table[(u8)Opcode::CMP_IZX] = "IZX";
+  _addressing_mode_table[(u8)Opcode::CMP_IZY] = "IZY";
 
   // CPX
-  _addressing_mode_table[static_cast<u8>(Opcode::CPX_IMM)] = "IMM";
-  _addressing_mode_table[static_cast<u8>(Opcode::CPX_ZPG)] = "ZPG";
-  _addressing_mode_table[static_cast<u8>(Opcode::CPX_ABS)] = "ABS";
+  _addressing_mode_table[(u8)Opcode::CPX_IMM] = "IMM";
+  _addressing_mode_table[(u8)Opcode::CPX_ZPG] = "ZPG";
+  _addressing_mode_table[(u8)Opcode::CPX_ABS] = "ABS";
 
   // CPY
-  _addressing_mode_table[static_cast<u8>(Opcode::CPY_IMM)] = "IMM";
-  _addressing_mode_table[static_cast<u8>(Opcode::CPY_ZPG)] = "ZPG";
-  _addressing_mode_table[static_cast<u8>(Opcode::CPY_ABS)] = "ABS";
+  _addressing_mode_table[(u8)Opcode::CPY_IMM] = "IMM";
+  _addressing_mode_table[(u8)Opcode::CPY_ZPG] = "ZPG";
+  _addressing_mode_table[(u8)Opcode::CPY_ABS] = "ABS";
 
   // Logical operations
   // AND
-  _addressing_mode_table[static_cast<u8>(Opcode::AND_IMM)] = "IMM";
-  _addressing_mode_table[static_cast<u8>(Opcode::AND_ZPG)] = "ZPG";
-  _addressing_mode_table[static_cast<u8>(Opcode::AND_ZPX)] = "ZPX";
-  _addressing_mode_table[static_cast<u8>(Opcode::AND_ABS)] = "ABS";
-  _addressing_mode_table[static_cast<u8>(Opcode::AND_ABX)] = "ABX";
-  _addressing_mode_table[static_cast<u8>(Opcode::AND_ABY)] = "ABY";
-  _addressing_mode_table[static_cast<u8>(Opcode::AND_IZX)] = "IZX";
-  _addressing_mode_table[static_cast<u8>(Opcode::AND_IZY)] = "IZY";
+  _addressing_mode_table[(u8)Opcode::AND_IMM] = "IMM";
+  _addressing_mode_table[(u8)Opcode::AND_ZPG] = "ZPG";
+  _addressing_mode_table[(u8)Opcode::AND_ZPX] = "ZPX";
+  _addressing_mode_table[(u8)Opcode::AND_ABS] = "ABS";
+  _addressing_mode_table[(u8)Opcode::AND_ABX] = "ABX";
+  _addressing_mode_table[(u8)Opcode::AND_ABY] = "ABY";
+  _addressing_mode_table[(u8)Opcode::AND_IZX] = "IZX";
+  _addressing_mode_table[(u8)Opcode::AND_IZY] = "IZY";
 
   // ORA
-  _addressing_mode_table[static_cast<u8>(Opcode::ORA_IMM)] = "IMM";
-  _addressing_mode_table[static_cast<u8>(Opcode::ORA_ZPG)] = "ZPG";
-  _addressing_mode_table[static_cast<u8>(Opcode::ORA_ZPX)] = "ZPX";
-  _addressing_mode_table[static_cast<u8>(Opcode::ORA_ABS)] = "ABS";
-  _addressing_mode_table[static_cast<u8>(Opcode::ORA_ABX)] = "ABX";
-  _addressing_mode_table[static_cast<u8>(Opcode::ORA_ABY)] = "ABY";
-  _addressing_mode_table[static_cast<u8>(Opcode::ORA_IZX)] = "IZX";
-  _addressing_mode_table[static_cast<u8>(Opcode::ORA_IZY)] = "IZY";
+  _addressing_mode_table[(u8)Opcode::ORA_IMM] = "IMM";
+  _addressing_mode_table[(u8)Opcode::ORA_ZPG] = "ZPG";
+  _addressing_mode_table[(u8)Opcode::ORA_ZPX] = "ZPX";
+  _addressing_mode_table[(u8)Opcode::ORA_ABS] = "ABS";
+  _addressing_mode_table[(u8)Opcode::ORA_ABX] = "ABX";
+  _addressing_mode_table[(u8)Opcode::ORA_ABY] = "ABY";
+  _addressing_mode_table[(u8)Opcode::ORA_IZX] = "IZX";
+  _addressing_mode_table[(u8)Opcode::ORA_IZY] = "IZY";
 
   // EOR
-  _addressing_mode_table[static_cast<u8>(Opcode::EOR_IMM)] = "IMM";
-  _addressing_mode_table[static_cast<u8>(Opcode::EOR_ZPG)] = "ZPG";
-  _addressing_mode_table[static_cast<u8>(Opcode::EOR_ZPX)] = "ZPX";
-  _addressing_mode_table[static_cast<u8>(Opcode::EOR_ABS)] = "ABS";
-  _addressing_mode_table[static_cast<u8>(Opcode::EOR_ABX)] = "ABX";
-  _addressing_mode_table[static_cast<u8>(Opcode::EOR_ABY)] = "ABY";
-  _addressing_mode_table[static_cast<u8>(Opcode::EOR_IZX)] = "IZX";
-  _addressing_mode_table[static_cast<u8>(Opcode::EOR_IZY)] = "IZY";
+  _addressing_mode_table[(u8)Opcode::EOR_IMM] = "IMM";
+  _addressing_mode_table[(u8)Opcode::EOR_ZPG] = "ZPG";
+  _addressing_mode_table[(u8)Opcode::EOR_ZPX] = "ZPX";
+  _addressing_mode_table[(u8)Opcode::EOR_ABS] = "ABS";
+  _addressing_mode_table[(u8)Opcode::EOR_ABX] = "ABX";
+  _addressing_mode_table[(u8)Opcode::EOR_ABY] = "ABY";
+  _addressing_mode_table[(u8)Opcode::EOR_IZX] = "IZX";
+  _addressing_mode_table[(u8)Opcode::EOR_IZY] = "IZY";
 
   // BIT
-  _addressing_mode_table[static_cast<u8>(Opcode::BIT_ZPG)] = "ZPG";
-  _addressing_mode_table[static_cast<u8>(Opcode::BIT_ABS)] = "ABS";
+  _addressing_mode_table[(u8)Opcode::BIT_ZPG] = "ZPG";
+  _addressing_mode_table[(u8)Opcode::BIT_ABS] = "ABS";
 
   // Shifts and rotates
   // ASL
-  _addressing_mode_table[static_cast<u8>(Opcode::ASL_ACC)] = "ACC";
-  _addressing_mode_table[static_cast<u8>(Opcode::ASL_ZPG)] = "ZPG";
-  _addressing_mode_table[static_cast<u8>(Opcode::ASL_ZPX)] = "ZPX";
-  _addressing_mode_table[static_cast<u8>(Opcode::ASL_ABS)] = "ABS";
-  _addressing_mode_table[static_cast<u8>(Opcode::ASL_ABX)] = "ABX";
+  _addressing_mode_table[(u8)Opcode::ASL_ACC] = "ACC";
+  _addressing_mode_table[(u8)Opcode::ASL_ZPG] = "ZPG";
+  _addressing_mode_table[(u8)Opcode::ASL_ZPX] = "ZPX";
+  _addressing_mode_table[(u8)Opcode::ASL_ABS] = "ABS";
+  _addressing_mode_table[(u8)Opcode::ASL_ABX] = "ABX";
 
   // LSR
-  _addressing_mode_table[static_cast<u8>(Opcode::LSR_ACC)] = "ACC";
-  _addressing_mode_table[static_cast<u8>(Opcode::LSR_ZPG)] = "ZPG";
-  _addressing_mode_table[static_cast<u8>(Opcode::LSR_ZPX)] = "ZPX";
-  _addressing_mode_table[static_cast<u8>(Opcode::LSR_ABS)] = "ABS";
-  _addressing_mode_table[static_cast<u8>(Opcode::LSR_ABX)] = "ABX";
+  _addressing_mode_table[(u8)Opcode::LSR_ACC] = "ACC";
+  _addressing_mode_table[(u8)Opcode::LSR_ZPG] = "ZPG";
+  _addressing_mode_table[(u8)Opcode::LSR_ZPX] = "ZPX";
+  _addressing_mode_table[(u8)Opcode::LSR_ABS] = "ABS";
+  _addressing_mode_table[(u8)Opcode::LSR_ABX] = "ABX";
 
   // ROL
-  _addressing_mode_table[static_cast<u8>(Opcode::ROL_ACC)] = "ACC";
-  _addressing_mode_table[static_cast<u8>(Opcode::ROL_ZPG)] = "ZPG";
-  _addressing_mode_table[static_cast<u8>(Opcode::ROL_ZPX)] = "ZPX";
-  _addressing_mode_table[static_cast<u8>(Opcode::ROL_ABS)] = "ABS";
-  _addressing_mode_table[static_cast<u8>(Opcode::ROL_ABX)] = "ABX";
+  _addressing_mode_table[(u8)Opcode::ROL_ACC] = "ACC";
+  _addressing_mode_table[(u8)Opcode::ROL_ZPG] = "ZPG";
+  _addressing_mode_table[(u8)Opcode::ROL_ZPX] = "ZPX";
+  _addressing_mode_table[(u8)Opcode::ROL_ABS] = "ABS";
+  _addressing_mode_table[(u8)Opcode::ROL_ABX] = "ABX";
 
   // ROR
-  _addressing_mode_table[static_cast<u8>(Opcode::ROR_ACC)] = "ACC";
-  _addressing_mode_table[static_cast<u8>(Opcode::ROR_ZPG)] = "ZPG";
-  _addressing_mode_table[static_cast<u8>(Opcode::ROR_ZPX)] = "ZPX";
-  _addressing_mode_table[static_cast<u8>(Opcode::ROR_ABS)] = "ABS";
-  _addressing_mode_table[static_cast<u8>(Opcode::ROR_ABX)] = "ABX";
+  _addressing_mode_table[(u8)Opcode::ROR_ACC] = "ACC";
+  _addressing_mode_table[(u8)Opcode::ROR_ZPG] = "ZPG";
+  _addressing_mode_table[(u8)Opcode::ROR_ZPX] = "ZPX";
+  _addressing_mode_table[(u8)Opcode::ROR_ABS] = "ABS";
+  _addressing_mode_table[(u8)Opcode::ROR_ABX] = "ABX";
 
-  // Increments and decrements
+  // Increments and decrement
   // INC
-  _addressing_mode_table[static_cast<u8>(Opcode::INC_ZPG)] = "ZPG";
-  _addressing_mode_table[static_cast<u8>(Opcode::INC_ZPX)] = "ZPX";
-  _addressing_mode_table[static_cast<u8>(Opcode::INC_ABS)] = "ABS";
-  _addressing_mode_table[static_cast<u8>(Opcode::INC_ABX)] = "ABX";
+  _addressing_mode_table[(u8)Opcode::INC_ZPG] = "ZPG";
+  _addressing_mode_table[(u8)Opcode::INC_ZPX] = "ZPX";
+  _addressing_mode_table[(u8)Opcode::INC_ABS] = "ABS";
+  _addressing_mode_table[(u8)Opcode::INC_ABX] = "ABX";
 
   // DEC
-  _addressing_mode_table[static_cast<u8>(Opcode::DEC_ZPG)] = "ZPG";
-  _addressing_mode_table[static_cast<u8>(Opcode::DEC_ZPX)] = "ZPX";
-  _addressing_mode_table[static_cast<u8>(Opcode::DEC_ABS)] = "ABS";
-  _addressing_mode_table[static_cast<u8>(Opcode::DEC_ABX)] = "ABX";
+  _addressing_mode_table[(u8)Opcode::DEC_ZPG] = "ZPG";
+  _addressing_mode_table[(u8)Opcode::DEC_ZPX] = "ZPX";
+  _addressing_mode_table[(u8)Opcode::DEC_ABS] = "ABS";
+  _addressing_mode_table[(u8)Opcode::DEC_ABX] = "ABX";
 
-  // INX, DEX, INY, DEY are implied
+  // INX, DEX, INY, DEY are iplied
 
   // Control flow
   // JMP
-  _addressing_mode_table[static_cast<u8>(Opcode::JMP_ABS)] = "ABS";
-  _addressing_mode_table[static_cast<u8>(Opcode::JMP_IND)] = "IND";
+  _addressing_mode_table[(u8)Opcode::JMP_ABS] = "ABS";
+  _addressing_mode_table[(u8)Opcode::JMP_IND] = "IND";
 
   // JSR
-  _addressing_mode_table[static_cast<u8>(Opcode::JSR_ABS)] = "ABS";
+  _addressing_mode_table[(u8)Opcode::JSR_ABS] = "ABS";
 
   // Branches
-  _addressing_mode_table[static_cast<u8>(Opcode::BCC_REL)] = "REL";
-  _addressing_mode_table[static_cast<u8>(Opcode::BCS_REL)] = "REL";
-  _addressing_mode_table[static_cast<u8>(Opcode::BEQ_REL)] = "REL";
-  _addressing_mode_table[static_cast<u8>(Opcode::BMI_REL)] = "REL";
-  _addressing_mode_table[static_cast<u8>(Opcode::BNE_REL)] = "REL";
-  _addressing_mode_table[static_cast<u8>(Opcode::BPL_REL)] = "REL";
-  _addressing_mode_table[static_cast<u8>(Opcode::BVC_REL)] = "REL";
-  _addressing_mode_table[static_cast<u8>(Opcode::BVS_REL)] = "REL";
-
-  // RTI and RTS are implied
-  // TODO: TRI
-  // Stack operations are all implied
-  // Flag operations are all implied
+  _addressing_mode_table[(u8)Opcode::BCC_REL] = "REL";
+  _addressing_mode_table[(u8)Opcode::BCS_REL] = "REL";
+  _addressing_mode_table[(u8)Opcode::BEQ_REL] = "REL";
+  _addressing_mode_table[(u8)Opcode::BMI_REL] = "REL";
+  _addressing_mode_table[(u8)Opcode::BNE_REL] = "REL";
+  _addressing_mode_table[(u8)Opcode::BPL_REL] = "REL";
+  _addressing_mode_table[(u8)Opcode::BVC_REL] = "REL";
+  _addressing_mode_table[(u8)Opcode::BVS_REL] = "REL";
 }
 
 // Execute one instruction
 void Debugger::step() {
+  // Get current PC before execution
+  u16 current_pc = _cpu.get_pc();
+
+  // Check if current instruction is BRK (0x00)
+  u8 opcode = _bus.read(current_pc);
+
   do {
     _cpu.clock();
     _cycle_count++;
   } while (_cpu.get_remaining_cycles() > 0);
 
   _instruction_count++;
+
+  // Stop if we executed a BRK instruction
+  if (opcode == 0x00) {
+    stop();
+
+// Notify JavaScript
+#ifdef __EMSCRIPTEN__
+    EM_ASM({ window.dispatchEvent(new CustomEvent('nes-brk-encountered')); });
+#endif
+  }
+
   check_breakpoints();
 }
 
@@ -665,6 +677,15 @@ EMSCRIPTEN_EXPORT void debugger_set_pc(u16 address) {
   if (g_debugger) {
     g_debugger->set_pc(address);
   }
+}
+
+EMSCRIPTEN_EXPORT int debugger_is_at_brk() {
+  if (g_debugger) {
+    u16 pc = g_debugger->get_register_pc();
+    u8 opcode = g_debugger->read_memory(pc);
+    return (opcode == 0x00) ? 1 : 0;
+  }
+  return 0;
 }
 
 EMSCRIPTEN_EXPORT char* debugger_disassemble_around_pc(int before, int after) {
