@@ -29,12 +29,12 @@ class DebuggerUI {
 		});
 
 		document.getElementById('romFile').addEventListener('change', (e) => {
-			this.debugger.setPC(0x0005);
+			this.debugger.setPC(0x0200);
 			this.loadROMFile(e.target.files[0]);
 		});
 
 		document.getElementById('loadOpcodesButton').addEventListener('click', () => {
-			this.debugger.setPC(0x0005);
+			this.debugger.setPC(0x0200);
 			this.loadOpcodesFromText();
 		});
 
