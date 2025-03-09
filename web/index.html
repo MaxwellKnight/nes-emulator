@@ -253,8 +253,22 @@
                             </div>
 
                             <div class="alert alert-secondary small">
-                                <strong><i class="bi bi-info-circle-fill me-1"></i> Example:</strong><br>
-                                <code class="d-block mt-1">A2 00 A9 00 95 20 E8 A9
+                                <div class="d-flex flex-nowrap justify-content-between mb-2">
+                                    <div class="">
+                                        <strong><i class="bi bi-info-circle-fill me-1"></i> Example:</strong>
+                                    </div>
+                                    <button class="w-50 btn btn-sm p-2 position-relative"
+                                        onclick="copyToClipboard(this, 'A2 00 A9 00 95 20 E8 A9\n01 95 20 E8 E0 0C F0 0A\nB5 1F 18 75 1E 95 20 E8\n90 F2 60')"
+                                        aria-label="Copy to clipboard">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"
+                                            fill="currentColor" class="bi bi-copy position-absolute top-0 end-0 m-1"
+                                            viewBox="0 0 16 16">
+                                            <path fill-rule="evenodd"
+                                                d="M4 2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2zm2-1a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1zM2 5a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1v-1h1v1a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h1v1z" />
+                                        </svg>
+                                    </button>
+                                </div>
+                                <code class="d-block mt-1 overflow-auto">A2 00 A9 00 95 20 E8 A9
                                     01 95 20 E8 E0 0C F0 0A
                                     B5 1F 18 75 1E 95 20 E8
                                     90 F2 60</code>
@@ -346,6 +360,7 @@
     <!-- Application Scripts -->
     <script src="js/ui/debugger-ui.js"></script>
     <script src="js/ui/theme.js"></script>
+    <script src="js/ui/utils.js"></script>
     <script src="js/main.js"></script>
 </body>
 
