@@ -682,7 +682,7 @@ class DebuggerUI {
 
 				// Format opcode bytes: opcode + possible operand bytes
 				let opcodeBytes = `0x${instr.opcode.toString(16).toUpperCase().padStart(2, '0')}`;
-				if (instr.bytes > 1 && instr.operand) {
+				if (instr.bytes > 1) {
 					if (instr.bytes === 2) {
 						// For 2-byte instructions, add low byte
 						opcodeBytes += ' 0x' + (instr.operand & 0xFF).toString(16).toUpperCase().padStart(2, '0');
