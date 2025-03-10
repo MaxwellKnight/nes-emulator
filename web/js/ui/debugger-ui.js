@@ -346,7 +346,7 @@ class DebuggerUI {
 		}
 	}
 
-	changeMemoryPage() {
+	changeMemoryPage(toast = true) {
 		const select = document.getElementById('memoryPage');
 		const value = select.value;
 
@@ -373,7 +373,8 @@ class DebuggerUI {
 		}
 
 		this.updateMemoryView();
-		this.showToast(`Memory view changed to ${select.options[select.selectedIndex].text}`, 'info');
+		if (toast)
+			this.showToast(`Memory view changed to ${select.options[select.selectedIndex].text}`, 'info');
 	}
 
 	loadROMFile(file) {
@@ -409,6 +410,7 @@ class DebuggerUI {
 			const data = new Uint8Array(opcodes);
 			this.debugger.loadROM(data);
 			this.updateUI();
+			this.changeMemoryPage(false);
 			this.showToast(`Loaded ${data.length} bytes successfully`, 'success');
 
 		} catch (e) {
@@ -1078,6 +1080,7 @@ class DebuggerUI {
 								memoryCell.classList.remove('bg-success', 'bg-opacity-25');
 							}, 500);
 						}, 1000);
+						self.updateDisassembly();
 					} else {
 						self.updateMemoryView();
 					}
