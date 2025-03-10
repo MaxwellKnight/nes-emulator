@@ -743,6 +743,10 @@ class DebuggerUI {
 		}
 	}
 
+	toHex(value, digits = 2) {
+		return value.toString(16).toUpperCase().padStart(digits, '0');
+	}
+
 	formatOperand(instr) {
 		if (!instr.operand && !instr.formatted) {
 			return ""; // No operand (implied addressing)
@@ -796,24 +800,19 @@ class DebuggerUI {
 		// If we have a formatted string but it doesn't have proper hex notation, add it
 		if (operandText) {
 			// Convert all hex notation to use 0x format except for $ addresses and # immediate values
-			operandText = operandText.replace(/\$([0-9A-F]{2,4})/gi, (match, hex) => {
+			operandText = operandText.replace(/\$([0-9A-F]{2,4})/gi, (_, hex) => {
 				// Keep $ for addresses, but ensure only one $
 				return `$${hex}`;
 			});
 
-			operandText = operandText.replace(/#\$([0-9A-F]{2})/gi, (match, hex) => {
+			operandText = operandText.replace(/#\$([0-9A-F]{2})/gi, (_, hex) => {
 				// Change #$ to # with 0x for immediate values
 				return `#0x${hex}`;
 			});
 
-			// Replace decimal numbers with hex notation
 			operandText = operandText.replace(/\b(\d+)\b/g, (match, number) => {
 				const num = parseInt(number, 10);
-				if (num <= 0xFF) {
-					return `0x${num.toString(16).toUpperCase().padStart(2, '0')}`;
-				} else {
-					return `0x${num.toString(16).toUpperCase().padStart(4, '0')}`;
-				}
+				return num <= 0xFF ? `0x${this.toHex(num)}` : match; // Convert only if it's 8-bit
 			});
 
 			// Add color formatting based on addressing mode
@@ -832,7 +831,6 @@ class DebuggerUI {
 			}
 		}
 
-		// Fallback - return as is
 		return operandText;
 	}
 
