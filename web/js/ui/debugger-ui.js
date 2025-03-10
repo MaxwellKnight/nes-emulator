@@ -39,6 +39,11 @@ class DebuggerUI {
 		});
 
 		window.addEventListener('nes-debugger-update', () => this.updateUI());
+		window.addEventListener('nes-breakpoint-hit', () => {
+			this.stop();
+			this.showToast('Breakpoint hit', 'warning');
+		});
+
 		document.getElementById('disassemblyView').addEventListener('click', (e) => {
 			const row = e.target.closest('.instruction');
 			if (row) {
@@ -50,7 +55,8 @@ class DebuggerUI {
 		document.getElementById('memoryView').addEventListener('click', (e) => {
 			const cell = e.target.closest('.memory-cell');
 			if (cell && cell.dataset.address) {
-				this.promptEditMemoryValue(parseInt(cell.dataset.address, 16));
+				const address = parseInt(cell.dataset.address, 10);
+				this.promptEditMemoryValue(address);
 			}
 		});
 
@@ -65,19 +71,43 @@ class DebuggerUI {
 	initTooltips() {
 		const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
 		[...tooltipTriggerList].forEach(tooltipTriggerEl => {
+			const tooltip = bootstrap.Tooltip.getInstance(tooltipTriggerEl);
+			if (tooltip) {
+				tooltip.dispose();
+			}
+		});
+
+		[...tooltipTriggerList].forEach(tooltipTriggerEl => {
 			new bootstrap.Tooltip(tooltipTriggerEl, {
 				trigger: 'hover focus',
-				dismiss: 'click',
-				html: true
-			});
-
-			tooltipTriggerEl.addEventListener('click', () => {
-				const tooltip = bootstrap.Tooltip.getInstance(tooltipTriggerEl);
-				if (tooltip) {
-					tooltip.hide();
-				}
+				html: true,
+				container: 'body',     // Places tooltips in the body to avoid containment issues
+				animation: false,      // Improves performance by disabling animations
+				delay: { show: 200, hide: 100 } // Adds slight delay to prevent flickering
 			});
 		});
+	}
+
+	resetTooltips() {
+		const tooltipElements = document.querySelectorAll('[data-bs-toggle="tooltip"]');
+		[...tooltipElements].forEach(el => {
+			const tooltip = bootstrap.Tooltip.getInstance(el);
+			if (tooltip) {
+				tooltip.dispose();
+			}
+		});
+
+		if (!this.uiDisabled) {
+			[...tooltipElements].forEach(el => {
+				new bootstrap.Tooltip(el, {
+					trigger: 'hover focus',
+					html: true,
+					container: 'body',
+					animation: false,
+					delay: { show: 200, hide: 100 }
+				});
+			});
+		}
 	}
 
 	reset() {
@@ -108,17 +138,34 @@ class DebuggerUI {
 		document.getElementById('stepButton').classList.remove('disabled');
 		document.getElementById('stopButton').classList.add('disabled');
 
+		const disassemblyView = document.getElementById('disassemblyView');
+		disassemblyView.classList.remove('interaction-disabled');
+
+		const memoryView = document.getElementById('memoryView');
+		memoryView.classList.remove('interaction-disabled');
+
+		document.querySelectorAll('.btn').forEach(btn => {
+			btn.classList.remove('disabled');
+		});
+
 		this.updateUI();
-		this.showToast('Execution stopped', 'warning');
+		this.initTooltips();
 		this.debugger.stopContinuousExecution();
 	}
 
 	setControlsDisabled(disabled) {
-		const memoryView = document.getElementById('memoryView');
-		memoryView.classList.toggle('interaction-disabled', disabled);
+		this.uiDisabled = disabled;
 
+		const memoryView = document.getElementById('memoryView');
 		const disassemblyView = document.getElementById('disassemblyView');
-		disassemblyView.classList.toggle('interaction-disabled', disabled);
+
+		if (disabled) {
+			memoryView.classList.add('interaction-disabled');
+			disassemblyView.classList.add('interaction-disabled');
+		} else {
+			memoryView.classList.remove('interaction-disabled');
+			disassemblyView.classList.remove('interaction-disabled');
+		}
 
 		const inputElements = [
 			'breakpointAddress',
@@ -145,37 +192,24 @@ class DebuggerUI {
 			const element = document.getElementById(id);
 			if (element) {
 				element.disabled = disabled;
-				if (disabled) {
-					element.classList.add('disabled');
-				} else {
-					element.classList.remove('disabled');
-				}
+				element.classList.toggle('disabled', disabled);
 			}
 		});
 
 		if (disabled) {
-			const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
-			[...tooltipTriggerList].forEach(tooltipTriggerEl => {
-				const tooltip = bootstrap.Tooltip.getInstance(tooltipTriggerEl);
-				if (tooltip) {
-					tooltip.hide();
-					tooltip.disable();
-				}
-			});
+			document.getElementById('runButton').classList.add('disabled');
+			document.getElementById('runButton').disabled = true;
+			document.getElementById('stepButton').classList.add('disabled');
+			document.getElementById('stepButton').disabled = true;
+			document.getElementById('stopButton').classList.remove('disabled');
+			document.getElementById('stopButton').disabled = false;
 		} else {
-			const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
-			[...tooltipTriggerList].forEach(tooltipTriggerEl => {
-				const tooltip = bootstrap.Tooltip.getInstance(tooltipTriggerEl);
-				if (tooltip) {
-					tooltip.enable();
-				} else {
-					new bootstrap.Tooltip(tooltipTriggerEl, {
-						trigger: 'hover focus',
-						dismiss: 'click',
-						html: true
-					});
-				}
-			});
+			document.getElementById('runButton').classList.remove('disabled');
+			document.getElementById('runButton').disabled = false;
+			document.getElementById('stepButton').classList.remove('disabled');
+			document.getElementById('stepButton').disabled = false;
+			document.getElementById('stopButton').classList.add('disabled');
+			document.getElementById('stopButton').disabled = true;
 		}
 
 		if (!document.getElementById('interaction-disabled-style')) {
@@ -183,8 +217,12 @@ class DebuggerUI {
 			style.id = 'interaction-disabled-style';
 			style.textContent = `
             .interaction-disabled {
-                pointer-events: none;
+                pointer-events: none !important;
                 opacity: 0.7;
+            }
+            .btn.disabled {
+                pointer-events: none !important;
+                opacity: 0.65;
             }
         `;
 			document.head.appendChild(style);
@@ -218,12 +256,26 @@ class DebuggerUI {
 	removeBreakpoint(addr) {
 		this.debugger.removeBreakpoint(addr);
 		this.breakpoints.delete(addr);
+
+		const breakpointsList = document.getElementById('breakpointsList');
+		if (breakpointsList) {
+			const buttons = breakpointsList.querySelectorAll(`button[data-bs-toggle="tooltip"]`);
+			buttons.forEach(button => {
+				const tooltip = bootstrap.Tooltip.getInstance(button);
+				if (tooltip) {
+					tooltip.dispose();
+				}
+			});
+		}
+
 		this.updateBreakpointsList();
 		this.updateDisassembly();
 		this.showToast(`Breakpoint removed from $${addr.toString(16).toUpperCase().padStart(4, '0')}`, 'info');
 	}
 
 	toggleBreakpoint(addr) {
+		if (this.uiDisabled) return;
+
 		if (this.breakpoints.has(addr)) {
 			this.removeBreakpoint(addr);
 		} else {
@@ -232,6 +284,8 @@ class DebuggerUI {
 			this.updateBreakpointsList();
 			this.updateDisassembly();
 			this.showToast(`Breakpoint toggled at $${addr.toString(16).toUpperCase().padStart(4, '0')}`, 'success');
+
+			this.resetTooltips();
 		}
 	}
 
@@ -382,31 +436,6 @@ class DebuggerUI {
 		return opcodes;
 	}
 
-	promptEditMemoryValue(address) {
-		const currentValue = this.debugger.readMemory(address);
-		const newValueStr = prompt(
-			`Edit memory at $${address.toString(16).toUpperCase().padStart(4, '0')}\nCurrent value: $${currentValue.toString(16).toUpperCase().padStart(2, '0')}\nEnter new value (hex):`,
-			currentValue.toString(16).toUpperCase().padStart(2, '0')
-		);
-
-		if (newValueStr === null) return; // User canceled
-
-		try {
-			const newValue = parseInt(newValueStr, 16);
-			if (isNaN(newValue) || newValue < 0 || newValue > 255) {
-				this.showToast('Invalid byte value (must be 00-FF)', 'danger');
-				return;
-			}
-
-			this.debugger.writeMemory(address, newValue);
-			this.updateMemoryView();
-			this.showToast(`Memory at $${address.toString(16).toUpperCase().padStart(4, '0')} updated to $${newValue.toString(16).toUpperCase().padStart(2, '0')}`, 'success');
-		} catch (e) {
-			console.error('Error updating memory:', e);
-			this.showToast('Error updating memory value', 'danger');
-		}
-	}
-
 	showToast(message, type = 'info') {
 		let toastContainer = document.querySelector('.toast-container');
 		if (!toastContainer) {
@@ -447,11 +476,20 @@ class DebuggerUI {
 	}
 
 	updateUI() {
+		const state = this.debugger.getState();
+		const isRunning = state && state.running;
+
 		this.updateRegisters();
 		this.updateFlags();
 		this.updateDisassembly();
 		this.updateMemoryView();
 		this.updateStats();
+
+		if (!isRunning) {
+			this.initTooltips();
+		}
+
+		this.setControlsDisabled(isRunning);
 	}
 
 	updateRegisters() {
@@ -614,7 +652,7 @@ class DebuggerUI {
 				if (lastAddr !== null && instr.address !== lastAddr + instructions[i - 1].bytes) {
 					const gap = instr.address - (lastAddr + instructions[i - 1].bytes);
 					if (gap > 3) {
-						console.warn(`Address discontinuity detected: ${lastAddr.toString(16)} to ${instr.address.toString(16)} (gap: ${gap} bytes)`);
+						console.warn(`Address discontinuity detected: 0x${lastAddr.toString(16).toUpperCase()} to 0x${instr.address.toString(16).toUpperCase()} (gap: ${gap} bytes)`);
 					}
 				}
 
@@ -627,51 +665,63 @@ class DebuggerUI {
 				if (instr.address === pc) {
 					row.classList.add('current');
 				}
+
 				if (this.breakpoints.has(instr.address)) {
 					row.classList.add('border', 'border-warning', 'border-start', 'border-3');
 				}
 
+				// Address column
 				const addrCol = document.createElement('div');
-				addrCol.className = 'col-auto pe-3 text-primary instruction-address';
+				addrCol.className = 'col-1 pe-3 text-primary instruction-address';
 				addrCol.textContent = `$${instr.address.toString(16).toUpperCase().padStart(4, '0')}`;
 				row.appendChild(addrCol);
 
+				// Opcode bytes (can be 1-3 bytes)
 				const opcodeCol = document.createElement('div');
-				opcodeCol.className = 'col-auto px-3 text-secondary instruction-opcode d-none d-md-block';
-				opcodeCol.textContent = `${instr.opcode.toString(16).toUpperCase().padStart(2, '0')}`;
+				opcodeCol.className = 'col-2 px-2 text-secondary instruction-opcode d-none d-md-block';
+
+				// Format opcode bytes: opcode + possible operand bytes
+				let opcodeBytes = `0x${instr.opcode.toString(16).toUpperCase().padStart(2, '0')}`;
+				if (instr.bytes > 1 && instr.operand) {
+					if (instr.bytes === 2) {
+						// For 2-byte instructions, add low byte
+						opcodeBytes += ' 0x' + (instr.operand & 0xFF).toString(16).toUpperCase().padStart(2, '0');
+					} else if (instr.bytes === 3) {
+						// For 3-byte instructions, add low and high bytes
+						opcodeBytes += ' 0x' + (instr.operand & 0xFF).toString(16).toUpperCase().padStart(2, '0');
+						opcodeBytes += ' 0x' + ((instr.operand >> 8) & 0xFF).toString(16).toUpperCase().padStart(2, '0');
+					}
+				}
+				opcodeCol.textContent = opcodeBytes;
 				row.appendChild(opcodeCol);
 
+				// Mnemonic column
 				const mnemonicCol = document.createElement('div');
-				mnemonicCol.className = 'col-auto px-3 fw-bold instruction-mnemonic';
+				mnemonicCol.className = 'col-1 px-2 fw-bold instruction-mnemonic';
 				mnemonicCol.textContent = instr.mnemonic;
 				row.appendChild(mnemonicCol);
 
+				// Operands column with proper formatting
 				const operandsCol = document.createElement('div');
 				operandsCol.className = 'col instruction-operands';
 
-				let operandText = "";
-				if (instr.operand) {
-					operandText = String(instr.operand);
-				} else if (instr.formatted && instr.mnemonic) {
-					if (instr.formatted.indexOf(instr.mnemonic) === 0) {
-						operandText = instr.formatted.substring(instr.mnemonic.length).trim();
-					} else {
-						operandText = instr.formatted;
-					}
-				}
-				operandsCol.textContent = operandText;
+				// Format operand with correct addressing mode notation
+				let operandText = this.formatOperand(instr);
+				operandsCol.innerHTML = operandText; // Using innerHTML to support formatting
 				row.appendChild(operandsCol);
 
+				// Details column (bytes and cycles)
 				const detailsCol = document.createElement('div');
 				detailsCol.className = 'col-auto text-muted small instruction-details';
 				detailsCol.textContent = `${instr.bytes} B, ${instr.cycles} cyc`;
 				row.appendChild(detailsCol);
 
+				// Mobile view
 				const mobileCompactView = document.createElement('div');
 				mobileCompactView.className = 'd-md-none instruction-mobile-compact small text-muted';
 				mobileCompactView.innerHTML = `
-                <span class="text-primary me-1">$${instr.address.toString(16).toUpperCase().padStart(4, '0')}</span>
-                <span class="text-secondary me-1">${instr.opcode.toString(16).toUpperCase().padStart(2, '0')}</span>
+                <span class="text-primary me-1">${instr.address.toString(16).toUpperCase().padStart(4, '0')}</span>
+                <span class="text-secondary me-1">0x${instr.opcode.toString(16).toUpperCase().padStart(2, '0')}</span>
                 <span class="fw-bold me-1">${instr.mnemonic}</span>
                 <span>${operandText}</span>
                 <span class="ms-auto">(${instr.bytes}B, ${instr.cycles}cyc)</span>
@@ -691,6 +741,99 @@ class DebuggerUI {
             </div>
         `;
 		}
+	}
+
+	formatOperand(instr) {
+		if (!instr.operand && !instr.formatted) {
+			return ""; // No operand (implied addressing)
+		}
+
+		// If there's a formatted string from the disassembler, use that as a starting point
+		let operandText = "";
+		if (instr.formatted && instr.mnemonic) {
+			if (instr.formatted.indexOf(instr.mnemonic) === 0) {
+				operandText = instr.formatted.substring(instr.mnemonic.length).trim();
+			} else {
+				operandText = instr.formatted;
+			}
+		}
+
+		// If we have a raw operand value but no formatted text, format it based on common 6502 addressing modes
+		if (instr.operand && (!operandText || operandText === String(instr.operand))) {
+			const operand = instr.operand;
+			// Try to infer addressing mode from instruction bytes and opcode
+			switch (instr.bytes) {
+				case 1:
+					// Implied or Accumulator addressing
+					return ""; // No operand needed
+
+				case 2:
+					// Immediate, Zero Page, Zero Page X/Y, Relative addressing
+					// Check for common immediate mode opcodes (LDA #$xx, LDX #$xx, etc.)
+					if (instr.opcode === 0xA9 || instr.opcode === 0xA2 || instr.opcode === 0xA0 ||
+						instr.opcode === 0xC9 || instr.opcode === 0xE0 || instr.opcode === 0xC0) {
+						// Immediate addressing
+						return `<span class="text-info">#0x${(operand & 0xFF).toString(16).toUpperCase().padStart(2, '0')}</span>`;
+					}
+
+					// Check for branches (BEQ, BNE, etc.) which use relative addressing
+					if ((instr.opcode & 0x1F) === 0x10) {
+						// Relative addressing - calculate target address
+						const offset = operand & 0xFF;
+						const target = instr.address + 2 + ((offset < 128) ? offset : offset - 256);
+						return `<span class="text-success">$${target.toString(16).toUpperCase().padStart(4, '0')}</span>`;
+					}
+
+					// Assume Zero Page for other 2-byte instructions
+					return `<span class="text-warning">$${(operand & 0xFF).toString(16).toUpperCase().padStart(2, '0')}</span>`;
+
+				case 3:
+					// Absolute, Absolute X/Y, Indirect addressing
+					return `<span class="text-success">$${operand.toString(16).toUpperCase().padStart(4, '0')}</span>`;
+			}
+		}
+
+		// If we have a formatted string but it doesn't have proper hex notation, add it
+		if (operandText) {
+			// Convert all hex notation to use 0x format except for $ addresses and # immediate values
+			operandText = operandText.replace(/\$([0-9A-F]{2,4})/gi, (match, hex) => {
+				// Keep $ for addresses, but ensure only one $
+				return `$${hex}`;
+			});
+
+			operandText = operandText.replace(/#\$([0-9A-F]{2})/gi, (match, hex) => {
+				// Change #$ to # with 0x for immediate values
+				return `#0x${hex}`;
+			});
+
+			// Replace decimal numbers with hex notation
+			operandText = operandText.replace(/\b(\d+)\b/g, (match, number) => {
+				const num = parseInt(number, 10);
+				if (num <= 0xFF) {
+					return `0x${num.toString(16).toUpperCase().padStart(2, '0')}`;
+				} else {
+					return `0x${num.toString(16).toUpperCase().padStart(4, '0')}`;
+				}
+			});
+
+			// Add color formatting based on addressing mode
+			if (operandText.includes('#')) {
+				// Immediate addressing
+				return `<span class="text-info">${operandText}</span>`;
+			} else if (operandText.includes(',')) {
+				// Indexed addressing
+				return `<span class="text-warning">${operandText}</span>`;
+			} else if (operandText.includes('(') && operandText.includes(')')) {
+				// Indirect addressing
+				return `<span class="text-danger">${operandText}</span>`;
+			} else if (operandText.length <= 5 && operandText.startsWith('$')) { // $xx or $xxxx
+				// Zero page or absolute addressing
+				return `<span class="text-success">${operandText}</span>`;
+			}
+		}
+
+		// Fallback - return as is
+		return operandText;
 	}
 
 	updateMemoryView() {
@@ -732,6 +875,8 @@ class DebuggerUI {
 			const rowStartAddr = this.currentMemoryPage + (row * 16);
 			const memoryRow = document.createElement('div');
 			memoryRow.className = 'memory-row row g-0 mb-1 px-2 py-1 rounded align-items-center';
+			// Add debug attribute for inspecting
+			memoryRow.dataset.rowAddress = rowStartAddr.toString(16).toUpperCase().padStart(4, '0');
 
 			const addrCell = document.createElement('div');
 			addrCell.className = 'memory-address col-2 col-md-1 text-primary text-truncate';
@@ -746,13 +891,24 @@ class DebuggerUI {
 				const addr = rowStartAddr + col;
 				if (addr <= 0xFFFF) {
 					const value = this.debugger.readMemory(addr);
+
+					// Create a cell with a consistent format for the data-address attribute
+					// IMPORTANT: Store as a decimal string since that's how dataset attributes work
 					const cell = document.createElement('div');
 					cell.className = 'memory-cell text-center';
 					cell.style.width = '30px';
 					cell.style.minWidth = '30px';
 					cell.style.maxWidth = '30px';
 					cell.classList.add('col-auto', 'd-none', 'd-md-block');
-					cell.dataset.address = addr;
+
+					// Store address as decimal in data attribute
+					cell.dataset.address = addr.toString(10); // Explicitly store as decimal string
+
+					// Add custom attributes for debugging
+					cell.dataset.addressHex = addr.toString(16).toUpperCase().padStart(4, '0');
+					cell.dataset.row = row;
+					cell.dataset.col = col;
+
 					cell.textContent = value.toString(16).toUpperCase().padStart(2, '0');
 					cell.setAttribute('data-bs-toggle', 'tooltip');
 					cell.setAttribute('data-bs-placement', 'top');
@@ -802,6 +958,178 @@ class DebuggerUI {
 		}
 
 		this.initTooltips();
+	}
+
+	promptEditMemoryValue(address) {
+		address = Number(address);
+
+		const currentValue = this.debugger.readMemory(address);
+		const formattedAddress = address.toString(16).toUpperCase().padStart(4, '0');
+		const formattedValue = currentValue.toString(16).toUpperCase().padStart(2, '0');
+
+		let existingModal = document.getElementById('memoryEditModal');
+		if (existingModal) {
+			existingModal.remove();
+		}
+
+		const modalHtml = `
+        <div class="modal fade" id="memoryEditModal" tabindex="-1" aria-labelledby="memoryEditModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="memoryEditModalLabel">Edit Memory Address: $${formattedAddress}</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="alert alert-info">
+                            <small>
+                                Editing memory at address $${formattedAddress} (${address} decimal)<br>
+                                Memory page: $${(address & 0xFF00).toString(16).toUpperCase().padStart(4, '0')}<br>
+                                Offset: $${(address & 0xFF).toString(16).toUpperCase().padStart(2, '0')}
+                            </small>
+                        </div>
+                        <form id="memoryEditForm">
+                            <div class="mb-3">
+                                <label for="newMemoryValue" class="form-label">Value (Hexadecimal)</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">$</span>
+                                    <input type="text" class="form-control" id="newMemoryValue" 
+                                           value="${formattedValue}" maxlength="2" 
+                                           pattern="[0-9A-Fa-f]{1,2}" required>
+                                </div>
+                                <div class="form-text">Enter a hex value between 00 and FF</div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col">
+                                    <label class="form-label">Decimal</label>
+                                    <input type="number" class="form-control" id="decimalValue" 
+                                           value="${currentValue}" min="0" max="255">
+                                </div>
+                                <div class="col">
+                                    <label class="form-label">Binary</label>
+                                    <input type="text" class="form-control" id="binaryValue" 
+                                           value="${currentValue.toString(2).padStart(8, '0')}" disabled>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="button" class="btn btn-primary" id="saveMemoryValue">Save</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+
+		const modalContainer = document.createElement('div');
+		modalContainer.innerHTML = modalHtml;
+		document.body.appendChild(modalContainer.firstElementChild);
+
+		const modal = new bootstrap.Modal(document.getElementById('memoryEditModal'));
+
+		modal.show();
+
+		const hexInput = document.getElementById('newMemoryValue');
+		const decInput = document.getElementById('decimalValue');
+		const binInput = document.getElementById('binaryValue');
+
+		hexInput.addEventListener('input', () => {
+			const hexVal = hexInput.value.trim();
+			if (/^[0-9A-Fa-f]{1,2}$/.test(hexVal)) {
+				const decVal = parseInt(hexVal, 16);
+				decInput.value = decVal;
+				binInput.value = decVal.toString(2).padStart(8, '0');
+			}
+		});
+
+		decInput.addEventListener('input', () => {
+			const decVal = parseInt(decInput.value);
+			if (!isNaN(decVal) && decVal >= 0 && decVal <= 255) {
+				hexInput.value = decVal.toString(16).toUpperCase().padStart(2, '0');
+				binInput.value = decVal.toString(2).padStart(8, '0');
+			}
+		});
+
+		// Auto-focus the input field
+		hexInput.focus();
+		hexInput.select();
+
+		const self = this;
+		const targetAddress = address;
+
+		document.getElementById('saveMemoryValue').addEventListener('click', function() {
+			const hexVal = hexInput.value.trim();
+			if (/^[0-9A-Fa-f]{1,2}$/.test(hexVal)) {
+				const newValue = parseInt(hexVal, 16);
+
+				try {
+					self.debugger.writeMemory(targetAddress, newValue);
+					const checkValue = self.debugger.readMemory(targetAddress);
+
+					const memoryCell = document.querySelector(`.memory-cell[data-address="${targetAddress}"]`);
+					if (memoryCell) {
+						memoryCell.textContent = checkValue.toString(16).toUpperCase().padStart(2, '0');
+
+						// Highlight the updated cell
+						memoryCell.classList.add('bg-warning');
+						setTimeout(() => {
+							memoryCell.classList.remove('bg-warning');
+							memoryCell.classList.add('bg-success', 'bg-opacity-25');
+							setTimeout(() => {
+								memoryCell.classList.remove('bg-success', 'bg-opacity-25');
+							}, 500);
+						}, 1000);
+					} else {
+						self.updateMemoryView();
+					}
+
+					// Update ASCII representation if needed
+					const rowAddress = targetAddress & 0xFFF0; // Get the row start address
+					const rowOffset = targetAddress & 0x000F; // Get position in row
+
+					const asciiCell = document.querySelector(`.memory-row[data-row-address="${rowAddress.toString(16).toUpperCase().padStart(4, '0')}"] .memory-ascii`);
+					if (asciiCell) {
+						const asciiText = asciiCell.textContent;
+						const newChar = (checkValue >= 32 && checkValue <= 126) ? String.fromCharCode(checkValue) : '.';
+						if (asciiText.length === 16 && rowOffset < 16) {
+							const newText = asciiText.substring(0, rowOffset) + newChar + asciiText.substring(rowOffset + 1);
+							asciiCell.textContent = newText;
+						}
+					}
+
+					self.showToast(`Memory at $${formattedAddress} updated to $${newValue.toString(16).toUpperCase().padStart(2, '0')}`, 'success');
+
+					modal.hide();
+				} catch (error) {
+					console.error('Exception during memory write:', error);
+					self.showToast(`Error updating memory: ${error.message}`, 'danger');
+				}
+			} else {
+				hexInput.classList.add('is-invalid');
+				self.showToast('Invalid byte value (must be 00-FF)', 'danger');
+			}
+		});
+
+		document.getElementById('memoryEditForm').addEventListener('submit', function(e) {
+			e.preventDefault();
+			document.getElementById('saveMemoryValue').click();
+		});
+
+		document.getElementById('memoryEditModal').addEventListener('hidden.bs.modal', function() {
+			this.remove();
+		});
+	}
+
+	reloadMemoryView() {
+		const currentPage = this.currentMemoryPage;
+
+		this.currentMemoryPage = (currentPage === 0) ? 0x100 : 0;
+		this.updateMemoryView();
+
+		this.currentMemoryPage = currentPage;
+		this.updateMemoryView();
+		this.showToast("Memory view refreshed", "info");
 	}
 
 	updateStats() {

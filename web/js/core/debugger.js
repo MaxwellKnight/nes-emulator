@@ -1,5 +1,4 @@
 class NESDebugger {
-	bin
 	constructor() {
 		this.module = null;
 		this.isLoaded = false;
@@ -91,6 +90,18 @@ class NESDebugger {
 
 		this.run();
 
+		if (!this.hasBreakpointUIHandler) {
+			this.onBreak(() => {
+				this.stopContinuousExecution();
+
+				const event = new CustomEvent('nes-breakpoint-hit', {
+					detail: this.getState()
+				});
+				window.dispatchEvent(event);
+			});
+			this.hasBreakpointUIHandler = true;
+		}
+
 		const executionLoop = () => {
 			if (!this.isRunning()) {
 				this.onBreakCallbacks.forEach(callback => callback());
@@ -101,9 +112,15 @@ class NESDebugger {
 
 			const startTime = performance.now();
 			const maxTimeSlice = 10; // Max 10ms per frame for execution
+			let instructionsThisFrame = 0;
 
 			while (this.isRunning() && performance.now() - startTime < maxTimeSlice) {
 				this.step(); // Run one instruction
+				instructionsThisFrame++;
+
+				if (instructionsThisFrame > 1000) {
+					break;
+				}
 			}
 
 			this.animationFrame = requestAnimationFrame(executionLoop);
