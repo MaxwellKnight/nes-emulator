@@ -6,7 +6,8 @@
 
 namespace nes {
 
-CPU::CPU() {
+CPU::CPU(Bus &bus)
+  : _bus(bus) {
   reset();
 
   // Initialize all opcodes as invalid
@@ -270,9 +271,9 @@ void CPU::reset() {
 }
 
 // Memory operations
-u8 CPU::read_byte(const u16 address) { return _bus->cpu_read(address); }
+u8 CPU::read_byte(const u16 address) { return _bus.cpu_read(address); }
 
-void CPU::write_byte(const u16 address, const u8 value) { _bus->cpu_write(address, value); }
+void CPU::write_byte(const u16 address, const u8 value) { _bus.cpu_write(address, value); }
 
 // Getters
 u8 CPU::get_accumulator() const { return _A; }
@@ -288,7 +289,6 @@ CPU::Instruction CPU::get_instruction(const Opcode opcode) const { return _instr
 void CPU::set_sp(const u8 sp) { _SP = sp; }
 void CPU::set_pc(const u16 pc) { _PC = pc; }
 void CPU::set_status(const u8 status) { _status = status; }
-void CPU::connect_bus(Bus *bus) { _bus = bus; }
 
 // Flag operations
 bool CPU::get_flag(Flag flag) const { return (_status & (u8)(flag)) != 0; }

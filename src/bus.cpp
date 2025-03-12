@@ -1,7 +1,8 @@
 #include "bus.h"
 
 namespace nes {
-Bus::Bus() { _cpu.connect_bus(this); }
+Bus::Bus()
+  : _cpu(*this) {}
 
 void Bus::clock() { _cpu.clock(); }
 void Bus::reset() {

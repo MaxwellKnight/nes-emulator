@@ -17,7 +17,7 @@ class CPU {
   u8 _cycles;  // Remaining cycles for current instruction
 
   // Reference to the bus for memory access
-  Bus* _bus = nullptr;
+  Bus& _bus;
 
   // Used for addressing mode to know if a page is crossed to add a cycle
   bool _page_crossed = false;
@@ -140,7 +140,7 @@ class CPU {
   void op_rts();
 
  public:
-  CPU();
+  CPU(Bus& bus);
   ~CPU() = default;
 
   // Core methods
@@ -163,7 +163,6 @@ class CPU {
   void set_pc(u16 sp);
   void set_flag(const Flag flag, const bool value);
   void set_status(const u8 status);
-  void connect_bus(Bus* bus);
 
   // Memory access methods
   u8 read_byte(u16 address);

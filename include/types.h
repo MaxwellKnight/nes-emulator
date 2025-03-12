@@ -8,8 +8,6 @@ using u32 = std::uint32_t;
 using u64 = std::uint64_t;
 using i8 = std::int8_t;
 
-class Addressable;
-
 // Interface for memory-mapped components
 class Addressable {
  public:
