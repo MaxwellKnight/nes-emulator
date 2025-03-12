@@ -531,20 +531,6 @@ std::string Debugger::format_instruction(u8 opcode, u16 operand, u8 bytes, u16 i
 
 std::string Debugger::address_mode_string(u8 opcode) const { return _addressing_mode_table[opcode]; }
 
-void print_disassembled_instruction(const DisassembledInstruction& instruction) {
-  std::cout << "Address:   0x" << std::hex << std::uppercase << std::setw(4) << std::setfill('0') << instruction.address << std::dec
-            << "\n";
-  std::cout << "Opcode:    0x" << std::hex << std::uppercase << std::setw(2) << std::setfill('0') << static_cast<int>(instruction.opcode)
-            << std::dec << "\n";
-  std::cout << "Mnemonic:  " << instruction.mnemonic << "\n";
-  std::cout << "Operand:   0x" << std::hex << std::uppercase << std::setw(4) << std::setfill('0') << instruction.operand << std::dec
-            << "\n";
-  std::cout << "Formatted: " << instruction.formatted << "\n";
-  std::cout << "Bytes:     " << static_cast<int>(instruction.bytes) << "\n";
-  std::cout << "Cycles:    " << static_cast<int>(instruction.cycles) << "\n";
-  std::cout << "------------------------------" << std::endl;
-}
-
 #ifdef __EMSCRIPTEN__
 
 // WASM exported functions
@@ -787,71 +773,5 @@ EMSCRIPTEN_EXPORT char* debugger_disassemble_range(u16 start, u16 end) {
 
   return const_cast<char*>(result.c_str());
 }
-
-EMSCRIPTEN_EXPORT void debugger_print_state() {
-  if (!g_debugger) {
-    std::cerr << "Error: g_debugger is null!\n";
-    return;
-  }
-
-  u16 pc = g_debugger->get_register_pc();
-  u8 a = g_debugger->get_register_a();
-  u8 x = g_debugger->get_register_x();
-  u8 y = g_debugger->get_register_y();
-  u8 sp = g_debugger->get_register_sp();
-  u8 status = g_debugger->get_register_status();
-
-  printf("CPU State:\n");
-  printf("  PC = $%04X\n", pc);
-  printf("  A  = $%02X\n", a);
-  printf("  X  = $%02X\n", x);
-  printf("  Y  = $%02X\n", y);
-  printf("  SP = $%02X\n", sp);
-  printf("  P  = $%02X (", status);
-
-  if (g_debugger->get_status_flag(static_cast<Flag>(7)))
-    printf("N");
-  else
-    printf("-");
-  if (g_debugger->get_status_flag(static_cast<Flag>(6)))
-    printf("V");
-  else
-    printf("-");
-  if (g_debugger->get_status_flag(static_cast<Flag>(5)))
-    printf("U");
-  else
-    printf("-");
-  if (g_debugger->get_status_flag(static_cast<Flag>(4)))
-    printf("B");
-  else
-    printf("-");
-  if (g_debugger->get_status_flag(static_cast<Flag>(3)))
-    printf("D");
-  else
-    printf("-");
-  if (g_debugger->get_status_flag(static_cast<Flag>(2)))
-    printf("I");
-  else
-    printf("-");
-  if (g_debugger->get_status_flag(static_cast<Flag>(1)))
-    printf("Z");
-  else
-    printf("-");
-  if (g_debugger->get_status_flag(static_cast<Flag>(0)))
-    printf("C");
-  else
-    printf("-");
-  printf(")\n");
-
-  printf("Reset vector: $%02X%02X\n", g_debugger->read_memory(0xFFFD), g_debugger->read_memory(0xFFFC));
-
-  printf("Memory at PC ($%04X):\n  ", pc);
-  for (int i = 0; i < 8; i++) {
-    printf("%02X ", g_debugger->read_memory(pc + i));
-  }
-  printf("\n");
-}
-
 #endif  // __EMSCRIPTEN__
-
 }  // namespace nes

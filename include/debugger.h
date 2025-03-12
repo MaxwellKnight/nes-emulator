@@ -68,7 +68,7 @@ class Debugger {
   // Disassembly methods
   DisassembledInstruction disassemble_instruction(u16 address) const;
   std::vector<DisassembledInstruction> disassemble_range(u16 start, u16 end) const;
-  std::vector<DisassembledInstruction> disassemble_around_pc(int instructions_before, int instructions_after) const;
+  std::vector<DisassembledInstruction> disassemble_around_pc(int before, int after) const;
 
   // Helper methods for disassembly
   u8 get_instruction_bytes(u8 opcode) const;
