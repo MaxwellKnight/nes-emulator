@@ -8,9 +8,9 @@ class CPUControlFlowTest : public CPUTestBase {
     cpu.set_pc(0x1000);
 
     // Write JMP_ABS instruction and address
-    bus.write(0x1000, static_cast<nes::u8>(nes::Opcode::JMP_ABS));
-    bus.write(0x1001, static_cast<nes::u8>(address & 0xFF));         // Low byte
-    bus.write(0x1002, static_cast<nes::u8>((address >> 8) & 0xFF));  // High byte
+    bus.cpu_write(0x1000, static_cast<nes::u8>(nes::Opcode::JMP_ABS));
+    bus.cpu_write(0x1001, static_cast<nes::u8>(address & 0xFF));         // Low byte
+    bus.cpu_write(0x1002, static_cast<nes::u8>((address >> 8) & 0xFF));  // High byte
   }
 
   void execute_jmp_ind_instruction(nes::u16 address, nes::u16 indirect_address) {
@@ -18,9 +18,9 @@ class CPUControlFlowTest : public CPUTestBase {
     cpu.reset();
     cpu.set_pc(address);
     // Write JMP_IND instruction and address
-    bus.write(address, static_cast<nes::u8>(nes::Opcode::JMP_IND));
-    bus.write(address + 1, static_cast<nes::u8>(indirect_address & 0xFF));         // Low byte
-    bus.write(address + 2, static_cast<nes::u8>((indirect_address >> 8) & 0xFF));  // High byte
+    bus.cpu_write(address, static_cast<nes::u8>(nes::Opcode::JMP_IND));
+    bus.cpu_write(address + 1, static_cast<nes::u8>(indirect_address & 0xFF));         // Low byte
+    bus.cpu_write(address + 2, static_cast<nes::u8>((indirect_address >> 8) & 0xFF));  // High byte
   }
 };
 
@@ -37,15 +37,15 @@ TEST_F(CPUControlFlowTest, jmp_abs) {
 
 TEST_F(CPUControlFlowTest, jmp_ind_page_boundary_bug) {
   // Set up memory at the wrap-around boundary
-  bus.write(0x07FF, 0x80);
-  bus.write(0x0700, 0x50);  // This simulates the wrap-around to 0x0700
+  bus.cpu_write(0x07FF, 0x80);
+  bus.cpu_write(0x0700, 0x50);  // This simulates the wrap-around to 0x0700
 
   // Setup JMP_IND instruction
   cpu.reset();
   cpu.set_pc(0xFFFC);
-  bus.write(0xFFFC, static_cast<nes::u8>(nes::Opcode::JMP_IND));
-  bus.write(0xFFFD, 0xFF);  // Low byte of indirect address
-  bus.write(0xFFFE, 0x07);  // High byte of indirect address
+  bus.cpu_write(0xFFFC, static_cast<nes::u8>(nes::Opcode::JMP_IND));
+  bus.cpu_write(0xFFFD, 0xFF);  // Low byte of indirect address
+  bus.cpu_write(0xFFFE, 0x07);  // High byte of indirect address
 
   // Execute instruction cycles
   execute_cycles(5);
@@ -63,7 +63,7 @@ TEST_F(CPUControlFlowTest, brk_pushes_pc_plus_two_to_stack) {
   nes::u8 initial_sp = cpu.get_sp();
 
   // Execute BRK instruction
-  bus.write(initial_pc, (nes::u8)nes::Opcode::BRK_IMP);
+  bus.cpu_write(initial_pc, (nes::u8)nes::Opcode::BRK_IMP);
   execute_cycles(7);  // BRK takes 7 cycles
 
   // Calculate expected values
@@ -75,8 +75,8 @@ TEST_F(CPUControlFlowTest, brk_pushes_pc_plus_two_to_stack) {
 
   // According to 6502 behavior, PCH is pushed first, then PCL, then status
   // So they should be at SP+3, SP+2, and SP+1 respectively
-  nes::u8 pch = bus.read(0x0100 + expected_sp + 3);
-  nes::u8 pcl = bus.read(0x0100 + expected_sp + 2);
+  nes::u8 pch = bus.cpu_read(0x0100 + expected_sp + 3);
+  nes::u8 pcl = bus.cpu_read(0x0100 + expected_sp + 2);
   nes::u16 pushed_pc = (pch << 8) | pcl;
 
   // Verify PC+2 was pushed to the stack
@@ -95,13 +95,13 @@ TEST_F(CPUControlFlowTest, brk_pushes_status_register_to_stack) {
   nes::u8 initial_sp = cpu.get_sp();
 
   // Execute BRK instruction
-  bus.write(0x8000, (nes::u8)nes::Opcode::BRK_IMP);
+  bus.cpu_write(0x8000, (nes::u8)nes::Opcode::BRK_IMP);
   execute_cycles(7);
 
   // The status register is pushed after PCH and PCL, so it should be at SP+1
   // where SP is the final stack pointer after BRK
   nes::u8 final_sp = initial_sp - 3;
-  nes::u8 pushed_status = bus.read(0x0100 + final_sp + 1);
+  nes::u8 pushed_status = bus.cpu_read(0x0100 + final_sp + 1);
 
   // The status should have BREAK and UNUSED flags set when pushed to stack
   nes::u8 expected_status = initial_status | (nes::u8)nes::Flag::BREAK | (nes::u8)nes::Flag::UNUSED;
@@ -119,7 +119,7 @@ TEST_F(CPUControlFlowTest, brk_sets_interrupt_disable_flag) {
   EXPECT_FALSE(cpu.get_flag(nes::Flag::INTERRUPT_DISABLE));
 
   // Execute BRK instruction
-  bus.write(0x8000, (nes::u8)nes::Opcode::BRK_IMP);
+  bus.cpu_write(0x8000, (nes::u8)nes::Opcode::BRK_IMP);
   execute_cycles(7);
 
   // Verify interrupt disable flag was set
@@ -133,11 +133,11 @@ TEST_F(CPUControlFlowTest, brk_loads_interrupt_vector_to_pc) {
 
   // Set up interrupt vector at $FFFE-$FFFF
   nes::u16 interrupt_vector = 0x1234;
-  bus.write(0xFFFE, interrupt_vector & 0xFF);         // Low byte
-  bus.write(0xFFFF, (interrupt_vector >> 8) & 0xFF);  // High byte
+  bus.cpu_write(0xFFFE, interrupt_vector & 0xFF);         // Low byte
+  bus.cpu_write(0xFFFF, (interrupt_vector >> 8) & 0xFF);  // High byte
 
   // Execute BRK instruction
-  bus.write(0x8000, (nes::u8)nes::Opcode::BRK_IMP);
+  bus.cpu_write(0x8000, (nes::u8)nes::Opcode::BRK_IMP);
   execute_cycles(7);
 
   // Verify PC was loaded with interrupt vector
@@ -150,7 +150,7 @@ TEST_F(CPUControlFlowTest, brk_takes_seven_cycles) {
   cpu.set_pc(0x8000);
 
   // Execute BRK instruction with exactly 7 cycles
-  bus.write(0x8000, (nes::u8)nes::Opcode::BRK_IMP);
+  bus.cpu_write(0x8000, (nes::u8)nes::Opcode::BRK_IMP);
   execute_cycles(7);
 
   // Verify all cycles were consumed
@@ -162,7 +162,7 @@ TEST_F(CPUControlFlowTest, brk_takes_seven_cycles) {
   // Try with fewer cycles (6) to confirm it doesn't complete
   cpu.reset();
   cpu.set_pc(0x8000);
-  bus.write(0x8000, (nes::u8)nes::Opcode::BRK_IMP);
+  bus.cpu_write(0x8000, (nes::u8)nes::Opcode::BRK_IMP);
   execute_cycles(6);
 
   // Verify instruction isn't complete yet
@@ -175,16 +175,16 @@ TEST_F(CPUControlFlowTest, brk_leaves_other_registers_unchanged) {
   cpu.set_pc(0x8000);
 
   // Set up a value in accumulator and X/Y registers
-  bus.write(0x8000, (nes::u8)nes::Opcode::LDA_IMM);
-  bus.write(0x8001, 0x42);
+  bus.cpu_write(0x8000, (nes::u8)nes::Opcode::LDA_IMM);
+  bus.cpu_write(0x8001, 0x42);
   execute_cycles(2);
 
-  bus.write(0x8002, (nes::u8)nes::Opcode::LDX_IMM);
-  bus.write(0x8003, 0x69);
+  bus.cpu_write(0x8002, (nes::u8)nes::Opcode::LDX_IMM);
+  bus.cpu_write(0x8003, 0x69);
   execute_cycles(2);
 
-  bus.write(0x8004, (nes::u8)nes::Opcode::LDY_IMM);
-  bus.write(0x8005, 0x55);
+  bus.cpu_write(0x8004, (nes::u8)nes::Opcode::LDY_IMM);
+  bus.cpu_write(0x8005, 0x55);
   execute_cycles(2);
 
   // Save register values before BRK
@@ -193,7 +193,7 @@ TEST_F(CPUControlFlowTest, brk_leaves_other_registers_unchanged) {
   nes::u8 y_before = cpu.get_y();
 
   // Execute BRK instruction
-  bus.write(0x8006, (nes::u8)nes::Opcode::BRK_IMP);
+  bus.cpu_write(0x8006, (nes::u8)nes::Opcode::BRK_IMP);
   execute_cycles(7);
 
   // Verify A, X, and Y registers weren't affected
@@ -218,7 +218,7 @@ TEST_F(CPUControlFlowTest, brk_leaves_other_flags_unchanged) {
   nes::u8 flags_before = cpu.get_status() & ~((nes::u8)nes::Flag::INTERRUPT_DISABLE | (nes::u8)nes::Flag::BREAK);
 
   // Execute BRK instruction
-  bus.write(0x8000, (nes::u8)nes::Opcode::BRK_IMP);
+  bus.cpu_write(0x8000, (nes::u8)nes::Opcode::BRK_IMP);
   execute_cycles(7);
 
   // Verify flags weren't affected (except INTERRUPT_DISABLE and BREAK)
@@ -236,9 +236,9 @@ TEST_F(CPUControlFlowTest, jsr_pushes_return_address_to_stack) {
 
   // Write JSR instruction with target address
   // JSR $0600
-  bus.write(initial_pc, static_cast<nes::u8>(nes::Opcode::JSR_ABS));
-  bus.write(initial_pc + 1, 0x00);  // Low byte of target
-  bus.write(initial_pc + 2, 0x06);  // High byte of target
+  bus.cpu_write(initial_pc, static_cast<nes::u8>(nes::Opcode::JSR_ABS));
+  bus.cpu_write(initial_pc + 1, 0x00);  // Low byte of target
+  bus.cpu_write(initial_pc + 2, 0x06);  // High byte of target
 
   // Execute JSR instruction (takes 6 cycles)
   execute_cycles(6);
@@ -253,8 +253,8 @@ TEST_F(CPUControlFlowTest, jsr_pushes_return_address_to_stack) {
 
   // According to 6502 behavior, PC high byte is pushed first, then PC low byte
   // So we need to read from SP+1 and SP+2
-  nes::u8 pushed_pcl = bus.read(0x0100 + expected_sp + 1);
-  nes::u8 pushed_pch = bus.read(0x0100 + expected_sp + 2);
+  nes::u8 pushed_pcl = bus.cpu_read(0x0100 + expected_sp + 1);
+  nes::u8 pushed_pch = bus.cpu_read(0x0100 + expected_sp + 2);
   nes::u16 pushed_addr = (pushed_pch << 8) | pushed_pcl;
 
   // Verify correct return address was pushed to the stack
@@ -269,9 +269,9 @@ TEST_F(CPUControlFlowTest, jsr_transfers_control_to_target_address) {
   nes::u16 target_address = 0x0600;
 
   // Write JSR instruction with target address 0x0600
-  bus.write(0x0400, static_cast<nes::u8>(nes::Opcode::JSR_ABS));
-  bus.write(0x0401, 0x00);  // Low byte of target
-  bus.write(0x0402, 0x06);  // High byte of target
+  bus.cpu_write(0x0400, static_cast<nes::u8>(nes::Opcode::JSR_ABS));
+  bus.cpu_write(0x0401, 0x00);  // Low byte of target
+  bus.cpu_write(0x0402, 0x06);  // High byte of target
 
   // Execute JSR instruction
   execute_cycles(6);
@@ -294,9 +294,9 @@ TEST_F(CPUControlFlowTest, jsr_leaves_flags_unchanged) {
   nes::u8 initial_status = cpu.get_status();
 
   // Write JSR instruction with target address 0x0600
-  bus.write(0x0400, static_cast<nes::u8>(nes::Opcode::JSR_ABS));
-  bus.write(0x0401, 0x00);  // Low byte of target
-  bus.write(0x0402, 0x06);  // High byte of target
+  bus.cpu_write(0x0400, static_cast<nes::u8>(nes::Opcode::JSR_ABS));
+  bus.cpu_write(0x0401, 0x00);  // Low byte of target
+  bus.cpu_write(0x0402, 0x06);  // High byte of target
 
   // Execute JSR instruction
   execute_cycles(6);
@@ -311,9 +311,9 @@ TEST_F(CPUControlFlowTest, jsr_takes_six_cycles) {
   cpu.set_pc(0x0400);
 
   // Write JSR instruction with target address 0x0600
-  bus.write(0x0400, static_cast<nes::u8>(nes::Opcode::JSR_ABS));
-  bus.write(0x0401, 0x00);  // Low byte of target
-  bus.write(0x0402, 0x06);  // High byte of target
+  bus.cpu_write(0x0400, static_cast<nes::u8>(nes::Opcode::JSR_ABS));
+  bus.cpu_write(0x0401, 0x00);  // Low byte of target
+  bus.cpu_write(0x0402, 0x06);  // High byte of target
 
   // Execute JSR instruction with exactly 6 cycles
   execute_cycles(6);
@@ -329,9 +329,9 @@ TEST_F(CPUControlFlowTest, jsr_takes_six_cycles) {
   cpu.set_pc(0x0400);
 
   // Write the same instruction again
-  bus.write(0x0400, static_cast<nes::u8>(nes::Opcode::JSR_ABS));
-  bus.write(0x0401, 0x00);
-  bus.write(0x0402, 0x06);
+  bus.cpu_write(0x0400, static_cast<nes::u8>(nes::Opcode::JSR_ABS));
+  bus.cpu_write(0x0401, 0x00);
+  bus.cpu_write(0x0402, 0x06);
 
   execute_cycles(5);
 
@@ -367,19 +367,19 @@ TEST_F(CPUControlFlowTest, rti_pulls_status_register_from_stack) {
 
   // Push PCH (high byte)
   cpu.set_sp(initial_sp);
-  bus.write(0x0100 + initial_sp, (return_addr >> 8) & 0xFF);
+  bus.cpu_write(0x0100 + initial_sp, (return_addr >> 8) & 0xFF);
   cpu.set_sp(initial_sp - 1);
 
   // Push PCL (low byte)
-  bus.write(0x0100 + (initial_sp - 1), return_addr & 0xFF);
+  bus.cpu_write(0x0100 + (initial_sp - 1), return_addr & 0xFF);
   cpu.set_sp(initial_sp - 2);
 
   // Push status register
-  bus.write(0x0100 + (initial_sp - 2), status_to_pull);
+  bus.cpu_write(0x0100 + (initial_sp - 2), status_to_pull);
   cpu.set_sp(initial_sp - 3);
 
   // Write RTI instruction
-  bus.write(initial_pc, static_cast<nes::u8>(nes::Opcode::RTI_IMP));
+  bus.cpu_write(initial_pc, static_cast<nes::u8>(nes::Opcode::RTI_IMP));
 
   // Execute RTI instruction (takes 6 cycles)
   execute_cycles(6);
@@ -405,19 +405,19 @@ TEST_F(CPUControlFlowTest, rti_pulls_pc_from_stack) {
 
   // Push PCH (high byte)
   cpu.set_sp(initial_sp);
-  bus.write(0x0100 + initial_sp, (return_addr >> 8) & 0xFF);
+  bus.cpu_write(0x0100 + initial_sp, (return_addr >> 8) & 0xFF);
   cpu.set_sp(initial_sp - 1);
 
   // Push PCL (low byte)
-  bus.write(0x0100 + (initial_sp - 1), return_addr & 0xFF);
+  bus.cpu_write(0x0100 + (initial_sp - 1), return_addr & 0xFF);
   cpu.set_sp(initial_sp - 2);
 
   // Push status register
-  bus.write(0x0100 + (initial_sp - 2), status_to_pull);
+  bus.cpu_write(0x0100 + (initial_sp - 2), status_to_pull);
   cpu.set_sp(initial_sp - 3);
 
   // Write RTI instruction
-  bus.write(initial_pc, static_cast<nes::u8>(nes::Opcode::RTI_IMP));
+  bus.cpu_write(initial_pc, static_cast<nes::u8>(nes::Opcode::RTI_IMP));
 
   // Execute RTI instruction
   execute_cycles(6);
@@ -442,16 +442,16 @@ TEST_F(CPUControlFlowTest, rti_increments_sp_by_three) {
   nes::u8 status_to_pull = cpu.get_status();
 
   // Push status register
-  bus.write(0x0100 + lowered_sp + 1, status_to_pull);
+  bus.cpu_write(0x0100 + lowered_sp + 1, status_to_pull);
 
   // Push PCL (low byte)
-  bus.write(0x0100 + lowered_sp + 2, return_addr & 0xFF);
+  bus.cpu_write(0x0100 + lowered_sp + 2, return_addr & 0xFF);
 
   // Push PCH (high byte)
-  bus.write(0x0100 + lowered_sp + 3, (return_addr >> 8) & 0xFF);
+  bus.cpu_write(0x0100 + lowered_sp + 3, (return_addr >> 8) & 0xFF);
 
   // Write RTI instruction
-  bus.write(initial_pc, static_cast<nes::u8>(nes::Opcode::RTI_IMP));
+  bus.cpu_write(initial_pc, static_cast<nes::u8>(nes::Opcode::RTI_IMP));
 
   // Execute RTI instruction
   execute_cycles(6);
@@ -476,16 +476,16 @@ TEST_F(CPUControlFlowTest, rti_takes_six_cycles) {
   nes::u8 status_to_pull = cpu.get_status();
 
   // Push status register
-  bus.write(0x0100 + lowered_sp + 1, status_to_pull);
+  bus.cpu_write(0x0100 + lowered_sp + 1, status_to_pull);
 
   // Push PCL (low byte)
-  bus.write(0x0100 + lowered_sp + 2, return_addr & 0xFF);
+  bus.cpu_write(0x0100 + lowered_sp + 2, return_addr & 0xFF);
 
   // Push PCH (high byte)
-  bus.write(0x0100 + lowered_sp + 3, (return_addr >> 8) & 0xFF);
+  bus.cpu_write(0x0100 + lowered_sp + 3, (return_addr >> 8) & 0xFF);
 
   // Write RTI instruction
-  bus.write(initial_pc, static_cast<nes::u8>(nes::Opcode::RTI_IMP));
+  bus.cpu_write(initial_pc, static_cast<nes::u8>(nes::Opcode::RTI_IMP));
 
   // Execute RTI instruction with exactly 6 cycles
   execute_cycles(6);
@@ -502,12 +502,12 @@ TEST_F(CPUControlFlowTest, rti_takes_six_cycles) {
   cpu.set_sp(lowered_sp);
 
   // Setup the same stack state again
-  bus.write(0x0100 + lowered_sp + 1, status_to_pull);
-  bus.write(0x0100 + lowered_sp + 2, return_addr & 0xFF);
-  bus.write(0x0100 + lowered_sp + 3, (return_addr >> 8) & 0xFF);
+  bus.cpu_write(0x0100 + lowered_sp + 1, status_to_pull);
+  bus.cpu_write(0x0100 + lowered_sp + 2, return_addr & 0xFF);
+  bus.cpu_write(0x0100 + lowered_sp + 3, (return_addr >> 8) & 0xFF);
 
   // Write RTI instruction
-  bus.write(initial_pc, static_cast<nes::u8>(nes::Opcode::RTI_IMP));
+  bus.cpu_write(initial_pc, static_cast<nes::u8>(nes::Opcode::RTI_IMP));
 
   execute_cycles(5);
 
@@ -529,11 +529,11 @@ TEST_F(CPUControlFlowTest, rti_after_brk) {
 
   // Set up interrupt vector
   nes::u16 interrupt_handler = 0x0500;
-  bus.write(0xFFFE, interrupt_handler & 0xFF);         // Low byte
-  bus.write(0xFFFF, (interrupt_handler >> 8) & 0xFF);  // High byte
+  bus.cpu_write(0xFFFE, interrupt_handler & 0xFF);         // Low byte
+  bus.cpu_write(0xFFFF, (interrupt_handler >> 8) & 0xFF);  // High byte
 
   // Write BRK instruction
-  bus.write(initial_pc, static_cast<nes::u8>(nes::Opcode::BRK_IMP));
+  bus.cpu_write(initial_pc, static_cast<nes::u8>(nes::Opcode::BRK_IMP));
 
   // Execute BRK instruction (takes 7 cycles)
   execute_cycles(7);
@@ -543,12 +543,12 @@ TEST_F(CPUControlFlowTest, rti_after_brk) {
 
   // The status that was pushed to the stack had B flag set
   // Read the status that was pushed to the stack
-  nes::u8 pushed_status = bus.read(0x0100 + cpu.get_sp() + 1);
+  nes::u8 pushed_status = bus.cpu_read(0x0100 + cpu.get_sp() + 1);
 
   EXPECT_TRUE(pushed_status & (nes::u8)nes::Flag::BREAK);
 
   // Write RTI instruction at interrupt handler
-  bus.write(interrupt_handler, static_cast<nes::u8>(nes::Opcode::RTI_IMP));
+  bus.cpu_write(interrupt_handler, static_cast<nes::u8>(nes::Opcode::RTI_IMP));
   execute_cycles(6);
 
   // Verify PC is back at the instruction after BRK
@@ -582,13 +582,13 @@ TEST_F(CPUControlFlowTest, rti_handles_break_flag_correctly) {
   nes::u8 status_with_break = (nes::u8)nes::Flag::BREAK | (nes::u8)nes::Flag::UNUSED;
 
   // Push status register with BREAK and UNUSED flags set
-  bus.write(0x0100 + lowered_sp + 1, status_with_break);
+  bus.cpu_write(0x0100 + lowered_sp + 1, status_with_break);
   // Push PCL (low byte)
-  bus.write(0x0100 + lowered_sp + 2, return_addr & 0xFF);
+  bus.cpu_write(0x0100 + lowered_sp + 2, return_addr & 0xFF);
   // Push PCH (high byte)
-  bus.write(0x0100 + lowered_sp + 3, (return_addr >> 8) & 0xFF);
+  bus.cpu_write(0x0100 + lowered_sp + 3, (return_addr >> 8) & 0xFF);
   // Write RTI instruction
-  bus.write(initial_pc, static_cast<nes::u8>(nes::Opcode::RTI_IMP));
+  bus.cpu_write(initial_pc, static_cast<nes::u8>(nes::Opcode::RTI_IMP));
   // Execute RTI instruction
   execute_cycles(6);
 
@@ -610,15 +610,15 @@ TEST_F(CPUControlFlowTest, rts_pulls_pc_from_stack) {
 
   // Push PCH (high byte)
   cpu.set_sp(initial_sp);
-  bus.write(0x0100 + initial_sp, (pushed_addr >> 8) & 0xFF);
+  bus.cpu_write(0x0100 + initial_sp, (pushed_addr >> 8) & 0xFF);
   cpu.set_sp(initial_sp - 1);
 
   // Push PCL (low byte)
-  bus.write(0x0100 + (initial_sp - 1), pushed_addr & 0xFF);
+  bus.cpu_write(0x0100 + (initial_sp - 1), pushed_addr & 0xFF);
   cpu.set_sp(initial_sp - 2);
 
   // Write RTS instruction
-  bus.write(initial_pc, static_cast<nes::u8>(nes::Opcode::RTS_IMP));
+  bus.cpu_write(initial_pc, static_cast<nes::u8>(nes::Opcode::RTS_IMP));
 
   // Execute RTS instruction (takes 6 cycles)
   execute_cycles(6);
@@ -642,13 +642,13 @@ TEST_F(CPUControlFlowTest, rts_increments_sp_by_two) {
   nes::u16 pushed_addr = 0x05FF;
 
   // Push PCL (low byte)
-  bus.write(0x0100 + lowered_sp + 1, pushed_addr & 0xFF);
+  bus.cpu_write(0x0100 + lowered_sp + 1, pushed_addr & 0xFF);
 
   // Push PCH (high byte)
-  bus.write(0x0100 + lowered_sp + 2, (pushed_addr >> 8) & 0xFF);
+  bus.cpu_write(0x0100 + lowered_sp + 2, (pushed_addr >> 8) & 0xFF);
 
   // Write RTS instruction
-  bus.write(initial_pc, static_cast<nes::u8>(nes::Opcode::RTS_IMP));
+  bus.cpu_write(initial_pc, static_cast<nes::u8>(nes::Opcode::RTS_IMP));
 
   // Execute RTS instruction
   execute_cycles(6);
@@ -677,15 +677,15 @@ TEST_F(CPUControlFlowTest, rts_leaves_flags_unchanged) {
 
   // Push PCH (high byte)
   cpu.set_sp(initial_sp);
-  bus.write(0x0100 + initial_sp, (pushed_addr >> 8) & 0xFF);
+  bus.cpu_write(0x0100 + initial_sp, (pushed_addr >> 8) & 0xFF);
   cpu.set_sp(initial_sp - 1);
 
   // Push PCL (low byte)
-  bus.write(0x0100 + (initial_sp - 1), pushed_addr & 0xFF);
+  bus.cpu_write(0x0100 + (initial_sp - 1), pushed_addr & 0xFF);
   cpu.set_sp(initial_sp - 2);
 
   // Write RTS instruction
-  bus.write(initial_pc, static_cast<nes::u8>(nes::Opcode::RTS_IMP));
+  bus.cpu_write(initial_pc, static_cast<nes::u8>(nes::Opcode::RTS_IMP));
 
   // Execute RTS instruction
   execute_cycles(6);
@@ -709,13 +709,13 @@ TEST_F(CPUControlFlowTest, rts_takes_six_cycles) {
   nes::u16 pushed_addr = 0x05FF;
 
   // Push PCL (low byte)
-  bus.write(0x0100 + lowered_sp + 1, pushed_addr & 0xFF);
+  bus.cpu_write(0x0100 + lowered_sp + 1, pushed_addr & 0xFF);
 
   // Push PCH (high byte)
-  bus.write(0x0100 + lowered_sp + 2, (pushed_addr >> 8) & 0xFF);
+  bus.cpu_write(0x0100 + lowered_sp + 2, (pushed_addr >> 8) & 0xFF);
 
   // Write RTS instruction
-  bus.write(initial_pc, static_cast<nes::u8>(nes::Opcode::RTS_IMP));
+  bus.cpu_write(initial_pc, static_cast<nes::u8>(nes::Opcode::RTS_IMP));
 
   // Execute RTS instruction with exactly 6 cycles
   execute_cycles(6);
@@ -732,11 +732,11 @@ TEST_F(CPUControlFlowTest, rts_takes_six_cycles) {
   cpu.set_sp(lowered_sp);
 
   // Setup the same stack state again
-  bus.write(0x0100 + lowered_sp + 1, pushed_addr & 0xFF);
-  bus.write(0x0100 + lowered_sp + 2, (pushed_addr >> 8) & 0xFF);
+  bus.cpu_write(0x0100 + lowered_sp + 1, pushed_addr & 0xFF);
+  bus.cpu_write(0x0100 + lowered_sp + 2, (pushed_addr >> 8) & 0xFF);
 
   // Write RTS instruction
-  bus.write(initial_pc, static_cast<nes::u8>(nes::Opcode::RTS_IMP));
+  bus.cpu_write(initial_pc, static_cast<nes::u8>(nes::Opcode::RTS_IMP));
 
   execute_cycles(5);
 
@@ -758,12 +758,12 @@ TEST_F(CPUControlFlowTest, jsr_followed_by_rts) {
   nes::u16 subroutine_addr = 0x0600;
 
   // Write JSR instruction at initial PC
-  bus.write(initial_pc, static_cast<nes::u8>(nes::Opcode::JSR_ABS));
-  bus.write(initial_pc + 1, subroutine_addr & 0xFF);         // Low byte
-  bus.write(initial_pc + 2, (subroutine_addr >> 8) & 0xFF);  // High byte
+  bus.cpu_write(initial_pc, static_cast<nes::u8>(nes::Opcode::JSR_ABS));
+  bus.cpu_write(initial_pc + 1, subroutine_addr & 0xFF);         // Low byte
+  bus.cpu_write(initial_pc + 2, (subroutine_addr >> 8) & 0xFF);  // High byte
 
   // Write RTS instruction at subroutine address
-  bus.write(subroutine_addr, static_cast<nes::u8>(nes::Opcode::RTS_IMP));
+  bus.cpu_write(subroutine_addr, static_cast<nes::u8>(nes::Opcode::RTS_IMP));
 
   // Execute JSR instruction (takes 6 cycles)
   execute_cycles(6);
@@ -808,15 +808,15 @@ TEST_F(CPUControlFlowTest, rts_adds_one_to_pulled_address) {
     // Push the test address to the stack
     // Push PCH (high byte)
     cpu.set_sp(current_sp);
-    bus.write(0x0100 + current_sp, (addr >> 8) & 0xFF);
+    bus.cpu_write(0x0100 + current_sp, (addr >> 8) & 0xFF);
     cpu.set_sp(current_sp - 1);
 
     // Push PCL (low byte)
-    bus.write(0x0100 + (current_sp - 1), addr & 0xFF);
+    bus.cpu_write(0x0100 + (current_sp - 1), addr & 0xFF);
     cpu.set_sp(current_sp - 2);
 
     // Write RTS instruction
-    bus.write(initial_pc, static_cast<nes::u8>(nes::Opcode::RTS_IMP));
+    bus.cpu_write(initial_pc, static_cast<nes::u8>(nes::Opcode::RTS_IMP));
 
     // Execute RTS instruction
     execute_cycles(6);

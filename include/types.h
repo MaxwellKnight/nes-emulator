@@ -9,33 +9,14 @@ using u64 = std::uint64_t;
 using i8 = std::int8_t;
 
 class Addressable;
-class CPU;
 
 // Interface for memory-mapped components
 class Addressable {
  public:
   virtual ~Addressable() = default;
-  virtual u8 read(u16 address) const = 0;
-  virtual void write(u16 address, u8 value) = 0;
+  virtual u8 cpu_read(u16 address) const = 0;
+  virtual void cpu_write(u16 address, u8 value) = 0;
   virtual bool handles_address(u16 address) const = 0;
-};
-
-// Forward declarations for better type clarity
-using AddressedOperation = void (CPU::*)(u16 addr);
-using ImpliedOperation = void (CPU::*)();
-using ModeHandler = u16 (CPU::*)();
-
-// Instruction structure with support for both addressed and implied operations
-struct Instruction {
-  union {
-    AddressedOperation addressed_op;
-    ImpliedOperation implied_op;
-  };
-  ModeHandler mode;
-  u8 cycles;
-  const char *name;
-  bool is_extra_cycle = false;
-  bool is_implied = false;  // Flag to indicate if this is an implied operation
 };
 
 enum class Opcode : u8 {

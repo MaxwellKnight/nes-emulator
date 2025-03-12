@@ -1,11 +1,10 @@
 #pragma once
 #include <array>
 #include <cstddef>
-#include "bus.h"
 #include "types.h"
 
 namespace nes {
-
+class Bus;
 class CPU {
  private:
   // CPU Registers
@@ -18,10 +17,27 @@ class CPU {
   u8 _cycles;  // Remaining cycles for current instruction
 
   // Reference to the bus for memory access
-  Bus &_bus;
+  Bus* _bus = nullptr;
 
   // Used for addressing mode to know if a page is crossed to add a cycle
   bool _page_crossed = false;
+
+  using AddressedOperation = void (CPU::*)(u16 addr);
+  using ImpliedOperation = void (CPU::*)();
+  using ModeHandler = u16 (CPU::*)();
+
+  // Instruction structure with support for both addressed and implied operations
+  struct Instruction {
+    union {
+      AddressedOperation addressed_op;
+      ImpliedOperation implied_op;
+    };
+    ModeHandler mode;
+    u8 cycles;
+    const char* name;
+    bool is_extra_cycle = false;
+    bool is_implied = false;  // Flag to indicate if this is an implied operation
+  };
 
   // Instruction table mapping opcodes to handlers
   static constexpr size_t INSTRUCTION_TABLE_SIZE = 256;
@@ -124,7 +140,7 @@ class CPU {
   void op_rts();
 
  public:
-  CPU(Bus &bus_ref);
+  CPU();
   ~CPU() = default;
 
   // Core methods
@@ -147,6 +163,7 @@ class CPU {
   void set_pc(u16 sp);
   void set_flag(const Flag flag, const bool value);
   void set_status(const u8 status);
+  void connect_bus(Bus* bus);
 
   // Memory access methods
   u8 read_byte(u16 address);

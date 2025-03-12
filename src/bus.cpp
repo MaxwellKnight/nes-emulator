@@ -1,11 +1,19 @@
-#include "../include/bus.h"
+#include "bus.h"
 
 namespace nes {
-Bus::Bus() {}
+Bus::Bus() { _cpu.connect_bus(this); }
+
+void Bus::clock() { _cpu.clock(); }
+void Bus::reset() {
+  _sys_clock = 0;
+  _cpu.reset();
+}
+
+CPU& Bus::get_cpu() { return _cpu; }
 
 bool Bus::handles_address(u16 address) const { return true; }
 
-void Bus::write(u16 address, u8 value) {
+void Bus::cpu_write(u16 address, u8 value) {
   if (address >= 0x0000 && address <= 0x1FFF) {
     _ram[address & 0x07FF] = value;
   } else if (address >= 0xFFFC && address <= 0xFFFF) {
@@ -13,7 +21,7 @@ void Bus::write(u16 address, u8 value) {
   }
 }
 
-u8 Bus::read(u16 address) const {
+u8 Bus::cpu_read(u16 address) const {
   u8 addr = 0x00;
   if (address >= 0x0000 && address <= 0x1FFF) {
     addr = _ram[address & 0x07FF];
@@ -22,16 +30,5 @@ u8 Bus::read(u16 address) const {
   }
 
   return addr;
-}
-
-u16 Bus::read_word(u16 address) const {
-  u8 low = read(address);
-  u8 high = read(address + 1);
-  return (u16)low | ((u16)high << 8);
-}
-
-void Bus::write_word(u16 address, u16 value) {
-  write(address, value & 0xFF);
-  write(address + 1, (value >> 8) & 0xFF);
 }
 }  // namespace nes

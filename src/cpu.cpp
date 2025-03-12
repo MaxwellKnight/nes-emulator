@@ -1,12 +1,12 @@
-#include "../include/cpu.h"
+#include "cpu.h"
 #include <stdexcept>
 #include <string>
+#include "bus.h"
 #include "types.h"
 
 namespace nes {
 
-CPU::CPU(Bus &bus_ref)
-  : _bus(bus_ref) {
+CPU::CPU() {
   reset();
 
   // Initialize all opcodes as invalid
@@ -270,9 +270,9 @@ void CPU::reset() {
 }
 
 // Memory operations
-u8 CPU::read_byte(const u16 address) { return _bus.read(address); }
+u8 CPU::read_byte(const u16 address) { return _bus->cpu_read(address); }
 
-void CPU::write_byte(const u16 address, const u8 value) { _bus.write(address, value); }
+void CPU::write_byte(const u16 address, const u8 value) { _bus->cpu_write(address, value); }
 
 // Getters
 u8 CPU::get_accumulator() const { return _A; }
@@ -282,12 +282,13 @@ u16 CPU::get_pc() const { return _PC; }
 u8 CPU::get_sp() const { return _SP; }
 u8 CPU::get_status() const { return _status; }
 u8 CPU::get_remaining_cycles() const { return _cycles; }
-Instruction CPU::get_instruction(const Opcode opcode) const { return _instruction_table[(u8)opcode]; }
+CPU::Instruction CPU::get_instruction(const Opcode opcode) const { return _instruction_table[(u8)opcode]; }
 
 // Setters
 void CPU::set_sp(const u8 sp) { _SP = sp; }
 void CPU::set_pc(const u16 pc) { _PC = pc; }
 void CPU::set_status(const u8 status) { _status = status; }
+void CPU::connect_bus(Bus *bus) { _bus = bus; }
 
 // Flag operations
 bool CPU::get_flag(Flag flag) const { return (_status & (u8)(flag)) != 0; }

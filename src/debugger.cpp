@@ -212,7 +212,7 @@ void Debugger::step() {
   u16 current_pc = _cpu.get_pc();
 
   // Check if current instruction is BRK (0x00)
-  u8 opcode = _bus.read(current_pc);
+  u8 opcode = _bus.cpu_read(current_pc);
 
   do {
     _cpu.clock();
@@ -272,8 +272,8 @@ u8 Debugger::get_status_flag(Flag flag) const { return _cpu.get_flag(flag) ? 1 :
 void Debugger::set_pc(u16 address) { _cpu.set_pc(address); }
 
 // Memory access methods
-u8 Debugger::read_memory(u16 address) const { return _bus.read(address); }
-void Debugger::write_memory(u16 address, u8 value) { _bus.write(address, value); }
+u8 Debugger::read_memory(u16 address) const { return _bus.cpu_read(address); }
+void Debugger::write_memory(u16 address, u8 value) { _bus.cpu_write(address, value); }
 
 std::vector<u8> Debugger::read_memory_range(u16 start, u16 end) const {
   std::vector<u8> memory;

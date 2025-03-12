@@ -12,8 +12,8 @@ class CPUBranchTest : public CPUTestBase {
     cpu.set_flag(nes::Flag::CARRY, carry_set);
 
     // Write BCC instruction and offset
-    bus.write(0x1000, static_cast<nes::u8>(nes::Opcode::BCC_REL));
-    bus.write(0x1001, offset);
+    bus.cpu_write(0x1000, static_cast<nes::u8>(nes::Opcode::BCC_REL));
+    bus.cpu_write(0x1001, offset);
   }
 
   void execute_bcs_instruction(nes::u8 offset, bool carry_flag) {
@@ -22,8 +22,8 @@ class CPUBranchTest : public CPUTestBase {
     cpu.set_flag(nes::Flag::CARRY, carry_flag);
 
     // Write BCS instruction and offset
-    bus.write(0x1000, static_cast<nes::u8>(nes::Opcode::BCS_REL));
-    bus.write(0x1001, offset);
+    bus.cpu_write(0x1000, static_cast<nes::u8>(nes::Opcode::BCS_REL));
+    bus.cpu_write(0x1001, offset);
   }
 
   void execute_beq_instruction(nes::u8 offset, bool zero_flag) {
@@ -32,8 +32,8 @@ class CPUBranchTest : public CPUTestBase {
     cpu.set_flag(nes::Flag::ZERO, zero_flag);
 
     // Write BEQ instruction and offset
-    bus.write(0x1000, static_cast<nes::u8>(nes::Opcode::BEQ_REL));
-    bus.write(0x1001, offset);
+    bus.cpu_write(0x1000, static_cast<nes::u8>(nes::Opcode::BEQ_REL));
+    bus.cpu_write(0x1001, offset);
   }
 
   void execute_bmi_instruction(nes::u8 offset, bool negative_flag) {
@@ -42,12 +42,12 @@ class CPUBranchTest : public CPUTestBase {
     cpu.set_flag(nes::Flag::NEGATIVE, negative_flag);
 
     // Write BMI instruction and offset
-    bus.write(0x1000, static_cast<nes::u8>(nes::Opcode::BMI_REL));
-    bus.write(0x1001, offset);
+    bus.cpu_write(0x1000, static_cast<nes::u8>(nes::Opcode::BMI_REL));
+    bus.cpu_write(0x1001, offset);
 
     // Verify the instruction was written correctly
-    EXPECT_EQ(bus.read(0x1000), static_cast<nes::u8>(nes::Opcode::BMI_REL));
-    EXPECT_EQ(bus.read(0x1001), offset);
+    EXPECT_EQ(bus.cpu_read(0x1000), static_cast<nes::u8>(nes::Opcode::BMI_REL));
+    EXPECT_EQ(bus.cpu_read(0x1001), offset);
   }
 
   void execute_bne_instruction(nes::u8 offset, bool zero_flag) {
@@ -56,12 +56,12 @@ class CPUBranchTest : public CPUTestBase {
     cpu.set_flag(nes::Flag::ZERO, zero_flag);
 
     // Write BNE instruction and offset
-    bus.write(0x1000, static_cast<nes::u8>(nes::Opcode::BNE_REL));
-    bus.write(0x1001, offset);
+    bus.cpu_write(0x1000, static_cast<nes::u8>(nes::Opcode::BNE_REL));
+    bus.cpu_write(0x1001, offset);
 
     // Verify the instruction was written correctly
-    EXPECT_EQ(bus.read(0x1000), static_cast<nes::u8>(nes::Opcode::BNE_REL));
-    EXPECT_EQ(bus.read(0x1001), offset);
+    EXPECT_EQ(bus.cpu_read(0x1000), static_cast<nes::u8>(nes::Opcode::BNE_REL));
+    EXPECT_EQ(bus.cpu_read(0x1001), offset);
   }
 
   void execute_bpl_instruction(nes::u8 offset, bool negative_flag) {
@@ -70,12 +70,12 @@ class CPUBranchTest : public CPUTestBase {
     cpu.set_flag(nes::Flag::NEGATIVE, negative_flag);
 
     // Write BPL instruction and offset
-    bus.write(0x1000, static_cast<nes::u8>(nes::Opcode::BPL_REL));
-    bus.write(0x1001, offset);
+    bus.cpu_write(0x1000, static_cast<nes::u8>(nes::Opcode::BPL_REL));
+    bus.cpu_write(0x1001, offset);
 
     // Verify the instruction was written correctly
-    EXPECT_EQ(bus.read(0x1000), static_cast<nes::u8>(nes::Opcode::BPL_REL));
-    EXPECT_EQ(bus.read(0x1001), offset);
+    EXPECT_EQ(bus.cpu_read(0x1000), static_cast<nes::u8>(nes::Opcode::BPL_REL));
+    EXPECT_EQ(bus.cpu_read(0x1001), offset);
   }
 
   void execute_bvc_instruction(nes::u8 offset, bool overflow_flag) {
@@ -84,12 +84,12 @@ class CPUBranchTest : public CPUTestBase {
     cpu.set_flag(nes::Flag::OVERFLOW_, overflow_flag);
 
     // Write BVC instruction and offset
-    bus.write(0x1000, static_cast<nes::u8>(nes::Opcode::BVC_REL));
-    bus.write(0x1001, offset);
+    bus.cpu_write(0x1000, static_cast<nes::u8>(nes::Opcode::BVC_REL));
+    bus.cpu_write(0x1001, offset);
 
     // Verify the instruction was written correctly
-    EXPECT_EQ(bus.read(0x1000), static_cast<nes::u8>(nes::Opcode::BVC_REL));
-    EXPECT_EQ(bus.read(0x1001), offset);
+    EXPECT_EQ(bus.cpu_read(0x1000), static_cast<nes::u8>(nes::Opcode::BVC_REL));
+    EXPECT_EQ(bus.cpu_read(0x1001), offset);
   }
 
   void execute_bvs_instruction(nes::u8 offset, bool overflow_flag) {
@@ -98,12 +98,12 @@ class CPUBranchTest : public CPUTestBase {
     cpu.set_flag(nes::Flag::OVERFLOW_, overflow_flag);
 
     // Write BVS instruction and offset
-    bus.write(0x1000, static_cast<nes::u8>(nes::Opcode::BVS_REL));
-    bus.write(0x1001, offset);
+    bus.cpu_write(0x1000, static_cast<nes::u8>(nes::Opcode::BVS_REL));
+    bus.cpu_write(0x1001, offset);
 
     // Verify the instruction was written correctly
-    EXPECT_EQ(bus.read(0x1000), static_cast<nes::u8>(nes::Opcode::BVS_REL));
-    EXPECT_EQ(bus.read(0x1001), offset);
+    EXPECT_EQ(bus.cpu_read(0x1000), static_cast<nes::u8>(nes::Opcode::BVS_REL));
+    EXPECT_EQ(bus.cpu_read(0x1001), offset);
   }
 };
 
@@ -153,8 +153,8 @@ TEST_F(CPUBranchTest, bcc_rel_page_boundry_cross) {
   cpu.set_flag(nes::Flag::CARRY, false);
 
   // Write BCC instruction with offset that crosses page boundary
-  bus.write(0x10F0, static_cast<nes::u8>(nes::Opcode::BCC_REL));
-  bus.write(0x10F1, 0x40);
+  bus.cpu_write(0x10F0, static_cast<nes::u8>(nes::Opcode::BCC_REL));
+  bus.cpu_write(0x10F1, 0x40);
 
   // Execute instruction cycles
   // 2 cycles base + 1 cycle for branch taken + 1 cycle for page boundary crossing
@@ -223,8 +223,8 @@ TEST_F(CPUBranchTest, bcs_rel_page_boundry_cross) {
   cpu.set_flag(nes::Flag::CARRY, true);
 
   // Write BCS instruction with offset that crosses page boundary
-  bus.write(0x10F0, static_cast<nes::u8>(nes::Opcode::BCS_REL));
-  bus.write(0x10F1, 0x40);
+  bus.cpu_write(0x10F0, static_cast<nes::u8>(nes::Opcode::BCS_REL));
+  bus.cpu_write(0x10F1, 0x40);
 
   // Execute 4 cycles (2 base + 1 for branch taken + 1 for page cross)
   execute_cycles(4);
@@ -246,8 +246,8 @@ TEST_F(CPUBranchTest, beq_rel_page_boundry_cross) {
   cpu.set_flag(nes::Flag::ZERO, true);
 
   // Write BEQ instruction with offset that crosses page boundary
-  bus.write(0x10F0, static_cast<nes::u8>(nes::Opcode::BEQ_REL));
-  bus.write(0x10F1, 0x40);
+  bus.cpu_write(0x10F0, static_cast<nes::u8>(nes::Opcode::BEQ_REL));
+  bus.cpu_write(0x10F1, 0x40);
 
   // Execute 4 cycles (2 base + 1 for branch taken + 1 for page cross)
   execute_cycles(4);
@@ -322,12 +322,12 @@ TEST_F(CPUBranchTest, bmi_rel_page_boundary_cross) {
   // Set negative flag
   cpu.set_flag(nes::Flag::NEGATIVE, true);
   // Write BMI instruction with offset that crosses page boundary
-  bus.write(0x10F0, static_cast<nes::u8>(nes::Opcode::BMI_REL));
-  bus.write(0x10F1, 0x40);  // +64 offset
+  bus.cpu_write(0x10F0, static_cast<nes::u8>(nes::Opcode::BMI_REL));
+  bus.cpu_write(0x10F1, 0x40);  // +64 offset
 
   // Verify instruction was written properly
-  EXPECT_EQ(bus.read(0x10F0), static_cast<nes::u8>(nes::Opcode::BMI_REL));
-  EXPECT_EQ(bus.read(0x10F1), 0x40);
+  EXPECT_EQ(bus.cpu_read(0x10F0), static_cast<nes::u8>(nes::Opcode::BMI_REL));
+  EXPECT_EQ(bus.cpu_read(0x10F1), 0x40);
 
   // Execute instruction cycles (2 base + 1 branch taken + 1 page cross)
   execute_cycles(4);
@@ -371,12 +371,12 @@ TEST_F(CPUBranchTest, bne_rel_page_boundary_cross) {
   // Clear zero flag
   cpu.set_flag(nes::Flag::ZERO, false);
   // Write BNE instruction with offset that crosses page boundary
-  bus.write(0x10F0, static_cast<nes::u8>(nes::Opcode::BNE_REL));
-  bus.write(0x10F1, 0x40);  // +64 offset
+  bus.cpu_write(0x10F0, static_cast<nes::u8>(nes::Opcode::BNE_REL));
+  bus.cpu_write(0x10F1, 0x40);  // +64 offset
 
   // Verify instruction was written properly
-  EXPECT_EQ(bus.read(0x10F0), static_cast<nes::u8>(nes::Opcode::BNE_REL));
-  EXPECT_EQ(bus.read(0x10F1), 0x40);
+  EXPECT_EQ(bus.cpu_read(0x10F0), static_cast<nes::u8>(nes::Opcode::BNE_REL));
+  EXPECT_EQ(bus.cpu_read(0x10F1), 0x40);
 
   // Execute instruction cycles (2 base + 1 branch taken + 1 page cross)
   execute_cycles(4);
@@ -419,12 +419,12 @@ TEST_F(CPUBranchTest, bpl_rel_page_boundary_cross) {
   // Clear negative flag
   cpu.set_flag(nes::Flag::NEGATIVE, false);
   // Write BPL instruction with offset that crosses page boundary
-  bus.write(0x10F0, static_cast<nes::u8>(nes::Opcode::BPL_REL));
-  bus.write(0x10F1, 0x40);  // +64 offset
+  bus.cpu_write(0x10F0, static_cast<nes::u8>(nes::Opcode::BPL_REL));
+  bus.cpu_write(0x10F1, 0x40);  // +64 offset
 
   // Verify instruction was written properly
-  EXPECT_EQ(bus.read(0x10F0), static_cast<nes::u8>(nes::Opcode::BPL_REL));
-  EXPECT_EQ(bus.read(0x10F1), 0x40);
+  EXPECT_EQ(bus.cpu_read(0x10F0), static_cast<nes::u8>(nes::Opcode::BPL_REL));
+  EXPECT_EQ(bus.cpu_read(0x10F1), 0x40);
 
   // Execute instruction cycles (2 base + 1 branch taken + 1 page cross)
   execute_cycles(4);
@@ -467,12 +467,12 @@ TEST_F(CPUBranchTest, bvc_rel_page_boundary_cross) {
   // Clear overflow flag
   cpu.set_flag(nes::Flag::OVERFLOW_, false);
   // Write BVC instruction with offset that crosses page boundary
-  bus.write(0x10F0, static_cast<nes::u8>(nes::Opcode::BVC_REL));
-  bus.write(0x10F1, 0x40);  // +64 offset
+  bus.cpu_write(0x10F0, static_cast<nes::u8>(nes::Opcode::BVC_REL));
+  bus.cpu_write(0x10F1, 0x40);  // +64 offset
 
   // Verify instruction was written properly
-  EXPECT_EQ(bus.read(0x10F0), static_cast<nes::u8>(nes::Opcode::BVC_REL));
-  EXPECT_EQ(bus.read(0x10F1), 0x40);
+  EXPECT_EQ(bus.cpu_read(0x10F0), static_cast<nes::u8>(nes::Opcode::BVC_REL));
+  EXPECT_EQ(bus.cpu_read(0x10F1), 0x40);
 
   // Execute instruction cycles (2 base + 1 branch taken + 1 page cross)
   execute_cycles(4);
@@ -491,8 +491,8 @@ TEST_F(CPUBranchTest, bvc_rel_leaves_other_flags_unchanged) {
   nes::u8 initial_status = cpu.get_status();
 
   // Write BVC instruction and offset
-  bus.write(0x1000, static_cast<nes::u8>(nes::Opcode::BVC_REL));
-  bus.write(0x1001, 0x10);
+  bus.cpu_write(0x1000, static_cast<nes::u8>(nes::Opcode::BVC_REL));
+  bus.cpu_write(0x1001, 0x10);
 
   // Execute instruction
   execute_cycles(3);
@@ -536,12 +536,12 @@ TEST_F(CPUBranchTest, bvs_rel_page_boundary_cross) {
   // Set overflow flag
   cpu.set_flag(nes::Flag::OVERFLOW_, true);
   // Write BVS instruction with offset that crosses page boundary
-  bus.write(0x10F0, static_cast<nes::u8>(nes::Opcode::BVS_REL));
-  bus.write(0x10F1, 0x40);  // +64 offset
+  bus.cpu_write(0x10F0, static_cast<nes::u8>(nes::Opcode::BVS_REL));
+  bus.cpu_write(0x10F1, 0x40);  // +64 offset
 
   // Verify instruction was written properly
-  EXPECT_EQ(bus.read(0x10F0), static_cast<nes::u8>(nes::Opcode::BVS_REL));
-  EXPECT_EQ(bus.read(0x10F1), 0x40);
+  EXPECT_EQ(bus.cpu_read(0x10F0), static_cast<nes::u8>(nes::Opcode::BVS_REL));
+  EXPECT_EQ(bus.cpu_read(0x10F1), 0x40);
 
   // Execute instruction cycles (2 base + 1 branch taken + 1 page cross)
   execute_cycles(4);
@@ -560,8 +560,8 @@ TEST_F(CPUBranchTest, bvs_rel_leaves_other_flags_unchanged) {
   nes::u8 initial_status = cpu.get_status();
 
   // Write BVS instruction and offset
-  bus.write(0x1000, static_cast<nes::u8>(nes::Opcode::BVS_REL));
-  bus.write(0x1001, 0x10);
+  bus.cpu_write(0x1000, static_cast<nes::u8>(nes::Opcode::BVS_REL));
+  bus.cpu_write(0x1001, 0x10);
 
   execute_cycles(3);
   EXPECT_EQ(cpu.get_status(), initial_status);
@@ -573,8 +573,8 @@ TEST_F(CPUBranchTest, bvc_simple) {
   cpu.set_flag(nes::Flag::OVERFLOW_, false);
 
   // Write a BVC instruction with a small positive offset
-  bus.write(0x0200, static_cast<nes::u8>(nes::Opcode::BVC_REL));
-  bus.write(0x0201, 0x04);  // Branch forward 4 bytes
+  bus.cpu_write(0x0200, static_cast<nes::u8>(nes::Opcode::BVC_REL));
+  bus.cpu_write(0x0201, 0x04);  // Branch forward 4 bytes
 
   execute_cycles(3);
 
@@ -587,8 +587,8 @@ TEST_F(CPUBranchTest, bvs_simple) {
   cpu.set_flag(nes::Flag::OVERFLOW_, true);
 
   // Write a BVS instruction with a small positive offset
-  bus.write(0x0200, static_cast<nes::u8>(nes::Opcode::BVS_REL));
-  bus.write(0x0201, 0x04);  // Branch forward 4 bytes
+  bus.cpu_write(0x0200, static_cast<nes::u8>(nes::Opcode::BVS_REL));
+  bus.cpu_write(0x0201, 0x04);  // Branch forward 4 bytes
 
   execute_cycles(3);
   EXPECT_EQ(cpu.get_pc(), 0x0206);
@@ -602,8 +602,8 @@ TEST_F(CPUBranchTest, bvc_simple_not_taken) {
   cpu.set_flag(nes::Flag::OVERFLOW_, true);  // Set overflow flag - branch should not be taken
 
   // Write a BVC instruction with a small positive offset
-  bus.write(0x0200, static_cast<nes::u8>(nes::Opcode::BVC_REL));
-  bus.write(0x0201, 0x04);  // Branch forward 4 bytes (but should be ignored)
+  bus.cpu_write(0x0200, static_cast<nes::u8>(nes::Opcode::BVC_REL));
+  bus.cpu_write(0x0201, 0x04);  // Branch forward 4 bytes (but should be ignored)
 
   execute_cycles(2);
 
@@ -616,8 +616,8 @@ TEST_F(CPUBranchTest, bvc_bvs_consecutive_branches) {
   cpu.reset();
   cpu.set_pc(0x1000);
   cpu.set_flag(nes::Flag::OVERFLOW_, false);
-  bus.write(0x1000, static_cast<nes::u8>(nes::Opcode::BVC_REL));
-  bus.write(0x1001, 0x10);
+  bus.cpu_write(0x1000, static_cast<nes::u8>(nes::Opcode::BVC_REL));
+  bus.cpu_write(0x1001, 0x10);
   execute_cycles(3);
   EXPECT_EQ(cpu.get_pc(), 0x1012);
 
@@ -625,8 +625,8 @@ TEST_F(CPUBranchTest, bvc_bvs_consecutive_branches) {
   cpu.reset();
   cpu.set_pc(0x1100);
   cpu.set_flag(nes::Flag::OVERFLOW_, false);
-  bus.write(0x1100, static_cast<nes::u8>(nes::Opcode::BVS_REL));
-  bus.write(0x1101, 0x20);
+  bus.cpu_write(0x1100, static_cast<nes::u8>(nes::Opcode::BVS_REL));
+  bus.cpu_write(0x1101, 0x20);
   execute_cycles(2);
   EXPECT_EQ(cpu.get_pc(), 0x1102);
 
@@ -634,8 +634,8 @@ TEST_F(CPUBranchTest, bvc_bvs_consecutive_branches) {
   cpu.reset();
   cpu.set_pc(0x1200);
   cpu.set_flag(nes::Flag::OVERFLOW_, true);
-  bus.write(0x1200, static_cast<nes::u8>(nes::Opcode::BVC_REL));
-  bus.write(0x1201, 0x10);
+  bus.cpu_write(0x1200, static_cast<nes::u8>(nes::Opcode::BVC_REL));
+  bus.cpu_write(0x1201, 0x10);
   execute_cycles(2);
   EXPECT_EQ(cpu.get_pc(), 0x1202);
 
@@ -643,8 +643,8 @@ TEST_F(CPUBranchTest, bvc_bvs_consecutive_branches) {
   cpu.reset();
   cpu.set_pc(0x1300);
   cpu.set_flag(nes::Flag::OVERFLOW_, true);
-  bus.write(0x1300, static_cast<nes::u8>(nes::Opcode::BVS_REL));
-  bus.write(0x1301, 0x20);
+  bus.cpu_write(0x1300, static_cast<nes::u8>(nes::Opcode::BVS_REL));
+  bus.cpu_write(0x1301, 0x20);
   execute_cycles(3);
   EXPECT_EQ(cpu.get_pc(), 0x1322);
 }

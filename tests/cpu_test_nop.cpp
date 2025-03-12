@@ -6,7 +6,7 @@ class CPU_NOP_Test : public CPUTestBase {
     // Reset CPU
     cpu.reset();
     cpu.set_pc(0x0400);
-    bus.write(0x0400, static_cast<nes::u8>(nes::Opcode::NOP_IMP));
+    bus.cpu_write(0x0400, static_cast<nes::u8>(nes::Opcode::NOP_IMP));
   }
 };
 
@@ -75,20 +75,20 @@ TEST_F(CPU_NOP_Test, nop_leaves_registers_unchanged) {
   nes::u8 sp_val = cpu.get_sp();
 
   // Load values into registers using LDA/LDX/LDY instructions
-  bus.write(0x0400, static_cast<nes::u8>(nes::Opcode::LDA_IMM));
-  bus.write(0x0401, a_val);
+  bus.cpu_write(0x0400, static_cast<nes::u8>(nes::Opcode::LDA_IMM));
+  bus.cpu_write(0x0401, a_val);
   execute_cycles(2);
 
-  bus.write(0x0402, static_cast<nes::u8>(nes::Opcode::LDX_IMM));
-  bus.write(0x0403, x_val);
+  bus.cpu_write(0x0402, static_cast<nes::u8>(nes::Opcode::LDX_IMM));
+  bus.cpu_write(0x0403, x_val);
   execute_cycles(2);
 
-  bus.write(0x0404, static_cast<nes::u8>(nes::Opcode::LDY_IMM));
-  bus.write(0x0405, y_val);
+  bus.cpu_write(0x0404, static_cast<nes::u8>(nes::Opcode::LDY_IMM));
+  bus.cpu_write(0x0405, y_val);
   execute_cycles(2);
 
   // Write and execute NOP
-  bus.write(0x0406, static_cast<nes::u8>(nes::Opcode::NOP_IMP));
+  bus.cpu_write(0x0406, static_cast<nes::u8>(nes::Opcode::NOP_IMP));
   execute_cycles(2);
 
   // Verify registers weren't changed
@@ -105,9 +105,9 @@ TEST_F(CPU_NOP_Test, multiple_consecutive_nops) {
   cpu.set_pc(0x0400);
 
   // Write 3 consecutive NOP instructions
-  bus.write(0x0400, static_cast<nes::u8>(nes::Opcode::NOP_IMP));
-  bus.write(0x0401, static_cast<nes::u8>(nes::Opcode::NOP_IMP));
-  bus.write(0x0402, static_cast<nes::u8>(nes::Opcode::NOP_IMP));
+  bus.cpu_write(0x0400, static_cast<nes::u8>(nes::Opcode::NOP_IMP));
+  bus.cpu_write(0x0401, static_cast<nes::u8>(nes::Opcode::NOP_IMP));
+  bus.cpu_write(0x0402, static_cast<nes::u8>(nes::Opcode::NOP_IMP));
 
   // Execute all 3 NOPs (6 cycles total)
   execute_cycles(6);
@@ -123,11 +123,11 @@ TEST_F(CPU_NOP_Test, nop_between_other_instructions) {
   cpu.set_pc(0x0400);
 
   // Write a sequence of instructions with NOP in between
-  bus.write(0x0400, static_cast<nes::u8>(nes::Opcode::LDA_IMM));  // 2 cycles
-  bus.write(0x0401, 0x42);
-  bus.write(0x0402, static_cast<nes::u8>(nes::Opcode::NOP_IMP));  // 2 cycles
-  bus.write(0x0403, static_cast<nes::u8>(nes::Opcode::LDX_IMM));  // 2 cycles
-  bus.write(0x0404, 0x69);
+  bus.cpu_write(0x0400, static_cast<nes::u8>(nes::Opcode::LDA_IMM));  // 2 cycles
+  bus.cpu_write(0x0401, 0x42);
+  bus.cpu_write(0x0402, static_cast<nes::u8>(nes::Opcode::NOP_IMP));  // 2 cycles
+  bus.cpu_write(0x0403, static_cast<nes::u8>(nes::Opcode::LDX_IMM));  // 2 cycles
+  bus.cpu_write(0x0404, 0x69);
 
   // Execute all instructions (6 cycles total)
   execute_cycles(6);
@@ -147,14 +147,14 @@ TEST_F(CPU_NOP_Test, nop_memory_impact) {
   // Write a value to a memory location
   nes::u8 test_value = 0x55;
   nes::u16 test_address = 0x0300;
-  bus.write(test_address, test_value);
+  bus.cpu_write(test_address, test_value);
 
   // Write NOP instruction
-  bus.write(0x0400, static_cast<nes::u8>(nes::Opcode::NOP_IMP));
+  bus.cpu_write(0x0400, static_cast<nes::u8>(nes::Opcode::NOP_IMP));
 
   // Execute NOP
   execute_cycles(2);
 
   // Verify memory wasn't changed
-  EXPECT_EQ(bus.read(test_address), test_value);
+  EXPECT_EQ(bus.cpu_read(test_address), test_value);
 }

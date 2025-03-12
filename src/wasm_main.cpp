@@ -7,8 +7,7 @@
 #endif
 
 nes::Bus g_bus;
-nes::CPU g_cpu(g_bus);
-nes::Debugger g_debugger(g_cpu, g_bus);
+nes::Debugger g_debugger(g_bus.get_cpu(), g_bus);
 
 #ifdef __EMSCRIPTEN__
 // Main loop function that will be called from JavaScript
