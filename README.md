@@ -1,6 +1,6 @@
 # 6502 Online Debugger
 
-An interactive 6502 microprocessor emulator and debugger for the Nintendo Entertainment System (NES), providing educational insights into retro computing. Available at [codeknight.dev](https://codeknight.dev/).
+An interactive 6502 microprocessor emulator and debugger for the Nintendo Entertainment System (NES), providing educational insights into retro computing. Available at [codeknight.dev](https://codeknight.dev/projects/6502-debugger).
 
 ![6502 Debugger Screenshot](imgs/main-screenshot.png)
 
@@ -13,7 +13,7 @@ An interactive 6502 microprocessor emulator and debugger for the Nintendo Entert
 
 ## Getting Started
 
-The debugger is accessible online at [codeknight.dev](https://codeknight.dev/), but you can also run it locally or contribute to its development.
+The debugger is accessible online at [codeknight.dev](https://codeknight.dev/projects/6502-debugger), but you can also run it locally or contribute to its development.
 
 ### Prerequisites
 
@@ -40,16 +40,6 @@ docker compose run --rm test
 # Get an interactive shell
 docker compose run --rm shell
 ```
-
-### Production Preview
-```bash
-# Start production environment locally
-docker compose --profile prod up -d web-prod
-
-# Stop production services
-docker compose --profile prod down
-```
-
 Access the application at http://localhost:5173 during development or through the configured domain in production.
 
 ### Local Development (without Docker)

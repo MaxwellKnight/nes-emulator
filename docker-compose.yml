@@ -1,7 +1,7 @@
 x-build-base: &build-base
   build:
     context: .
-    dockerfile: Dockerfile.dev
+    dockerfile: Dockerfile
   volumes:
     - .:/app
   restart: "no"
@@ -39,58 +39,3 @@ services:
     restart: "no"
     ports:
       - "5173:5173"
-
-  # Production services
-  reverse-proxy:
-    image: traefik:v3.1
-    profiles: [prod]
-    command:
-      - "--api.insecure=true"
-      - "--providers.docker=true"
-      - "--providers.docker.exposedbydefault=false"
-      - "--entryPoints.websecure.address=:443"
-      - "--entryPoints.web.address=:80"
-      - "--certificatesresolvers.myresolver.acme.tlschallenge=true"
-      - "--certificatesresolvers.myresolver.acme.email=max@codeknight.dev"
-      - "--certificatesresolvers.myresolver.acme.storage=/letsencrypt/acme.json"
-    ports:
-      - "80:80"
-      - "443:443"
-      - "8080:8080"
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-      - ./letsencrypt:/letsencrypt
-    restart: unless-stopped
-
-  web-prod:
-    <<: *web-base
-    profiles: [prod]
-    restart: unless-stopped
-    deploy:
-      mode: replicated
-      replicas: 3
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.web.rule=Host(`codeknight.dev`)"
-      - "traefik.http.routers.web.entrypoints=web"
-      - "traefik.http.routers.web.middlewares=redirect-to-https@docker"
-      - "traefik.http.routers.web-secure.rule=Host(`codeknight.dev`)"
-      - "traefik.http.routers.web-secure.entrypoints=websecure"
-      - "traefik.http.routers.web-secure.tls=true"
-      - "traefik.http.routers.web-secure.tls.certresolver=myresolver"
-      - "traefik.http.services.web.loadbalancer.server.port=5173"
-      - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
-      - "com.centurylinklabs.watchtower.enable=true"
-
-  watchtower:
-      image: containrrr/watchtower
-      profiles: [prod]
-      volumes:
-        - /var/run/docker.sock:/var/run/docker.sock
-      command: --interval 30 --cleanup --label-enable
-      labels:
-        - "com.centurylinklabs.watchtower.enable=true"
-      environment:
-        - TZ=UTC
-        - WATCHTOWER_NOTIFICATIONS=shoutrrr
-      restart: unless-stopped
