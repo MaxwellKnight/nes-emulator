@@ -1,13 +1,10 @@
 #include "bus.h"
-#include <iostream>
 
 namespace nes {
 Bus::Bus()
   : _sys_clock(0)
   , _cpu(*this)
-  , _cartridge(nullptr) {
-  std::cerr << "Bus constructor" << std::endl;
-}
+  , _cartridge(nullptr) {}
 
 void Bus::clock() {
   _cpu.clock();
