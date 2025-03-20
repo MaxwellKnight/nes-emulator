@@ -19,6 +19,7 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
 set(SOURCES
     src/bus.cpp
     src/cpu.cpp
+    src/ppu.cpp
     src/debugger.cpp
 )
 

@@ -287,7 +287,7 @@ class NESDebugger {
 		return memory;
 	}
 
-	loadBinary(data, startAddr = 0x0200) {
+	loadBinary(data, startAddr = 0x0C00) {
 		if (!this.isLoaded) return;
 
 		for (let i = 0; i < data.length; i++) {
@@ -295,13 +295,13 @@ class NESDebugger {
 		}
 	}
 
-	loadROM(data, startAddr = 0x0200) {
+	loadROM(data, startAddr = 0x0C00) {
 		this.loadBinary(data, startAddr);
 		// Set reset vector to point to the start address
 		this.writeMemory(0xFFFD, (startAddr >> 8) & 0xFF);
 	}
 
-	loadOpcodes(opcodes, startAddr = 0x0200) {
+	loadOpcodes(opcodes, startAddr = 0x0C00) {
 		console.log("loadOpcodes function", opcodes);
 		if (!this.isLoaded) return;
 

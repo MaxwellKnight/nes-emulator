@@ -8,15 +8,6 @@ using u32 = std::uint32_t;
 using u64 = std::uint64_t;
 using i8 = std::int8_t;
 
-// Interface for memory-mapped components
-class Addressable {
- public:
-  virtual ~Addressable() = default;
-  virtual u8 cpu_read(u16 address) const = 0;
-  virtual void cpu_write(u16 address, u8 value) = 0;
-  virtual bool handles_address(u16 address) const = 0;
-};
-
 enum class Opcode : u8 {
   // Load operations
   LDA_IMM = 0xA9,  // LDA Immediate
