@@ -1,3 +1,4 @@
+#pragma once
 #include <memory>
 #include <string>
 #include <vector>
@@ -6,7 +7,7 @@
 
 namespace nes {
 class Cartridge {
- protected:
+ public:
   std::vector<u8> _prg_memory;
   std::vector<u8> _chr_memory;
   std::shared_ptr<Mapper> _mapper;

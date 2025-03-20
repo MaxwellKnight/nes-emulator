@@ -1,7 +1,8 @@
 #include "ppu.h"
 
 namespace nes {
-PPU::PPU() {}
+PPU::PPU()
+  : _cartridge(nullptr) {}
 u8 PPU::cpu_read(u16 address) const {
   u8 data = 0x00;
   switch (address) {
@@ -49,14 +50,14 @@ void PPU::cpu_write(u16 address, u8 value) {
 u8 PPU::ppu_read(u16 address) const {
   u8 data = 0x00;
   address &= 0x3FFF;
-  if (_cartridge->ppu_read(address, data)) {
+  if (_cartridge && _cartridge->ppu_read(address, data)) {
   }
 
   return data;
 }
 void PPU::ppu_write(u16 address, u8 value) {
   address &= 0x3FFF;
-  if (_cartridge->cpu_write(address, value)) {
+  if (_cartridge && _cartridge->cpu_write(address, value)) {
   }
 }
 

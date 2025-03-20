@@ -28,7 +28,6 @@ class Bus {
   CPU _cpu;
   PPU _ppu;
   std::shared_ptr<Cartridge> _cartridge;
-
   std::array<u8, _CPU_RAM_SIZE> _ram{0};
 };
 }  // namespace nes

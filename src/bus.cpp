@@ -1,8 +1,13 @@
 #include "bus.h"
+#include <iostream>
 
 namespace nes {
 Bus::Bus()
-  : _cpu(*this) {}
+  : _sys_clock(0)
+  , _cpu(*this)
+  , _cartridge(nullptr) {
+  std::cerr << "Bus constructor" << std::endl;
+}
 
 void Bus::clock() {
   _cpu.clock();
@@ -20,7 +25,7 @@ void Bus::insert_cartridge(const std::shared_ptr<Cartridge>& cartridge) {
 }
 
 void Bus::cpu_write(u16 address, u8 value) {
-  if (_cartridge->cpu_write(address, value)) {
+  if (_cartridge && _cartridge->cpu_write(address, value)) {
   } else if (address >= 0x0000 && address <= 0x1FFF) {
     _ram[address & 0x07FF] = value;
   } else if (address >= 0x2000 && address <= 0x3FFF) {
@@ -30,7 +35,7 @@ void Bus::cpu_write(u16 address, u8 value) {
 
 u8 Bus::cpu_read(u16 address) const {
   u8 data = 0x00;
-  if (_cartridge->cpu_read(address, data)) {
+  if (_cartridge && _cartridge->cpu_read(address, data)) {
   } else if (address >= 0x0000 && address <= 0x1FFF) {
     data = _ram[address & 0x07FF];
   } else if (address >= 0x2000 && address <= 0x3FFF) {
