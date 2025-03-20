@@ -55,6 +55,7 @@ Cartridge::Cartridge(const std::string& file) {
 
   ifs.close();
 }
+
 bool Cartridge::cpu_read(u16 address, u8& data) const {
   u32 mapped_addr = 0x00;
   if (_mapper->cpu_read(address, mapped_addr)) {
@@ -63,6 +64,7 @@ bool Cartridge::cpu_read(u16 address, u8& data) const {
   }
   return false;
 }
+
 bool Cartridge::ppu_read(u16 address, u8& data) const {
   u32 mapped_addr = 0x00;
   if (_mapper->ppu_read(address, mapped_addr)) {
@@ -71,6 +73,7 @@ bool Cartridge::ppu_read(u16 address, u8& data) const {
   }
   return false;
 }
+
 bool Cartridge::cpu_write(u16 address, u8 value) {
   u32 mapped_addr = 0x00;
   if (_mapper->cpu_write(address, mapped_addr)) {
@@ -79,6 +82,7 @@ bool Cartridge::cpu_write(u16 address, u8 value) {
   }
   return false;
 }
+
 bool Cartridge::ppu_write(u16 address, u8 value) {
   u32 mapped_addr = 0x00;
   if (_mapper->ppu_write(address, mapped_addr)) {
