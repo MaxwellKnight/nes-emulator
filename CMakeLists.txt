@@ -20,6 +20,9 @@ set(SOURCES
     src/bus.cpp
     src/cpu.cpp
     src/ppu.cpp
+    src/cartridge.cpp
+    src/mapper.cpp
+    src/mapper_zero.cpp
     src/debugger.cpp
 )
 

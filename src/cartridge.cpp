@@ -1,5 +1,7 @@
 #include "cartridge.h"
 #include <fstream>
+#include <memory>
+#include "mapper_zero.h"
 
 namespace nes {
 Cartridge::Cartridge(const std::string& file) {
@@ -44,17 +46,43 @@ Cartridge::Cartridge(const std::string& file) {
     }
   }
 
+  // Load the appropriate mapper
+  switch (_mapper_id) {
+    case 0:
+      _mapper = std::make_shared<MapperZero>(_prg_banks, _chr_banks);
+      break;
+  }
+
   ifs.close();
 }
-u8 Cartridge::cpu_read(u16 address) const {
-  u8 data = 0x00;
-  return data;
+bool Cartridge::cpu_read(u16 address, u8& data) const {
+  u32 mapped_addr = 0x00;
+  if (_mapper->cpu_read(address, mapped_addr)) {
+    data = _prg_memory[mapped_addr];
+    return true;
+  }
+  return false;
 }
-u8 Cartridge::ppu_read(u16 address) const { return 0x00; }
-void Cartridge::cpu_write(u16 address, u8 value) {}
-void Cartridge::ppu_write(u16 address, u8 value) {}
-bool Cartridge::handles_address(u16 address) const {
-  if (address >= 0x8000 && address <= 0xFFFF) {
+bool Cartridge::ppu_read(u16 address, u8& data) const {
+  u32 mapped_addr = 0x00;
+  if (_mapper->ppu_read(address, mapped_addr)) {
+    data = _chr_memory[mapped_addr];
+    return true;
+  }
+  return false;
+}
+bool Cartridge::cpu_write(u16 address, u8 value) {
+  u32 mapped_addr = 0x00;
+  if (_mapper->cpu_write(address, mapped_addr)) {
+    _prg_memory[mapped_addr] = value;
+    return true;
+  }
+  return false;
+}
+bool Cartridge::ppu_write(u16 address, u8 value) {
+  u32 mapped_addr = 0x00;
+  if (_mapper->ppu_write(address, mapped_addr)) {
+    _chr_memory[mapped_addr] = value;
     return true;
   }
   return false;

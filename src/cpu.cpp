@@ -266,7 +266,12 @@ void CPU::reset() {
   _SP = 0xFF;
   _status = (u8)Flag::UNUSED | (u8)Flag::BREAK;
   _cycles = 0;
-  _PC = 0xFFFC;
+
+  // Read reset vector from 0xFFFC-0xFFFD
+  u16 low_byte = read_byte(0xFFFC);
+  u16 high_byte = read_byte(0xFFFD);
+  _PC = (high_byte << 8) | low_byte;
+
   _page_crossed = false;
 }
 

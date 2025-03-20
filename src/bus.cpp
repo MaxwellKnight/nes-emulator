@@ -20,8 +20,7 @@ void Bus::insert_cartridge(const std::shared_ptr<Cartridge>& cartridge) {
 }
 
 void Bus::cpu_write(u16 address, u8 value) {
-  if (_cartridge->handles_address(address)) {
-    _cartridge->cpu_write(address, value);
+  if (_cartridge->cpu_write(address, value)) {
   } else if (address >= 0x0000 && address <= 0x1FFF) {
     _ram[address & 0x07FF] = value;
   } else if (address >= 0x2000 && address <= 0x3FFF) {
@@ -31,14 +30,11 @@ void Bus::cpu_write(u16 address, u8 value) {
 
 u8 Bus::cpu_read(u16 address) const {
   u8 data = 0x00;
-  if (_cartridge->handles_address(address)) {
-    data = _cartridge->cpu_read(address);
+  if (_cartridge->cpu_read(address, data)) {
   } else if (address >= 0x0000 && address <= 0x1FFF) {
     data = _ram[address & 0x07FF];
   } else if (address >= 0x2000 && address <= 0x3FFF) {
     data = _ppu.cpu_read(address & 0x0007);
-  } else if (address >= 0xFFFC && address <= 0xFFFF) {
-    data = _reset_vector[address - 0xFFFC];
   }
 
   return data;

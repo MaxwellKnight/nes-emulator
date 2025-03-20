@@ -3,7 +3,7 @@
 #include "types.h"
 
 namespace nes {
-class PPU : Addressable {
+class PPU {
  private:
   std::shared_ptr<Cartridge> _cartridge;
 
@@ -19,10 +19,10 @@ class PPU : Addressable {
   void clock();
 
  public:
-  u8 cpu_read(u16 address) const override;
-  u8 ppu_read(u16 address) const override;
-  void cpu_write(u16 address, u8 value) override;
-  void ppu_write(u16 address, u8 value) override;
-  bool handles_address(u16 address) const override;
+  u8 cpu_read(u16 address) const;
+  u8 ppu_read(u16 address) const;
+  void cpu_write(u16 address, u8 value);
+  void ppu_write(u16 address, u8 value);
+  bool handles_address(u16 address) const;
 };
 };  // namespace nes

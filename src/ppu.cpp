@@ -49,16 +49,14 @@ void PPU::cpu_write(u16 address, u8 value) {
 u8 PPU::ppu_read(u16 address) const {
   u8 data = 0x00;
   address &= 0x3FFF;
-  if (_cartridge->handles_address(address)) {
-    data = _cartridge->ppu_read(address);
+  if (_cartridge->ppu_read(address, data)) {
   }
 
   return data;
 }
 void PPU::ppu_write(u16 address, u8 value) {
   address &= 0x3FFF;
-  if (_cartridge->handles_address(address)) {
-    _cartridge->ppu_write(address, value);
+  if (_cartridge->cpu_write(address, value)) {
   }
 }
 
