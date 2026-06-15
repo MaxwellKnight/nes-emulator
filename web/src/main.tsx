@@ -1,6 +1,7 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import App from "./App";
+import { loadModuleWithDevFallback } from "./emulator/devModule";
 
 // UI / chrome / headings / labels: Outfit (500/600/700)
 import "@fontsource/outfit/500.css";
@@ -20,6 +21,6 @@ if (!rootElement) {
 
 createRoot(rootElement).render(
   <StrictMode>
-    <App />
+    <App loadModule={loadModuleWithDevFallback} />
   </StrictMode>,
 );
