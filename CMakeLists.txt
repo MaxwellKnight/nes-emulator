@@ -160,6 +160,7 @@ else()
         add_cpu_test(ppu_test_init tests/ppu_test_init.cpp)
         add_cpu_test(ppu_test_registers tests/ppu_test_registers.cpp)
         add_cpu_test(ppu_test_memory tests/ppu_test_memory.cpp)
+        add_cpu_test(ppu_test_loopy tests/ppu_test_loopy.cpp)
 
         # PPU foundation tests
         add_cpu_test(palette_test tests/palette_test.cpp)

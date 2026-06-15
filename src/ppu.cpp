@@ -149,10 +149,36 @@ void PPU::ppu_write(u16 addr, u8 value) {
 }
 
 // --- loopy helpers (implemented in B4) ---
-void PPU::inc_coarse_x() {}
-void PPU::inc_y() {}
-void PPU::copy_x() {}
-void PPU::copy_y() {}
+void PPU::inc_coarse_x() {
+  if ((_v & 0x001F) == 31) {
+    _v &= ~0x001F;
+    _v ^= 0x0400;
+  } else {
+    _v++;
+  }
+}
+
+void PPU::inc_y() {
+  if ((_v & 0x7000) != 0x7000) {
+    _v += 0x1000;
+  } else {
+    _v &= ~0x7000;
+    u16 y = (_v & 0x03E0) >> 5;
+    if (y == 29) {
+      y = 0;
+      _v ^= 0x0800;
+    } else if (y == 31) {
+      y = 0;
+    } else {
+      y++;
+    }
+    _v = (_v & ~0x03E0) | (y << 5);
+  }
+}
+
+void PPU::copy_x() { _v = (_v & ~0x041F) | (_t & 0x041F); }
+
+void PPU::copy_y() { _v = (_v & ~0x7BE0) | (_t & 0x7BE0); }
 
 // --- timing + rendering (implemented in C1/C2) ---
 void PPU::clock() {}

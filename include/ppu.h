@@ -4,6 +4,11 @@
 #include "cartridge.h"
 #include "types.h"
 
+// Forward-declare the test fixture so that `friend class ::PPUTestLoopy;`
+// inside namespace nes is valid even when the header is included from
+// production translation units that never see the test header.
+class PPUTestLoopy;
+
 namespace nes {
 class PPU {
  public:
@@ -70,6 +75,6 @@ class PPU {
 
   std::array<u32, 256 * 240> _framebuffer{};
 
-  friend class PPUTestLoopy;
+  friend class ::PPUTestLoopy;
 };
 };  // namespace nes
