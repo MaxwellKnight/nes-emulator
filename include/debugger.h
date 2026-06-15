@@ -34,6 +34,7 @@ class Debugger {
   // Execution control
   void step();
   void run();
+  int run_frame();
   void stop();
   void reset();
   bool is_running() const;
