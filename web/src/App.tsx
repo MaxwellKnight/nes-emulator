@@ -1,7 +1,7 @@
 export default function App() {
   return (
-    <main>
-      <h1>NES Studio</h1>
+    <main className="min-h-screen bg-bg text-text">
+      <h1 className="text-heading">NES Studio</h1>
     </main>
   );
 }
