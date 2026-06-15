@@ -1,42 +1,98 @@
+/*
+ * NES Studio design tokens — a refined dark "technical instrument".
+ * Dark is the default; [data-theme="light"] provides light-slate overrides.
+ *
+ * The canonical tokens are the short names (--b0..--bd, --tx*, --acc*, etc.).
+ * Legacy aliases (--bg, --panel, --text-muted, ...) are mapped onto the new
+ * tokens so the whole component tree resolves consistently during/after the
+ * restyle.
+ */
 :root {
-  --bg: #0d0e12;
-  --panel: #15171e;
-  --panel-2: #0f1116;
-  --border: rgba(255, 255, 255, 0.07);
-  --border-subtle: rgba(255, 255, 255, 0.06);
-  --border-emphasis: rgba(255, 255, 255, 0.1);
-  --text: #cdd0da;
-  --text-muted: #6b7280;
-  --text-dim: #4b5563;
-  --heading: #eef0f6;
-  --accent: #4f46e5;
-  --accent-hover: #6366f1;
-  --accent-soft: #818cf8;
-  --accent-soft-2: #a5b4fc;
-  --screen-well: #05060a;
-  --danger: #ef4444;
-  --success: #22c55e;
+  /* surfaces */
+  --b0: #0e0f13;
+  --b1: #15171d;
+  --b2: #1c1f27;
+  --b3: #242833;
 
-  --font-ui: ui-sans-serif, system-ui, "Inter", sans-serif;
-  --font-mono: ui-monospace, "JetBrains Mono", monospace;
+  /* borders */
+  --bd: rgba(255, 255, 255, 0.07);
+  --bd-strong: rgba(255, 255, 255, 0.12);
+
+  /* text */
+  --tx: #eef1f6;
+  --tx-mut: #888ea3;
+  --tx-dim: #5a6072;
+
+  /* accent + semantic */
+  --acc: #7c83f0;
+  --acc-hi: #9aa0f7;
+  --acc-press: #666dde;
+  --grn: #3fb27f;
+  --amb: #d98a3d;
+  --red: #e0564b;
+
+  /* effects + motion */
+  --glow: 0 0 24px rgba(124, 131, 240, 0.3);
+  --red-glow: 0 0 7px rgba(224, 86, 75, 0.6);
+  --grn-glow: 0 0 7px rgba(63, 178, 127, 0.55);
+  --radius: 10px;
+  --radius-sm: 6px;
+  --ease-spring: cubic-bezier(0.32, 0.72, 0, 1);
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --dur-fast: 120ms;
+  --dur: 200ms;
+
+  /* atmosphere */
+  --screen-well: #05060a;
+
+  /* typography */
+  --font-ui: "Outfit", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  /* ---- legacy aliases (mapped onto canonical tokens) ---- */
+  --bg: var(--b0);
+  --panel: var(--b1);
+  --panel-2: var(--b2);
+  --border: var(--bd);
+  --border-subtle: var(--bd);
+  --border-emphasis: var(--bd-strong);
+  --text: var(--tx);
+  --text-muted: var(--tx-mut);
+  --text-dim: var(--tx-dim);
+  --heading: var(--tx);
+  --accent: var(--acc);
+  --accent-hover: var(--acc-hi);
+  --accent-soft: var(--acc-hi);
+  --accent-soft-2: var(--acc-hi);
+  --danger: var(--red);
+  --success: var(--grn);
+  --warning: var(--amb);
 }
 
 [data-theme="light"] {
-  --bg: #f5f6fa;
-  --panel: #ffffff;
-  --panel-2: #eef0f6;
-  --border: rgba(0, 0, 0, 0.1);
-  --border-subtle: rgba(0, 0, 0, 0.06);
-  --border-emphasis: rgba(0, 0, 0, 0.14);
-  --text: #1f2430;
-  --text-muted: #5b6270;
-  --text-dim: #8a909c;
-  --heading: #0d0e12;
-  --accent: #4f46e5;
-  --accent-hover: #4338ca;
-  --accent-soft: #6366f1;
-  --accent-soft-2: #4f46e5;
-  --screen-well: #d6d9e2;
-  --danger: #dc2626;
-  --success: #16a34a;
+  /* light slate / white surfaces */
+  --b0: #eceef4;
+  --b1: #ffffff;
+  --b2: #f3f5fa;
+  --b3: #e6e9f1;
+
+  --bd: rgba(15, 20, 35, 0.1);
+  --bd-strong: rgba(15, 20, 35, 0.16);
+
+  --tx: #1b2030;
+  --tx-mut: #5a6175;
+  --tx-dim: #8b91a3;
+
+  --acc: #5a61dc;
+  --acc-hi: #6f76ec;
+  --acc-press: #494fc0;
+  --grn: #1f9a64;
+  --amb: #c2751f;
+  --red: #d23b30;
+
+  --glow: 0 0 22px rgba(90, 97, 220, 0.24);
+  --red-glow: 0 0 7px rgba(210, 59, 48, 0.45);
+  --grn-glow: 0 0 7px rgba(31, 154, 100, 0.4);
+
+  --screen-well: #c7ccda;
 }
