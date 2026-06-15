@@ -26,6 +26,7 @@ function makeCtx(overrides: Partial<EmulatorContextValue> = {}): EmulatorContext
     toggleBreakpoint: vi.fn(),
     writeMemory: vi.fn(),
     loadROM: vi.fn(),
+    loadRom: vi.fn(() => 0),
     loadOpcodes: vi.fn(),
   };
   return {

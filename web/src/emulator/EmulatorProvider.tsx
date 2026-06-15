@@ -26,6 +26,7 @@ export interface EmulatorActions {
   toggleBreakpoint(addr: number): void;
   writeMemory(addr: number, value: number): void;
   loadROM(data: Uint8Array): void;
+  loadRom(data: Uint8Array): number;
   loadOpcodes(text: string): void;
 }
 
@@ -228,6 +229,22 @@ export function EmulatorProvider(props: {
     [refresh],
   );
 
+  const loadRom = useCallback(
+    (data: Uint8Array): number => {
+      const bridge = dbgRef.current;
+      if (!bridge) return -1;
+      stopLoop();
+      const status = bridge.loadRom(data);
+      if (status === 0) {
+        bridge.reset();
+        setFramebuffer(new Uint8ClampedArray(bridge.getFramebuffer()));
+      }
+      refresh();
+      return status;
+    },
+    [refresh, stopLoop],
+  );
+
   const loadOpcodes = useCallback(
     (text: string) => {
       const bytes = parseOpcodes(text);
@@ -247,6 +264,7 @@ export function EmulatorProvider(props: {
       toggleBreakpoint,
       writeMemory,
       loadROM,
+      loadRom,
       loadOpcodes,
     }),
     [
@@ -259,6 +277,7 @@ export function EmulatorProvider(props: {
       toggleBreakpoint,
       writeMemory,
       loadROM,
+      loadRom,
       loadOpcodes,
     ],
   );

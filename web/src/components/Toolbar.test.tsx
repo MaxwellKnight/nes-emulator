@@ -28,6 +28,7 @@ function makeContext(
     toggleBreakpoint: vi.fn(),
     writeMemory: vi.fn(),
     loadROM: vi.fn(),
+    loadRom: vi.fn(() => 0),
     loadOpcodes: vi.fn(),
   };
   return {
@@ -128,7 +129,7 @@ describe("Toolbar", () => {
     expect(onHelp).toHaveBeenCalledTimes(1);
   });
 
-  it("reads a ROM file and calls actions.loadROM with the bytes", async () => {
+  it("reads a ROM file and calls actions.loadRom with the bytes", async () => {
     const ctx = makeContext();
     mockContext.value = ctx;
     render(<Toolbar onHelp={vi.fn()} />);
@@ -136,9 +137,9 @@ describe("Toolbar", () => {
     const file = new File([new Uint8Array([0xa9, 0x01, 0x00])], "prog.nes");
     await userEvent.upload(input, file);
     await vi.waitFor(() => {
-      expect(ctx.actions.loadROM).toHaveBeenCalledTimes(1);
+      expect(ctx.actions.loadRom).toHaveBeenCalledTimes(1);
     });
-    const arg = vi.mocked(ctx.actions.loadROM).mock.calls[0][0] as Uint8Array;
+    const arg = vi.mocked(ctx.actions.loadRom).mock.calls[0][0] as Uint8Array;
     expect(Array.from(arg)).toEqual([0xa9, 0x01, 0x00]);
   });
 
@@ -168,20 +169,63 @@ describe("Toolbar", () => {
 
   it("shows the loaded ROM name and a success toast on file load", async () => {
     const ctx = makeContext();
+    vi.mocked(ctx.actions.loadRom).mockReturnValue(0);
     mockContext.value = ctx;
     render(<Toolbar onHelp={vi.fn()} />);
     const input = screen.getByTestId("rom-file-input") as HTMLInputElement;
     const file = new File([new Uint8Array([0xa9, 0x01, 0x00])], "prog.nes");
     await userEvent.upload(input, file);
     await vi.waitFor(() => {
-      expect(ctx.actions.loadROM).toHaveBeenCalledTimes(1);
+      expect(ctx.actions.loadRom).toHaveBeenCalledTimes(1);
     });
     await vi.waitFor(() => {
       expect(screen.getByText("prog.nes")).toBeInTheDocument();
     });
-    expect(addToast).toHaveBeenCalledWith(
-      "ROM loaded: prog.nes (3 bytes)",
-      "success",
-    );
+    expect(addToast).toHaveBeenCalledWith("ROM loaded: prog.nes", "success");
+  });
+
+  it("calls actions.loadRom with the .nes bytes and toasts success on status 0", async () => {
+    const ctx = makeContext();
+    vi.mocked(ctx.actions.loadRom).mockReturnValue(0);
+    mockContext.value = ctx;
+    render(<Toolbar onHelp={vi.fn()} />);
+    const input = screen.getByTestId("rom-file-input") as HTMLInputElement;
+    const file = new File([new Uint8Array([0x4e, 0x45, 0x53, 0x1a])], "game.nes");
+    await userEvent.upload(input, file);
+    await vi.waitFor(() => {
+      expect(ctx.actions.loadRom).toHaveBeenCalledTimes(1);
+    });
+    const arg = vi.mocked(ctx.actions.loadRom).mock.calls[0][0] as Uint8Array;
+    expect(Array.from(arg)).toEqual([0x4e, 0x45, 0x53, 0x1a]);
+    await vi.waitFor(() => {
+      expect(screen.getByText("game.nes")).toBeInTheDocument();
+    });
+    expect(addToast).toHaveBeenCalledWith("ROM loaded: game.nes", "success");
+  });
+
+  it("toasts 'Unsupported mapper' on status 2", async () => {
+    const ctx = makeContext();
+    vi.mocked(ctx.actions.loadRom).mockReturnValue(2);
+    mockContext.value = ctx;
+    render(<Toolbar onHelp={vi.fn()} />);
+    const input = screen.getByTestId("rom-file-input") as HTMLInputElement;
+    const file = new File([new Uint8Array([0x00])], "mmc.nes");
+    await userEvent.upload(input, file);
+    await vi.waitFor(() => {
+      expect(addToast).toHaveBeenCalledWith("Unsupported mapper", "danger");
+    });
+  });
+
+  it("toasts 'Invalid ROM file' on any other nonzero status", async () => {
+    const ctx = makeContext();
+    vi.mocked(ctx.actions.loadRom).mockReturnValue(1);
+    mockContext.value = ctx;
+    render(<Toolbar onHelp={vi.fn()} />);
+    const input = screen.getByTestId("rom-file-input") as HTMLInputElement;
+    const file = new File([new Uint8Array([0x00])], "broken.nes");
+    await userEvent.upload(input, file);
+    await vi.waitFor(() => {
+      expect(addToast).toHaveBeenCalledWith("Invalid ROM file", "danger");
+    });
   });
 });

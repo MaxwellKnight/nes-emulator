@@ -68,9 +68,15 @@ export function Toolbar({ romName, onHelp, onLoadCode }: ToolbarProps): JSX.Elem
     reader.onload = () => {
       const buffer = reader.result as ArrayBuffer;
       const bytes = new Uint8Array(buffer);
-      actions.loadROM(bytes);
-      setLoadedRomName(file.name);
-      addToast(`ROM loaded: ${file.name} (${bytes.length} bytes)`, "success");
+      const status = actions.loadRom(bytes);
+      if (status === 0) {
+        setLoadedRomName(file.name);
+        addToast(`ROM loaded: ${file.name}`, "success");
+      } else if (status === 2) {
+        addToast("Unsupported mapper", "danger");
+      } else {
+        addToast("Invalid ROM file", "danger");
+      }
     };
     reader.readAsArrayBuffer(file);
     event.target.value = "";
