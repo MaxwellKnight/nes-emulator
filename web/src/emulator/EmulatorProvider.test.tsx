@@ -1,15 +1,18 @@
 // web/src/emulator/EmulatorProvider.test.tsx
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { renderHook, act, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { EmulatorProvider, useEmulator } from "./EmulatorProvider";
+import { ToastProvider, useToast } from "../components/toast/ToastProvider";
 import { createMockModule } from "../wasm/testing/mockModule";
 import type { WasmModule } from "../wasm/bridge";
 
 function makeWrapper(loadModule: () => Promise<WasmModule>) {
   return function Wrapper({ children }: { children: ReactNode }) {
     return (
-      <EmulatorProvider loadModule={loadModule}>{children}</EmulatorProvider>
+      <ToastProvider>
+        <EmulatorProvider loadModule={loadModule}>{children}</EmulatorProvider>
+      </ToastProvider>
     );
   };
 }
@@ -129,5 +132,140 @@ describe("EmulatorProvider", () => {
 
   it("throws when useEmulator is used outside the provider", () => {
     expect(() => renderHook(() => useEmulator())).toThrow();
+  });
+});
+
+// --- Run-loop / toast integration (controllable rAF harness) ---
+
+let rafCallbacks: Array<{ id: number; cb: FrameRequestCallback }> = [];
+let rafId = 0;
+let now = 0;
+
+function flushFrame(advanceBy = 0) {
+  const pending = rafCallbacks;
+  rafCallbacks = [];
+  now += advanceBy;
+  for (const { cb } of pending) {
+    cb(now);
+  }
+}
+
+function comboWrapper(loadModule: () => Promise<WasmModule>) {
+  return function Wrapper({ children }: { children: ReactNode }) {
+    return (
+      <ToastProvider>
+        <EmulatorProvider loadModule={loadModule}>{children}</EmulatorProvider>
+      </ToastProvider>
+    );
+  };
+}
+
+async function renderWithToast(opts?: { disassembly?: string }) {
+  const mock = createMockModule(opts);
+  const loadModule = () => Promise.resolve(mock);
+  const utils = renderHook(
+    () => ({ emu: useEmulator(), toast: useToast() }),
+    { wrapper: comboWrapper(loadModule) },
+  );
+  await waitFor(() => expect(utils.result.current.emu.status).toBe("ready"));
+  return { ...utils, mock };
+}
+
+describe("EmulatorProvider run loop", () => {
+  beforeEach(() => {
+    rafCallbacks = [];
+    rafId = 0;
+    now = 0;
+    vi.stubGlobal("requestAnimationFrame", (cb: FrameRequestCallback) => {
+      const id = ++rafId;
+      rafCallbacks.push({ id, cb });
+      return id;
+    });
+    vi.stubGlobal("cancelAnimationFrame", (id: number) => {
+      rafCallbacks = rafCallbacks.filter((r) => r.id !== id);
+    });
+    vi.stubGlobal("performance", { now: () => now });
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("run() drives continuous stepping via the rAF loop and shows an Execution started toast", async () => {
+    const { result, mock } = await renderWithToast();
+    expect(mock._state.instructionCount).toBe(0);
+
+    act(() => {
+      result.current.emu.actions.run();
+    });
+
+    expect(result.current.emu.running).toBe(true);
+    expect(
+      result.current.toast.toasts.some(
+        (t) => t.message === "Execution started" && t.type === "info",
+      ),
+    ).toBe(true);
+
+    // Advance one frame past the time slice so the loop steps then yields.
+    act(() => {
+      flushFrame(20);
+    });
+    expect(mock._state.instructionCount).toBeGreaterThan(0);
+  });
+
+  it("auto-stops and shows a Breakpoint hit toast when isRunning flips false mid-run", async () => {
+    const { result, mock } = await renderWithToast();
+
+    act(() => {
+      result.current.emu.actions.run();
+    });
+    // Simulate the C++ core hitting a breakpoint: it clears the running flag.
+    act(() => {
+      mock._state.running = false;
+      flushFrame(20);
+    });
+
+    expect(result.current.emu.running).toBe(false);
+    expect(
+      result.current.toast.toasts.some(
+        (t) => t.message === "Breakpoint hit" && t.type === "warning",
+      ),
+    ).toBe(true);
+  });
+
+  it("auto-stops and shows a BRK toast on the nes-brk-encountered event", async () => {
+    const { result } = await renderWithToast();
+
+    act(() => {
+      result.current.emu.actions.run();
+    });
+    expect(result.current.emu.running).toBe(true);
+
+    act(() => {
+      window.dispatchEvent(new CustomEvent("nes-brk-encountered"));
+    });
+
+    expect(result.current.emu.running).toBe(false);
+    expect(
+      result.current.toast.toasts.some(
+        (t) =>
+          t.message === "Program terminated with BRK" && t.type === "info",
+      ),
+    ).toBe(true);
+  });
+
+  it("reset() stops any running loop", async () => {
+    const { result } = await renderWithToast();
+
+    act(() => {
+      result.current.emu.actions.run();
+    });
+    expect(result.current.emu.running).toBe(true);
+
+    act(() => {
+      result.current.emu.actions.reset();
+    });
+    expect(result.current.emu.running).toBe(false);
+    expect(rafCallbacks).toHaveLength(0);
   });
 });

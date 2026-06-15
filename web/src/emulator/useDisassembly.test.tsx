@@ -3,6 +3,7 @@ import { describe, it, expect, vi } from "vitest";
 import { renderHook, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { EmulatorProvider, useEmulator } from "./EmulatorProvider";
+import { ToastProvider } from "../components/toast/ToastProvider";
 import { useDisassembly } from "./useDisassembly";
 import { createMockModule } from "../wasm/testing/mockModule";
 import type { Debugger } from "../wasm/bridge";
@@ -14,9 +15,11 @@ const RAW =
 function makeWrapper(mock: ReturnType<typeof createMockModule>) {
   return function Wrapper({ children }: { children: ReactNode }) {
     return (
-      <EmulatorProvider loadModule={() => Promise.resolve(mock)}>
-        {children}
-      </EmulatorProvider>
+      <ToastProvider>
+        <EmulatorProvider loadModule={() => Promise.resolve(mock)}>
+          {children}
+        </EmulatorProvider>
+      </ToastProvider>
     );
   };
 }
@@ -100,9 +103,11 @@ describe("useDisassembly", () => {
       {
         wrapper: function Wrapper({ children }: { children: ReactNode }) {
           return (
-            <EmulatorProvider loadModule={loadModule}>
-              {children}
-            </EmulatorProvider>
+            <ToastProvider>
+              <EmulatorProvider loadModule={loadModule}>
+                {children}
+              </EmulatorProvider>
+            </ToastProvider>
           );
         },
       },

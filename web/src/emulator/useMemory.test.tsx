@@ -3,6 +3,7 @@ import { describe, it, expect } from "vitest";
 import { renderHook, act, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { EmulatorProvider, useEmulator } from "./EmulatorProvider";
+import { ToastProvider } from "../components/toast/ToastProvider";
 import { useMemory } from "./useMemory";
 import { createMockModule } from "../wasm/testing/mockModule";
 import { MEMORY_PAGES, type MemoryPage } from "../wasm/types";
@@ -16,9 +17,11 @@ function getPage(id: MemoryPage["id"]): MemoryPage {
 function makeWrapper(mock: ReturnType<typeof createMockModule>) {
   return function Wrapper({ children }: { children: ReactNode }) {
     return (
-      <EmulatorProvider loadModule={() => Promise.resolve(mock)}>
-        {children}
-      </EmulatorProvider>
+      <ToastProvider>
+        <EmulatorProvider loadModule={() => Promise.resolve(mock)}>
+          {children}
+        </EmulatorProvider>
+      </ToastProvider>
     );
   };
 }

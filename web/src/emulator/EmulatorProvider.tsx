@@ -13,6 +13,8 @@ import { createBridge, type Debugger, type WasmModule } from "../wasm/bridge";
 import { loadEmulatorModule } from "../wasm/loader";
 import { parseOpcodes } from "../wasm/opcodes";
 import type { EmulatorSnapshot, EmulatorStatus } from "../wasm/types";
+import { useRunLoop } from "./useRunLoop";
+import { useToast } from "../components/toast/ToastProvider";
 
 export interface EmulatorActions {
   step(): void;
@@ -43,11 +45,26 @@ export function EmulatorProvider(props: {
   loadModule?: () => Promise<WasmModule>;
 }): JSX.Element {
   const { loadModule = loadEmulatorModule } = props;
+  const { addToast } = useToast();
   const dbgRef = useRef<Debugger | null>(null);
   const [dbg, setDbg] = useState<Debugger | null>(null);
   const [status, setStatus] = useState<EmulatorStatus>("loading");
   const [snapshot, setSnapshot] = useState<EmulatorSnapshot | null>(null);
   const [breakpoints, setBreakpoints] = useState<number[]>([]);
+
+  const publishSnapshot = useCallback((s: EmulatorSnapshot) => {
+    setSnapshot(s);
+  }, []);
+
+  const handleBreak = useCallback(() => {
+    addToast("Breakpoint hit", "warning");
+  }, [addToast]);
+
+  const {
+    start: startLoop,
+    stop: stopLoop,
+    running,
+  } = useRunLoop({ dbg, onSnapshot: publishSnapshot, onBreak: handleBreak });
 
   useEffect(() => {
     let cancelled = false;
@@ -88,22 +105,41 @@ export function EmulatorProvider(props: {
     const bridge = dbgRef.current;
     if (!bridge) return;
     bridge.run();
-    refresh();
-  }, [refresh]);
+    addToast("Execution started", "info");
+    startLoop();
+  }, [addToast, startLoop]);
 
   const stop = useCallback(() => {
     const bridge = dbgRef.current;
     if (!bridge) return;
+    stopLoop();
     bridge.stop();
     refresh();
-  }, [refresh]);
+  }, [refresh, stopLoop]);
 
   const reset = useCallback(() => {
     const bridge = dbgRef.current;
     if (!bridge) return;
+    stopLoop();
     bridge.reset();
     refresh();
-  }, [refresh]);
+  }, [refresh, stopLoop]);
+
+  // BRK (opcode 0x00) handling: the C++ core dispatches `nes-brk-encountered`
+  // when a BRK is stepped. Auto-stop the loop and surface a toast. (§6, preserve.)
+  useEffect(() => {
+    const onBrk = () => {
+      stopLoop();
+      const bridge = dbgRef.current;
+      if (bridge) {
+        bridge.stop();
+        setSnapshot(bridge.getSnapshot());
+      }
+      addToast("Program terminated with BRK", "info");
+    };
+    window.addEventListener("nes-brk-encountered", onBrk);
+    return () => window.removeEventListener("nes-brk-encountered", onBrk);
+  }, [addToast, stopLoop]);
 
   const addBreakpoint = useCallback((addr: number) => {
     const bridge = dbgRef.current;
@@ -197,11 +233,11 @@ export function EmulatorProvider(props: {
       status,
       snapshot,
       breakpoints,
-      running: snapshot?.running ?? false,
+      running,
       dbg,
       actions,
     }),
-    [status, snapshot, breakpoints, dbg, actions],
+    [status, snapshot, breakpoints, running, dbg, actions],
   );
 
   return (
