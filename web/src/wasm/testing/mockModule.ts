@@ -1,5 +1,19 @@
 // web/src/wasm/testing/mockModule.ts
-import type { WasmModule } from "../bridge";
+
+/** Minimal shape of the Emscripten runtime module (mirrors WasmModule in bridge.ts). */
+export interface WasmModule {
+  cwrap(
+    name: string,
+    ret: string | null,
+    args: string[]
+  ): (...a: number[]) => number | string | void;
+  ccall(
+    name: string,
+    ret: string | null,
+    args: string[],
+    values: Array<number | string>
+  ): number | string | void;
+}
 
 export interface MockState {
   memory: Uint8Array;
