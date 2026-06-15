@@ -18,12 +18,12 @@ class Cartridge {
 
  public:
   Cartridge(const std::string& file);
-  ~Cartridge() = default;
+  virtual ~Cartridge() = default;
 
  public:
-  bool cpu_read(u16 address, u8& data) const;
-  bool ppu_read(u16 address, u8& data) const;
-  bool cpu_write(u16 address, u8 value);
-  bool ppu_write(u16 address, u8 value);
+  virtual bool cpu_read(u16 address, u8& data) const;
+  virtual bool ppu_read(u16 address, u8& data) const;
+  virtual bool cpu_write(u16 address, u8 value);
+  virtual bool ppu_write(u16 address, u8 value);
 };
 };  // namespace nes

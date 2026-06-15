@@ -146,6 +146,7 @@ class CPU {
   // Core methods
   void clock();
   void reset();
+  void trigger_nmi();  // Non-maskable interrupt entry: push PC+status, jump to $FFFA/$FFFB.
 
   // Getters
   u8 get_accumulator() const;

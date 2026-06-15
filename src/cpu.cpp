@@ -872,6 +872,31 @@ void CPU::op_rts() {
   _PC += 1;  // Increment th PC by 1 so it points to the instruction after JSR
 }
 
+void CPU::trigger_nmi() {
+  // Push PCH (high byte) then PCL (low byte), matching the BRK push order.
+  write_byte(0x0100 + _SP, (_PC >> 8) & 0xFF);
+  _SP--;
+  write_byte(0x0100 + _SP, _PC & 0xFF);
+  _SP--;
+
+  // Push status with UNUSED set and BREAK clear (hardware behavior for
+  // an interrupt entry, as opposed to BRK which sets BREAK).
+  u8 status_to_push = (_status | (u8)Flag::UNUSED) & ~(u8)Flag::BREAK;
+  write_byte(0x0100 + _SP, status_to_push);
+  _SP--;
+
+  // Disable further interrupts.
+  set_flag(Flag::INTERRUPT_DISABLE, true);
+
+  // Load PC from the NMI vector $FFFA (low) / $FFFB (high).
+  u16 low_byte = read_byte(0xFFFA);
+  u16 high_byte = read_byte(0xFFFB);
+  _PC = (high_byte << 8) | low_byte;
+
+  // The NMI sequence takes 7 cycles.
+  _cycles = 7;
+}
+
 // Flag operations
 void CPU::op_clc() { set_flag(Flag::CARRY, false); }
 void CPU::op_cld() { set_flag(Flag::DECIMAL, false); }

@@ -160,5 +160,6 @@ else()
 
         # PPU foundation tests
         add_cpu_test(palette_test tests/palette_test.cpp)
+        add_cpu_test(cpu_test_nmi tests/cpu_test_nmi.cpp)
     endif()
 endif()
