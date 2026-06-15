@@ -1,3 +1,4 @@
+.superpowers/
 bin/
 build/
 native_build/
@@ -10,3 +11,11 @@ compile_commands.json
 .clang-format
 *.wasm
 .env
+
+web/node_modules/
+web/dist/
+web/src/wasm/generated/
+web/*.tsbuildinfo
+web/vite.config.js
+web/vite.config.d.ts
+docs/superpowers/
