@@ -164,6 +164,21 @@ export function createDevModule(): WasmModule {
 export async function loadModuleWithDevFallback(): Promise<WasmModule> {
   try {
     const module = await loadEmulatorModule();
+    // A stale WASM build (pre-PPU) loads fine but lacks the framebuffer/PPU
+    // exports, so getFramebuffer()/renderPatternTable() would throw (black
+    // screen, PPU-viewer crash). In DEV, detect that and fall back to the
+    // seeded mock (demo framebuffer + debug buffers) so the cockpit is usable.
+    // Rebuild with `docker compose run --rm dev build_wasm.sh` for the real core.
+    const hasPpuExports =
+      typeof (module as unknown as Record<string, unknown>)
+        ._get_framebuffer_ptr === "function";
+    if (import.meta.env.DEV && !hasPpuExports) {
+      // eslint-disable-next-line no-console
+      console.warn(
+        "[dev] Compiled WASM has no PPU exports (stale build) — using the seeded dev module. Rebuild the WASM (build_wasm.sh) and restart for the real core.",
+      );
+      return createDevModule();
+    }
     // DEV-only: seed the real module with the demo program so the cockpit boots
     // alive (filled disassembly, a non-reset PC, populated memory) instead of a
     // sea of $00 / BRK. No-op in production builds; tests inject their own module.
