@@ -181,7 +181,46 @@ void PPU::copy_x() { _v = (_v & ~0x041F) | (_t & 0x041F); }
 void PPU::copy_y() { _v = (_v & ~0x7BE0) | (_t & 0x7BE0); }
 
 // --- timing + rendering (implemented in C1/C2) ---
-void PPU::clock() {}
+void PPU::clock() {
+  // Advance the dot / scanline / frame counters first.
+  _dot++;
+  if (_dot == 341) {
+    _dot = 0;
+    _scanline++;
+    if (_scanline == 262) {
+      _scanline = 0;
+      _frame++;
+    }
+  }
+
+  bool rendering_enabled = (_mask & 0x18) != 0;
+
+  // Pre-render line: clear vblank (and sprite flags) at dot 1.
+  if (_scanline == 261 && _dot == 1) {
+    _status &= ~0xE0;  // clear vblank + sprite 0 hit + overflow
+  }
+
+  // Start of vblank: set the flag and raise NMI when enabled.
+  if (_scanline == 241 && _dot == 1) {
+    _status |= 0x80;
+    if (_ctrl & 0x80) _nmi_pending = true;
+  }
+
+  // Visible scanlines: render the whole line once it has been fetched.
+  if (_scanline < 240 && _dot == 257) {
+    render_scanline(_scanline);
+  }
+
+  // Loopy scroll updates (only while rendering is enabled).
+  if (rendering_enabled) {
+    if (_scanline < 240 || _scanline == 261) {
+      if (_dot == 256) inc_y();
+      if (_dot == 257) copy_x();
+    }
+    if (_scanline == 261 && _dot >= 280 && _dot <= 304) copy_y();
+  }
+}
+
 void PPU::render_scanline(u16 line) { (void)line; }
 void PPU::render_pattern_table(int table, int palette, u32* out) const {
   (void)table;
