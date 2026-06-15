@@ -1,0 +1,220 @@
+// web/src/emulator/EmulatorProvider.tsx
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
+import { createBridge, type Debugger, type WasmModule } from "../wasm/bridge";
+import { loadEmulatorModule } from "../wasm/loader";
+import { parseOpcodes } from "../wasm/opcodes";
+import type { EmulatorSnapshot, EmulatorStatus } from "../wasm/types";
+
+export interface EmulatorActions {
+  step(): void;
+  run(): void;
+  stop(): void;
+  reset(): void;
+  addBreakpoint(addr: number): void;
+  removeBreakpoint(addr: number): void;
+  toggleBreakpoint(addr: number): void;
+  writeMemory(addr: number, value: number): void;
+  loadROM(data: Uint8Array): void;
+  loadOpcodes(text: string): void;
+}
+
+export interface EmulatorContextValue {
+  status: EmulatorStatus;
+  snapshot: EmulatorSnapshot | null;
+  breakpoints: number[];
+  running: boolean;
+  dbg: Debugger | null;
+  actions: EmulatorActions;
+}
+
+const EmulatorContext = createContext<EmulatorContextValue | null>(null);
+
+export function EmulatorProvider(props: {
+  children: ReactNode;
+  loadModule?: () => Promise<WasmModule>;
+}): JSX.Element {
+  const { loadModule = loadEmulatorModule } = props;
+  const dbgRef = useRef<Debugger | null>(null);
+  const [dbg, setDbg] = useState<Debugger | null>(null);
+  const [status, setStatus] = useState<EmulatorStatus>("loading");
+  const [snapshot, setSnapshot] = useState<EmulatorSnapshot | null>(null);
+  const [breakpoints, setBreakpoints] = useState<number[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    loadModule()
+      .then((module) => {
+        if (cancelled) return;
+        const bridge = createBridge(module);
+        dbgRef.current = bridge;
+        setDbg(bridge);
+        setSnapshot(bridge.getSnapshot());
+        setStatus("ready");
+      })
+      .catch(() => {
+        if (cancelled) return;
+        dbgRef.current = null;
+        setDbg(null);
+        setStatus("error");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [loadModule]);
+
+  const refresh = useCallback(() => {
+    const bridge = dbgRef.current;
+    if (!bridge) return;
+    setSnapshot(bridge.getSnapshot());
+  }, []);
+
+  const step = useCallback(() => {
+    const bridge = dbgRef.current;
+    if (!bridge) return;
+    bridge.step();
+    refresh();
+  }, [refresh]);
+
+  const run = useCallback(() => {
+    const bridge = dbgRef.current;
+    if (!bridge) return;
+    bridge.run();
+    refresh();
+  }, [refresh]);
+
+  const stop = useCallback(() => {
+    const bridge = dbgRef.current;
+    if (!bridge) return;
+    bridge.stop();
+    refresh();
+  }, [refresh]);
+
+  const reset = useCallback(() => {
+    const bridge = dbgRef.current;
+    if (!bridge) return;
+    bridge.reset();
+    refresh();
+  }, [refresh]);
+
+  const addBreakpoint = useCallback((addr: number) => {
+    const bridge = dbgRef.current;
+    if (!bridge) return;
+    bridge.addBreakpoint(addr);
+    setBreakpoints((prev) =>
+      prev.includes(addr) ? prev : [...prev, addr].sort((a, b) => a - b),
+    );
+  }, []);
+
+  const removeBreakpoint = useCallback((addr: number) => {
+    const bridge = dbgRef.current;
+    if (!bridge) return;
+    bridge.removeBreakpoint(addr);
+    setBreakpoints((prev) => prev.filter((b) => b !== addr));
+  }, []);
+
+  const toggleBreakpoint = useCallback(
+    (addr: number) => {
+      setBreakpoints((prev) => {
+        const bridge = dbgRef.current;
+        if (!bridge) return prev;
+        if (prev.includes(addr)) {
+          bridge.removeBreakpoint(addr);
+          return prev.filter((b) => b !== addr);
+        }
+        bridge.addBreakpoint(addr);
+        return [...prev, addr].sort((a, b) => a - b);
+      });
+    },
+    [],
+  );
+
+  const writeMemory = useCallback(
+    (addr: number, value: number) => {
+      const bridge = dbgRef.current;
+      if (!bridge) return;
+      bridge.writeMemory(addr, value);
+      refresh();
+    },
+    [refresh],
+  );
+
+  const loadROM = useCallback(
+    (data: Uint8Array) => {
+      const bridge = dbgRef.current;
+      if (!bridge) return;
+      bridge.loadROM(data);
+      refresh();
+    },
+    [refresh],
+  );
+
+  const loadOpcodes = useCallback(
+    (text: string) => {
+      const bytes = parseOpcodes(text);
+      loadROM(Uint8Array.from(bytes));
+    },
+    [loadROM],
+  );
+
+  const actions = useMemo<EmulatorActions>(
+    () => ({
+      step,
+      run,
+      stop,
+      reset,
+      addBreakpoint,
+      removeBreakpoint,
+      toggleBreakpoint,
+      writeMemory,
+      loadROM,
+      loadOpcodes,
+    }),
+    [
+      step,
+      run,
+      stop,
+      reset,
+      addBreakpoint,
+      removeBreakpoint,
+      toggleBreakpoint,
+      writeMemory,
+      loadROM,
+      loadOpcodes,
+    ],
+  );
+
+  const value = useMemo<EmulatorContextValue>(
+    () => ({
+      status,
+      snapshot,
+      breakpoints,
+      running: snapshot?.running ?? false,
+      dbg,
+      actions,
+    }),
+    [status, snapshot, breakpoints, dbg, actions],
+  );
+
+  return (
+    <EmulatorContext.Provider value={value}>
+      {props.children}
+    </EmulatorContext.Provider>
+  );
+}
+
+export function useEmulator(): EmulatorContextValue {
+  const ctx = useContext(EmulatorContext);
+  if (!ctx) {
+    throw new Error("useEmulator must be used within an EmulatorProvider");
+  }
+  return ctx;
+}
