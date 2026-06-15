@@ -39,7 +39,7 @@ export function Modal({
         role="dialog"
         aria-modal="true"
         aria-label={title}
-        className={`dialog-in relative z-10 w-full max-w-lg rounded-[var(--radius)] border border-[var(--bd-strong)] bg-[var(--b1)] shadow-[0_24px_70px_rgba(0,0,0,0.55),var(--glow)] ${className}`.trim()}
+        className={`dialog-in relative z-10 w-full max-w-lg rounded-[var(--radius)] border border-[var(--bd2)] bg-[var(--b1)] shadow-[0_24px_70px_rgba(0,0,0,0.45)] ${className}`.trim()}
       >
         <header className="flex items-center justify-between border-b border-[var(--bd)] px-4 py-3">
           <h2 className="font-sans text-[11px] font-semibold uppercase tracking-[0.11em] text-[var(--tx-mut)]">

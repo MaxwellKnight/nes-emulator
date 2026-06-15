@@ -1,41 +1,42 @@
 /*
- * NES Studio design tokens — a refined dark "technical instrument".
+ * NES Studio design tokens — the "cockpit" instrument readout.
  * Dark is the default; [data-theme="light"] provides light-slate overrides.
+ *
+ * Hierarchy is built from crisp 1px borders, the accent colour and typography —
+ * NOT shadows or haze. There is deliberately NO glow token.
  *
  * The canonical tokens are the short names (--b0..--bd, --tx*, --acc*, etc.).
  * Legacy aliases (--bg, --panel, --text-muted, ...) are mapped onto the new
- * tokens so the whole component tree resolves consistently during/after the
- * restyle.
+ * tokens so the whole component tree resolves consistently.
  */
 :root {
   /* surfaces */
-  --b0: #0e0f13;
-  --b1: #15171d;
-  --b2: #1c1f27;
-  --b3: #242833;
+  --b0: #0b0c10;
+  --b1: #13151b;
+  --b2: #1a1d25;
+  --b3: #222631;
 
   /* borders */
-  --bd: rgba(255, 255, 255, 0.07);
-  --bd-strong: rgba(255, 255, 255, 0.12);
+  --bd: rgba(255, 255, 255, 0.08);
+  --bd2: rgba(255, 255, 255, 0.15);
 
   /* text */
-  --tx: #eef1f6;
-  --tx-mut: #888ea3;
-  --tx-dim: #5a6072;
+  --tx: #eef1f8;
+  --mut: #7c8398;
+  --dim: #4e5567;
 
   /* accent + semantic */
-  --acc: #7c83f0;
-  --acc-hi: #9aa0f7;
-  --acc-press: #666dde;
-  --grn: #3fb27f;
-  --amb: #d98a3d;
+  --acc: #7e85f2;
+  --acc2: #aab0f8;
+  --grn: #46b98a;
+  --amb: #d9a23d;
   --red: #e0564b;
 
-  /* effects + motion */
-  --glow: 0 0 24px rgba(124, 131, 240, 0.3);
-  --red-glow: 0 0 7px rgba(224, 86, 75, 0.6);
-  --grn-glow: 0 0 7px rgba(63, 178, 127, 0.55);
-  --radius: 10px;
+  /* the page background a legend label paints over to mask the border */
+  --legend-bg: var(--b0);
+
+  /* radii + motion */
+  --radius: 9px;
   --radius-sm: 6px;
   --ease-spring: cubic-bezier(0.32, 0.72, 0, 1);
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
@@ -50,20 +51,26 @@
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
 
   /* ---- legacy aliases (mapped onto canonical tokens) ---- */
+  --bd-strong: var(--bd2);
+  --tx-mut: var(--mut);
+  --tx-dim: var(--dim);
+  --acc-hi: var(--acc2);
+  --acc-press: #666dde;
+
   --bg: var(--b0);
   --panel: var(--b1);
   --panel-2: var(--b2);
   --border: var(--bd);
   --border-subtle: var(--bd);
-  --border-emphasis: var(--bd-strong);
+  --border-emphasis: var(--bd2);
   --text: var(--tx);
-  --text-muted: var(--tx-mut);
-  --text-dim: var(--tx-dim);
+  --text-muted: var(--mut);
+  --text-dim: var(--dim);
   --heading: var(--tx);
   --accent: var(--acc);
-  --accent-hover: var(--acc-hi);
-  --accent-soft: var(--acc-hi);
-  --accent-soft-2: var(--acc-hi);
+  --accent-hover: var(--acc2);
+  --accent-soft: var(--acc2);
+  --accent-soft-2: var(--acc2);
   --danger: var(--red);
   --success: var(--grn);
   --warning: var(--amb);
@@ -71,28 +78,25 @@
 
 [data-theme="light"] {
   /* light slate / white surfaces */
-  --b0: #eceef4;
+  --b0: #e8eaf1;
   --b1: #ffffff;
-  --b2: #f3f5fa;
-  --b3: #e6e9f1;
+  --b2: #f1f3f9;
+  --b3: #e3e6ef;
 
   --bd: rgba(15, 20, 35, 0.1);
-  --bd-strong: rgba(15, 20, 35, 0.16);
+  --bd2: rgba(15, 20, 35, 0.18);
 
-  --tx: #1b2030;
-  --tx-mut: #5a6175;
-  --tx-dim: #8b91a3;
+  --tx: #181c28;
+  --mut: #5a6175;
+  --dim: #8a90a2;
 
-  --acc: #5a61dc;
-  --acc-hi: #6f76ec;
-  --acc-press: #494fc0;
+  /* slightly darker accent for contrast on white surfaces */
+  --acc: #565ddb;
+  --acc2: #6b72e8;
   --grn: #1f9a64;
-  --amb: #c2751f;
+  --amb: #bf741d;
   --red: #d23b30;
 
-  --glow: 0 0 22px rgba(90, 97, 220, 0.24);
-  --red-glow: 0 0 7px rgba(210, 59, 48, 0.45);
-  --grn-glow: 0 0 7px rgba(31, 154, 100, 0.4);
-
-  --screen-well: #c7ccda;
+  --legend-bg: var(--b0);
+  --screen-well: #c2c7d6;
 }

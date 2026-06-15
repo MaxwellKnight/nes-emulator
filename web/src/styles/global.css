@@ -8,12 +8,16 @@
   --color-b2: var(--b2);
   --color-b3: var(--b3);
   --color-bd: var(--bd);
-  --color-bd-strong: var(--bd-strong);
+  --color-bd2: var(--bd2);
+  --color-bd-strong: var(--bd2);
   --color-tx: var(--tx);
-  --color-tx-mut: var(--tx-mut);
-  --color-tx-dim: var(--tx-dim);
+  --color-mut: var(--mut);
+  --color-dim: var(--dim);
+  --color-tx-mut: var(--mut);
+  --color-tx-dim: var(--dim);
   --color-acc: var(--acc);
-  --color-acc-hi: var(--acc-hi);
+  --color-acc2: var(--acc2);
+  --color-acc-hi: var(--acc2);
   --color-acc-press: var(--acc-press);
   --color-grn: var(--grn);
   --color-amb: var(--amb);
@@ -53,34 +57,22 @@ body {
   color: var(--tx);
   font-family: var(--font-ui);
   font-size: 13px;
-  /* atmosphere — a faint accent vignette + a hint of depth, never flat black */
+  /* flat surface with a barely-there ≤2% vignette — never a glow */
   background-color: var(--b0);
-  background-image:
-    radial-gradient(
-      1200px 800px at 70% -10%,
-      rgba(124, 131, 240, 0.07),
-      transparent 60%
-    ),
-    radial-gradient(
-      900px 700px at -10% 110%,
-      rgba(124, 131, 240, 0.05),
-      transparent 55%
-    );
+  background-image: radial-gradient(
+    1400px 900px at 50% -8%,
+    rgba(126, 133, 242, 0.02),
+    transparent 62%
+  );
   background-attachment: fixed;
 }
 
 [data-theme="light"] body {
-  background-image:
-    radial-gradient(
-      1200px 800px at 70% -10%,
-      rgba(90, 97, 220, 0.08),
-      transparent 60%
-    ),
-    radial-gradient(
-      900px 700px at -10% 110%,
-      rgba(90, 97, 220, 0.05),
-      transparent 55%
-    );
+  background-image: radial-gradient(
+    1400px 900px at 50% -8%,
+    rgba(86, 93, 219, 0.03),
+    transparent 62%
+  );
 }
 
 /* ---------- accessible focus ring ---------- */
@@ -88,6 +80,60 @@ body {
   outline: 2px solid var(--acc);
   outline-offset: 2px;
   border-radius: var(--radius-sm);
+}
+
+/* ---------- the "module" framing: title cut into the top border ----------
+ * A legend is positioned on the top border and masks the border behind it by
+ * painting the page background. No header bars, no border-bottom dividers. */
+.module {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+  border: 1px solid var(--bd);
+  border-radius: var(--radius);
+  background: var(--b1);
+}
+.module-legend,
+.module-status {
+  position: absolute;
+  top: 0;
+  transform: translateY(-50%);
+  background: var(--legend-bg);
+  padding: 0 9px;
+  z-index: 2;
+  white-space: nowrap;
+  pointer-events: none;
+}
+.module-legend {
+  left: 14px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-family: var(--font-ui);
+  font-weight: 600;
+  font-size: 9px;
+  line-height: 1;
+  letter-spacing: 0.17em;
+  text-transform: uppercase;
+  color: var(--mut);
+}
+.module-legend::before {
+  content: "";
+  width: 5px;
+  height: 5px;
+  background: var(--acc);
+  border-radius: 1px;
+}
+.module-status {
+  right: 14px;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--dim);
+}
+.module-status > * {
+  pointer-events: auto;
 }
 
 /* ---------- themed thin scrollbars for the scrollable panels ---------- */
@@ -109,41 +155,29 @@ body {
   background-clip: padding-box;
 }
 .nes-scroll::-webkit-scrollbar-thumb:hover {
-  background: var(--bd-strong);
+  background: var(--bd2);
   background-clip: padding-box;
 }
 
-/* ---------- keyframes ---------- */
+/* ---------- keyframes (transform/opacity/colour only — no glow) ---------- */
 @keyframes tile-in {
   from {
     opacity: 0;
-    transform: translateY(8px) scale(0.99);
+    transform: translateY(10px);
   }
   to {
     opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-}
-
-@keyframes glow-pulse {
-  0%,
-  100% {
-    box-shadow: 0 0 0 rgba(124, 131, 240, 0);
-  }
-  50% {
-    box-shadow: var(--glow);
+    transform: translateY(0);
   }
 }
 
 @keyframes run-dot-pulse {
   0%,
   100% {
-    box-shadow: 0 0 5px var(--grn);
     opacity: 1;
   }
   50% {
-    box-shadow: 0 0 12px var(--grn);
-    opacity: 0.55;
+    opacity: 0.45;
   }
 }
 
@@ -152,7 +186,7 @@ body {
     transform: scale(1);
   }
   45% {
-    transform: scale(1.08);
+    transform: scale(1.12);
   }
   100% {
     transform: scale(1);
@@ -161,10 +195,10 @@ body {
 
 @keyframes value-flash {
   from {
-    background-color: color-mix(in srgb, var(--acc) 36%, transparent);
+    color: var(--acc2);
   }
   to {
-    background-color: transparent;
+    color: inherit;
   }
 }
 
@@ -225,11 +259,8 @@ body {
 .tile-reveal {
   animation: tile-in var(--dur) var(--ease-out) both;
 }
-.glow-pulse {
-  animation: glow-pulse 1.8s var(--ease-out) infinite;
-}
 .run-dot-pulse {
-  animation: run-dot-pulse 1.4s ease-in-out infinite;
+  animation: run-dot-pulse 1.5s ease-in-out infinite;
 }
 .led-pop {
   animation: led-pop var(--dur) var(--ease-spring);
@@ -256,8 +287,7 @@ body {
     transform var(--dur-fast) var(--ease-spring),
     background-color var(--dur-fast) var(--ease-out),
     color var(--dur-fast) var(--ease-out),
-    border-color var(--dur-fast) var(--ease-out),
-    box-shadow var(--dur-fast) var(--ease-out);
+    border-color var(--dur-fast) var(--ease-out);
 }
 .press:active:not(:disabled) {
   transform: scale(0.97);
@@ -266,13 +296,14 @@ body {
 /* bottom fade applied to the scroll wells (Disassembly, Memory) */
 .scroll-fade {
   position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  height: 26px;
+  left: 1px;
+  right: 1px;
+  bottom: 1px;
+  height: 18px;
   background: linear-gradient(transparent, var(--b1));
   pointer-events: none;
   z-index: 1;
+  border-radius: 0 0 var(--radius) var(--radius);
 }
 
 /* respect reduced-motion: drop all the non-essential motion */
