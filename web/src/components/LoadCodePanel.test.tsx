@@ -18,7 +18,7 @@ vi.mock("./toast/ToastProvider", () => ({
 let mockCtx: EmulatorContextValue;
 const loadOpcodes = vi.fn();
 
-function makeCtx(): EmulatorContextValue {
+function makeCtx(overrides: Partial<EmulatorContextValue> = {}): EmulatorContextValue {
   return {
     status: "ready",
     snapshot: null,
@@ -26,6 +26,7 @@ function makeCtx(): EmulatorContextValue {
     running: false,
     dbg: null,
     actions: { loadOpcodes } as unknown as EmulatorContextValue["actions"],
+    ...overrides,
   };
 }
 
@@ -44,26 +45,41 @@ describe("LoadCodePanel", () => {
     expect(addToast).toHaveBeenCalledWith("Please enter opcodes", "warning");
   });
 
-  it("loads opcodes and reports success", async () => {
+  it("loads opcodes and reports the byte count on success", async () => {
     const user = userEvent.setup();
     mockCtx = makeCtx();
     render(<LoadCodePanel />);
     await user.type(screen.getByTestId("loadcode-textarea"), "A9 01 00");
     await user.click(screen.getByTestId("loadcode-button"));
     expect(loadOpcodes).toHaveBeenCalledWith("A9 01 00");
-    expect(addToast).toHaveBeenCalledWith("Opcodes loaded successfully", "success");
+    expect(addToast).toHaveBeenCalledWith("Loaded 3 bytes successfully", "success");
+  });
+
+  it("warns when the parse yields zero bytes", async () => {
+    const user = userEvent.setup();
+    mockCtx = makeCtx();
+    render(<LoadCodePanel />);
+    // Only a comment -> no opcode tokens.
+    await user.type(screen.getByTestId("loadcode-textarea"), "; just a comment");
+    await user.click(screen.getByTestId("loadcode-button"));
+    expect(loadOpcodes).not.toHaveBeenCalled();
+    expect(addToast).toHaveBeenCalledWith("No valid opcodes found", "warning");
   });
 
   it("raises a danger toast when parsing throws", async () => {
     const user = userEvent.setup();
-    loadOpcodes.mockImplementation(() => {
-      throw new Error("Invalid opcode format: ZZ");
-    });
     mockCtx = makeCtx();
     render(<LoadCodePanel />);
     await user.type(screen.getByTestId("loadcode-textarea"), "ZZ");
     await user.click(screen.getByTestId("loadcode-button"));
     expect(addToast).toHaveBeenCalledWith("Invalid opcode format: ZZ", "danger");
+  });
+
+  it("disables the textarea and button while execution is running", () => {
+    mockCtx = makeCtx({ running: true });
+    render(<LoadCodePanel />);
+    expect(screen.getByTestId("loadcode-textarea")).toBeDisabled();
+    expect(screen.getByTestId("loadcode-button")).toBeDisabled();
   });
 
   it("copies the example program to the clipboard", async () => {

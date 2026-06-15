@@ -38,20 +38,26 @@ function findPage(id: MemoryPageId): MemoryPage {
 export function MemoryPanel(): JSX.Element {
   const { snapshot } = useEmulator();
   const { addToast } = useToast();
-  const [pageId, setPageId] = useState<MemoryPageId>("zeropage");
+  // The active view is a full MemoryPage so we can render any 256-byte page,
+  // including ones outside the preset list (parity with the old debugger).
+  const [page, setPage] = useState<MemoryPage>(() => findPage("zeropage"));
   const [jump, setJump] = useState("");
   const [editAddress, setEditAddress] = useState<number | null>(null);
 
-  const page = findPage(pageId);
   const { rows } = useMemory(page);
+
+  // The select reflects a preset only when the current view matches one.
+  const selectedPreset =
+    MEMORY_PAGES.find((p) => p.start === page.start)?.id ?? "";
 
   const pc = snapshot?.registers.pc ?? -1;
   const sp = snapshot?.registers.sp ?? -1;
   const spAddress = 0x0100 + sp;
 
   const handlePageChange = (id: MemoryPageId) => {
-    setPageId(id);
-    addToast(`Memory view changed to ${findPage(id).label}`, "info");
+    const next = findPage(id);
+    setPage(next);
+    addToast(`Memory view changed to ${next.label}`, "info");
   };
 
   const handleJump = () => {
@@ -61,9 +67,19 @@ export function MemoryPanel(): JSX.Element {
       return;
     }
     const aligned = addr & 0xff00;
-    const target = MEMORY_PAGES.find((p) => p.start === aligned);
-    if (target) setPageId(target.id);
-    addToast(`Jumped to memory address ${hex4(aligned)}`, "info");
+    const navigated = aligned !== page.start;
+    if (navigated) {
+      const preset = MEMORY_PAGES.find((p) => p.start === aligned);
+      setPage(
+        preset ?? {
+          id: "ram",
+          label: `Page ${hex4(aligned)}`,
+          start: aligned,
+          size: 0x100,
+        },
+      );
+      addToast(`Jumped to memory address ${hex4(aligned)}`, "success");
+    }
     setJump("");
   };
 
@@ -72,7 +88,7 @@ export function MemoryPanel(): JSX.Element {
       <div className="mb-3 flex flex-wrap items-center gap-2">
         <select
           data-testid="memory-page-select"
-          value={pageId}
+          value={selectedPreset}
           onChange={(e) => handlePageChange(e.target.value as MemoryPageId)}
           className="rounded bg-[var(--panel-2)] px-2 py-1 text-[12px] text-[var(--text)] outline-none"
         >
@@ -120,7 +136,8 @@ export function MemoryPanel(): JSX.Element {
                 {row.bytes.map((byte, i) => {
                   const address = row.address + i;
                   const isPc = address === pc;
-                  const isSp = pageId === "stack" && address === spAddress;
+                  const isSp =
+                    page.start === 0x0100 && address === spAddress;
                   return (
                     <td
                       key={address}

@@ -83,13 +83,42 @@ describe("MemoryPanel", () => {
     expect(addToast).toHaveBeenCalledWith("Invalid memory address", "danger");
   });
 
-  it("raises an info toast on a valid jump", async () => {
+  it("raises a success toast when a valid jump navigates the view", async () => {
     const user = userEvent.setup();
     mockCtx = makeCtx(0x0c03, 0xfd);
     render(<MemoryPanel />);
     await user.type(screen.getByTestId("memory-jump-input"), "0240");
     await user.click(screen.getByTestId("memory-jump-button"));
-    expect(addToast).toHaveBeenCalledWith("Jumped to memory address $0200", "info");
+    expect(addToast).toHaveBeenCalledWith(
+      "Jumped to memory address $0200",
+      "success",
+    );
+  });
+
+  it("jumps to an arbitrary 256-byte page not in the preset list", async () => {
+    const user = userEvent.setup();
+    mockCtx = makeCtx(0x0c03, 0xfd);
+    render(<MemoryPanel />);
+    // $0C00 page is not one of the four MEMORY_PAGES presets.
+    await user.type(screen.getByTestId("memory-jump-input"), "0C34");
+    await user.click(screen.getByTestId("memory-jump-button"));
+    expect(addToast).toHaveBeenCalledWith(
+      "Jumped to memory address $0C00",
+      "success",
+    );
+  });
+
+  it("does not show a success toast when the jump target is the current page", async () => {
+    const user = userEvent.setup();
+    mockCtx = makeCtx(0x0c03, 0xfd);
+    render(<MemoryPanel />);
+    // Starting page is Zero Page ($0000). Jump within the same page.
+    await user.type(screen.getByTestId("memory-jump-input"), "0042");
+    await user.click(screen.getByTestId("memory-jump-button"));
+    expect(addToast).not.toHaveBeenCalledWith(
+      expect.stringContaining("Jumped to"),
+      "success",
+    );
   });
 
   it("highlights the PC cell red", () => {
