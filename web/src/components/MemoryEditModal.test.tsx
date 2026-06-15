@@ -26,6 +26,7 @@ function makeCtx(currentValue: number): EmulatorContextValue {
     snapshot: null,
     breakpoints: [],
     running: false,
+    framebuffer: null,
     dbg: { readMemory: () => currentValue } as unknown as Debugger,
     actions: { writeMemory } as unknown as EmulatorContextValue["actions"],
   };

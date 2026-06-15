@@ -35,6 +35,7 @@ describe("StackPanel", () => {
       snapshot: makeSnapshot(0xfb),
       breakpoints: [],
       running: false,
+      framebuffer: null,
       dbg: makeDbg(),
       actions: {} as EmulatorContextValue["actions"],
     };
@@ -48,6 +49,7 @@ describe("StackPanel", () => {
       snapshot: makeSnapshot(0xfd),
       breakpoints: [],
       running: false,
+      framebuffer: null,
       dbg: makeDbg(),
       actions: {} as EmulatorContextValue["actions"],
     };
@@ -65,6 +67,7 @@ describe("StackPanel", () => {
       snapshot: null,
       breakpoints: [],
       running: false,
+      framebuffer: null,
       dbg: null,
       actions: {} as EmulatorContextValue["actions"],
     };

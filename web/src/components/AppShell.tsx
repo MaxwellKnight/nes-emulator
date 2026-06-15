@@ -12,7 +12,7 @@ import { Toaster } from "./toast/Toaster";
 import { Button } from "./ui/Button";
 
 export function AppShell(): JSX.Element {
-  const { status } = useEmulator();
+  const { status, framebuffer } = useEmulator();
   const [helpOpen, setHelpOpen] = useState(false);
   const [loadCodeOpen, setLoadCodeOpen] = useState(false);
 
@@ -71,7 +71,7 @@ export function AppShell(): JSX.Element {
         >
           {/* left column: Screen (hero) over Breakpoints (compact) */}
           <div className="flex min-h-0 flex-col gap-[12px]">
-            <ScreenPanel revealDelay={50} className="min-h-0 flex-1" />
+            <ScreenPanel framebuffer={framebuffer} revealDelay={50} className="min-h-0 flex-1" />
             <BreakpointsPanel revealDelay={100} className="h-[148px] flex-none" />
           </div>
 

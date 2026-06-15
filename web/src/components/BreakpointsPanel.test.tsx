@@ -25,6 +25,7 @@ function makeCtx(breakpoints: number[], running = false): EmulatorContextValue {
     snapshot: null,
     breakpoints,
     running,
+    framebuffer: null,
     dbg: null,
     actions: { addBreakpoint, removeBreakpoint } as unknown as EmulatorContextValue["actions"],
   };

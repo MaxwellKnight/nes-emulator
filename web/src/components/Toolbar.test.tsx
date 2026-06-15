@@ -40,6 +40,7 @@ function makeContext(
     },
     breakpoints: [],
     running: false,
+    framebuffer: null,
     dbg: null,
     actions,
     ...overrides,

@@ -13,7 +13,7 @@ import { createBridge, type Debugger, type WasmModule } from "../wasm/bridge";
 import { loadEmulatorModule } from "../wasm/loader";
 import { parseOpcodes } from "../wasm/opcodes";
 import type { EmulatorSnapshot, EmulatorStatus } from "../wasm/types";
-import { useRunLoop } from "./useRunLoop";
+import { useFrameLoop } from "./useFrameLoop";
 import { useToast } from "../components/toast/ToastProvider";
 
 export interface EmulatorActions {
@@ -34,6 +34,7 @@ export interface EmulatorContextValue {
   snapshot: EmulatorSnapshot | null;
   breakpoints: number[];
   running: boolean;
+  framebuffer: Uint8ClampedArray | null;
   dbg: Debugger | null;
   actions: EmulatorActions;
 }
@@ -51,6 +52,9 @@ export function EmulatorProvider(props: {
   const [status, setStatus] = useState<EmulatorStatus>("loading");
   const [snapshot, setSnapshot] = useState<EmulatorSnapshot | null>(null);
   const [breakpoints, setBreakpoints] = useState<number[]>([]);
+  const [framebuffer, setFramebuffer] = useState<Uint8ClampedArray | null>(
+    null,
+  );
   // Mirror the breakpoints state in a ref so toggleBreakpoint can read the
   // current set synchronously without doing side-effects inside a setState
   // updater (updaters must stay pure).
@@ -67,11 +71,27 @@ export function EmulatorProvider(props: {
     addToast("Breakpoint hit", "warning");
   }, [addToast]);
 
+  const handleBrk = useCallback(() => {
+    addToast("Program terminated with BRK", "info");
+  }, [addToast]);
+
+  const handleFrame = useCallback((fb: Uint8ClampedArray) => {
+    // Copy out of the WASM heap view so React state holds a stable buffer
+    // (the heap view is reused/invalidated by the next frame).
+    setFramebuffer(new Uint8ClampedArray(fb));
+  }, []);
+
   const {
     start: startLoop,
     stop: stopLoop,
     running,
-  } = useRunLoop({ dbg, onSnapshot: publishSnapshot, onBreak: handleBreak });
+  } = useFrameLoop({
+    dbg,
+    onFrame: handleFrame,
+    onSnapshot: publishSnapshot,
+    onBreak: handleBreak,
+    onBrk: handleBrk,
+  });
 
   useEffect(() => {
     let cancelled = false;
@@ -249,10 +269,11 @@ export function EmulatorProvider(props: {
       snapshot,
       breakpoints,
       running,
+      framebuffer,
       dbg,
       actions,
     }),
-    [status, snapshot, breakpoints, running, dbg, actions],
+    [status, snapshot, breakpoints, running, framebuffer, dbg, actions],
   );
 
   return (
