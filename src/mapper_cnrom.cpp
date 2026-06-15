@@ -17,7 +17,9 @@ bool MapperCNROM::cpu_write(u16 address, u8 value, u32& /*mapped*/) {
 
 bool MapperCNROM::ppu_read(u16 address, u32& mapped) const {
   if (address > 0x1FFF) return false;
-  mapped = _chr_bank * 0x2000u + address;  // switchable 8KB CHR
+  // Wrap the select modulo the available 8KB banks (carts may have < 4).
+  u32 bank = _chr_banks ? (_chr_bank % _chr_banks) : 0;
+  mapped = bank * 0x2000u + address;  // switchable 8KB CHR
   return true;
 }
 

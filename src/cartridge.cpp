@@ -37,24 +37,37 @@ Cartridge::Cartridge(const std::string& file) {
     }
 
     if (file_type == 1) {
+      _mirror = (header.mapper1 & 0x01) ? MirrorMode::VERTICAL
+                                        : MirrorMode::HORIZONTAL;
+
       _prg_banks = header.prg_rom_chunks;
       _prg_memory.resize(_prg_banks * 16384);
       ifs.read((char*)_prg_memory.data(), _prg_memory.size());
 
       _chr_banks = header.chr_rom_chunks;
-      _chr_memory.resize(_chr_banks * 8192);
-      ifs.read((char*)_chr_memory.data(), _chr_memory.size());
+      if (_chr_banks == 0) {  // CHR-RAM
+        _chr_memory.assign(8192, 0);
+        _chr_is_ram = true;
+      } else {
+        _chr_memory.resize(_chr_banks * 8192);
+        ifs.read((char*)_chr_memory.data(), _chr_memory.size());
+      }
     }
 
     if (file_type == 2) {
     }
   }
 
-  // Load the appropriate mapper
+  // MMC1/MMC3 boards carry 8KB of work/save RAM at $6000-$7FFF.
+  if (_mapper_id == 1 || _mapper_id == 4) _prg_ram.assign(8192, 0);
+
+  // Load the appropriate mapper (defaults to NROM for unknown ids).
   switch (_mapper_id) {
-    case 0:
-      _mapper = std::make_shared<MapperZero>(_prg_banks, _chr_banks);
-      break;
+    case 1: _mapper = std::make_shared<MapperMMC1>(_prg_banks, _chr_banks); break;
+    case 2: _mapper = std::make_shared<MapperUxROM>(_prg_banks, _chr_banks); break;
+    case 3: _mapper = std::make_shared<MapperCNROM>(_prg_banks, _chr_banks); break;
+    case 4: _mapper = std::make_shared<MapperMMC3>(_prg_banks, _chr_banks); break;
+    default: _mapper = std::make_shared<MapperZero>(_prg_banks, _chr_banks); break;
   }
 
   ifs.close();
@@ -103,8 +116,8 @@ bool Cartridge::ppu_write(u16 address, u8 value) {
   // Only RAM-backed CHR is writable; use the mapper's banked offset.
   if (_chr_is_ram && address <= 0x1FFF) {
     u32 mapped_addr = address;
-    _mapper->ppu_read(address, mapped_addr);  // resolve banked CHR-RAM offset
-    if (mapped_addr < _chr_memory.size()) {
+    if (_mapper->ppu_read(address, mapped_addr) &&
+        mapped_addr < _chr_memory.size()) {
       _chr_memory[mapped_addr] = value;
       return true;
     }
