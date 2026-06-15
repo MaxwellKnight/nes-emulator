@@ -36,7 +36,10 @@ EMSCRIPTEN_KEEPALIVE extern "C" int load_rom(const uint8_t* data, int len) {
   }
   g_bus.insert_cartridge(cart);
   g_bus.reset();
-  g_debugger.reset();
+  // Boot the cartridge: load PC from the reset vector ($FFFC/$FFFD) so the ROM
+  // starts at its own entry point. (reset() alone leaves PC at $FFFC, which on
+  // a real ROM is the low byte of the vector and would execute as a stray BRK.)
+  g_debugger.reset_to_vector();
   return 0;
 }
 
@@ -53,8 +56,11 @@ EMSCRIPTEN_KEEPALIVE extern "C" uint32_t get_frame_count() {
   return static_cast<uint32_t>(g_bus.get_ppu().frame_count());
 }
 
-// Emulate up to the next VBlank, honoring breakpoints / BRK.
-EMSCRIPTEN_KEEPALIVE extern "C" void run_frame() { g_debugger.run_frame(); }
+// Emulate up to the next VBlank, honoring breakpoints / BRK. Returns the stop
+// reason (0 = frame completed, 1 = breakpoint hit, 2 = BRK) so the JS run loop
+// knows whether to keep going or halt — discarding it made every frame look
+// like a halt.
+EMSCRIPTEN_KEEPALIVE extern "C" int run_frame() { return g_debugger.run_frame(); }
 
 // Render a 128x128 RGBA pattern table (table 0/1, palette 0..7) into out.
 EMSCRIPTEN_KEEPALIVE extern "C" void ppu_render_pattern_table(int table, int palette, uint8_t* out) {
