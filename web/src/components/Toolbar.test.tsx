@@ -10,6 +10,11 @@ vi.mock("../emulator/EmulatorProvider", () => ({
   useEmulator: () => mockContext.value,
 }));
 
+const addToast = vi.fn();
+vi.mock("./toast/ToastProvider", () => ({
+  useToast: () => ({ toasts: [], addToast }),
+}));
+
 function makeContext(
   overrides: Partial<EmulatorContextValue> = {},
 ): EmulatorContextValue {
@@ -45,6 +50,7 @@ describe("Toolbar", () => {
   beforeEach(() => {
     localStorage.clear();
     delete document.documentElement.dataset.theme;
+    addToast.mockClear();
     mockContext.value = makeContext();
   });
 
@@ -116,5 +122,41 @@ describe("Toolbar", () => {
     expect(
       screen.getByRole("button", { name: /toggle theme/i }),
     ).toBeInTheDocument();
+  });
+
+  it("renders contact links and the developer credit", () => {
+    render(<Toolbar onHelp={vi.fn()} />);
+    const github = screen.getByRole("link", { name: /github/i });
+    const linkedin = screen.getByRole("link", { name: /linkedin/i });
+    const email = screen.getByRole("link", { name: /email/i });
+    expect(github).toHaveAttribute(
+      "href",
+      "https://github.com/MaxwellKnight/nes-emulator",
+    );
+    expect(linkedin).toHaveAttribute(
+      "href",
+      "https://www.linkedin.com/in/maxwell-knight/",
+    );
+    expect(email).toHaveAttribute("href", "mailto:maxwell.knight98@gmail.com");
+    expect(screen.getByText(/Developed by @Maxwell Knight/i)).toBeInTheDocument();
+  });
+
+  it("shows the loaded ROM name and a success toast on file load", async () => {
+    const ctx = makeContext();
+    mockContext.value = ctx;
+    render(<Toolbar onHelp={vi.fn()} />);
+    const input = screen.getByTestId("rom-file-input") as HTMLInputElement;
+    const file = new File([new Uint8Array([0xa9, 0x01, 0x00])], "prog.nes");
+    await userEvent.upload(input, file);
+    await vi.waitFor(() => {
+      expect(ctx.actions.loadROM).toHaveBeenCalledTimes(1);
+    });
+    await vi.waitFor(() => {
+      expect(screen.getByText("prog.nes")).toBeInTheDocument();
+    });
+    expect(addToast).toHaveBeenCalledWith(
+      "ROM loaded: prog.nes (3 bytes)",
+      "success",
+    );
   });
 });
