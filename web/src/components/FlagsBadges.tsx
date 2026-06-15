@@ -42,7 +42,7 @@ function Led({
       data-set={String(set)}
       title={`${label === "–" ? "Unused" : label} flag is ${set ? "set" : "clear"}`}
       className={[
-        "flex h-[26px] w-[26px] items-center justify-center rounded-[5px] border border-transparent font-mono text-[10px] font-bold transition-[background-color,color] duration-[var(--dur)]",
+        "flex h-[32px] w-[32px] items-center justify-center rounded-full border border-transparent font-mono text-[13px] font-bold transition-[background-color,color] duration-[var(--dur)]",
         set ? "bg-[var(--acc)] text-white" : "bg-[var(--b3)] text-[var(--dim)]",
         pop ? "led-pop" : "",
       ]
@@ -56,7 +56,7 @@ function Led({
 
 export function FlagsBadges({ flags }: { flags: Flags }): JSX.Element {
   return (
-    <div className="flex gap-[5px]" role="group" aria-label="CPU flags">
+    <div className="flex gap-[6px]" role="group" aria-label="CPU flags">
       {FLAG_ORDER.map(({ key, label }) => (
         <Led key={key} flagKey={key} label={label} set={flags[key]} />
       ))}

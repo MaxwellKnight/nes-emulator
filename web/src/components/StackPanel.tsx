@@ -63,7 +63,7 @@ export function StackPanel(): JSX.Element | null {
             data-current={String(row.current)}
             title={hex4(row.address)}
             className={[
-              "min-w-[26px] rounded-[5px] border px-0 py-[5px] text-center font-mono text-[10px] transition-colors duration-[var(--dur)]",
+              "min-w-[34px] rounded-full border px-[11px] py-[7px] text-center font-mono text-[11px] transition-colors duration-[var(--dur)]",
               row.current
                 ? "border-[var(--grn)] text-[var(--grn)]"
                 : "border-[var(--bd)] bg-[var(--b2)] text-[var(--mut)]",
