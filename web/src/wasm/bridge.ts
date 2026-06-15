@@ -22,6 +22,7 @@ export interface WasmModule {
     values: Array<number | string>
   ): number | string | void;
   HEAPU8: Uint8Array;
+  HEAPF32: Float32Array;
   _malloc(size: number): number;
   _free(ptr: number): void;
 }
@@ -58,6 +59,8 @@ export interface Debugger {
   getPaletteRam(): Uint8Array;
   getOam(): Uint8Array;
   setController(state: number, port?: number): void;
+  audioAvailable(): number;
+  audioDrain(max: number): Float32Array;
   ppuState(): { ctrl: number; mask: number; status: number; scanline: number };
 }
 
@@ -165,6 +168,18 @@ export function createBridge(module: WasmModule): Debugger {
     "number",
     "number",
   ]) as (port: number, buttons: number) => void;
+  const audioAvailableRaw = module.cwrap(
+    "audio_available",
+    "number",
+    [],
+  ) as () => number;
+  const audioDrainRaw = module.cwrap("audio_drain", "number", [
+    "number",
+    "number",
+  ]) as (ptr: number, max: number) => number;
+  // Reusable heap buffer for draining audio samples (one frame is ~735 samples).
+  const AUDIO_BUF = 4096;
+  const audioBufPtr = module._malloc(AUDIO_BUF * 4);
   const ppuGetCtrl = module.cwrap("ppu_get_ctrl", "number", []) as () => number;
   const ppuGetMask = module.cwrap("ppu_get_mask", "number", []) as () => number;
   const ppuGetStatus = module.cwrap(
@@ -341,6 +356,19 @@ export function createBridge(module: WasmModule): Debugger {
     setControllerRaw(port, state & 0xff);
   }
 
+  function audioAvailable(): number {
+    return audioAvailableRaw();
+  }
+
+  function audioDrain(max: number): Float32Array {
+    const n = audioDrainRaw(audioBufPtr, Math.min(max, AUDIO_BUF));
+    // Copy out of the heap view so the caller owns a stable buffer.
+    return module.HEAPF32.subarray(
+      audioBufPtr / 4,
+      audioBufPtr / 4 + n,
+    ).slice();
+  }
+
   function ppuState(): {
     ctrl: number;
     mask: number;
@@ -384,6 +412,8 @@ export function createBridge(module: WasmModule): Debugger {
     getPaletteRam,
     getOam,
     setController,
+    audioAvailable,
+    audioDrain,
     ppuState,
   };
 }

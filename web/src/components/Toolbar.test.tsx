@@ -30,6 +30,7 @@ function makeContext(
     loadROM: vi.fn(),
     loadRom: vi.fn(() => 0),
     loadOpcodes: vi.fn(),
+    setController: vi.fn(),
   };
   return {
     status: "ready",

@@ -88,6 +88,16 @@ EMSCRIPTEN_KEEPALIVE extern "C" void set_controller(int port, int buttons) {
   g_bus.set_controller(port, static_cast<nes::u8>(buttons));
 }
 
+// Number of queued audio samples (44.1kHz mono float) waiting to be drained.
+EMSCRIPTEN_KEEPALIVE extern "C" int audio_available() {
+  return g_bus.get_apu().available();
+}
+
+// Copy up to `max` queued samples into `out` (HEAPF32); returns the count.
+EMSCRIPTEN_KEEPALIVE extern "C" int audio_drain(float* out, int max) {
+  return g_bus.get_apu().drain(out, max);
+}
+
 // PPU register / scanline debug getters (no side effects).
 EMSCRIPTEN_KEEPALIVE extern "C" uint8_t ppu_get_ctrl() { return g_bus.get_ppu().reg_ctrl(); }
 EMSCRIPTEN_KEEPALIVE extern "C" uint8_t ppu_get_mask() { return g_bus.get_ppu().reg_mask(); }

@@ -14,6 +14,7 @@ import { loadEmulatorModule } from "../wasm/loader";
 import { parseOpcodes } from "../wasm/opcodes";
 import type { EmulatorSnapshot, EmulatorStatus } from "../wasm/types";
 import { useFrameLoop } from "./useFrameLoop";
+import { NesAudio } from "./audio";
 import { useToast } from "../components/toast/ToastProvider";
 
 export interface EmulatorActions {
@@ -77,10 +78,24 @@ export function EmulatorProvider(props: {
     addToast("Program terminated with BRK", "info");
   }, [addToast]);
 
+  const audioRef = useRef(new NesAudio());
+
   const handleFrame = useCallback((fb: Uint8ClampedArray) => {
     // Copy out of the WASM heap view so React state holds a stable buffer
     // (the heap view is reused/invalidated by the next frame).
     setFramebuffer(new Uint8ClampedArray(fb));
+    // Drain this frame's audio and queue it for playback.
+    const bridge = dbgRef.current;
+    if (bridge) {
+      const samples = bridge.audioDrain(4096);
+      if (samples.length) audioRef.current.pump(samples);
+    }
+  }, []);
+
+  // Release the audio context when the provider unmounts.
+  useEffect(() => {
+    const audio = audioRef.current;
+    return () => audio.close();
   }, []);
 
   const {
@@ -144,6 +159,7 @@ export function EmulatorProvider(props: {
     const bridge = dbgRef.current;
     if (!bridge) return;
     bridge.run();
+    audioRef.current.resume();  // user-gesture-initiated; unlocks WebAudio
     addToast("Execution started", "info");
     startLoop();
   }, [addToast, startLoop]);
@@ -153,6 +169,7 @@ export function EmulatorProvider(props: {
     if (!bridge) return;
     stopLoop();
     bridge.stop();
+    audioRef.current.suspend();
     refresh();
   }, [refresh, stopLoop]);
 

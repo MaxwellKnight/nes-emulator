@@ -16,6 +16,7 @@ void Bus::clock() {
   _ppu.clock();
   _ppu.clock();
   _ppu.clock();
+  _apu.clock();  // APU runs at the CPU rate, even during a DMA stall
   if (_ppu.take_nmi()) {
     _cpu.trigger_nmi();
   }
@@ -30,12 +31,14 @@ void Bus::reset() {
   _sys_clock = 0;
   _cpu.reset();
   _ppu.reset();
+  _apu.reset();
   _pad[0].reset();
   _pad[1].reset();
 }
 
 CPU& Bus::get_cpu() { return _cpu; }
 PPU& Bus::get_ppu() { return _ppu; }
+APU& Bus::get_apu() { return _apu; }
 void Bus::insert_cartridge(const std::shared_ptr<Cartridge>& cartridge) {
   _cartridge = cartridge;
   _ppu.insert_cartridge(cartridge);
@@ -59,6 +62,11 @@ void Bus::cpu_write(u16 address, u8 value) {
     // Controller strobe is shared by both ports.
     _pad[0].write(value);
     _pad[1].write(value);
+  } else if ((address >= 0x4000 && address <= 0x4013) || address == 0x4015 ||
+             address == 0x4017) {
+    // APU channel, status/enable, and frame-counter registers. ($4017 is the
+    // APU frame counter on write; controller 2 on read.)
+    _apu.write(address, value);
   }
 }
 
@@ -69,6 +77,8 @@ u8 Bus::cpu_read(u16 address) const {
     data = _ram[address & 0x07FF];
   } else if (address >= 0x2000 && address <= 0x3FFF) {
     data = _ppu.cpu_read(address & 0x0007);
+  } else if (address == 0x4015) {
+    data = _apu.read_status();  // APU channel status
   } else if (address == 0x4016) {
     data = _pad[0].read();  // player 1 serial read
   } else if (address == 0x4017) {
