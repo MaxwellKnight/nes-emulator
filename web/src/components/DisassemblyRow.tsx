@@ -49,7 +49,19 @@ export function DisassemblyRow({
       data-testid={`disasm-row-${idHex}`}
       data-current={String(isCurrent)}
       data-breakpoint={String(hasBreakpoint)}
+      role="button"
+      tabIndex={disabled ? -1 : 0}
       onClick={disabled ? undefined : () => onToggle(instr.address)}
+      onKeyDown={
+        disabled
+          ? undefined
+          : (e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                if (e.key === " ") e.preventDefault();
+                onToggle(instr.address);
+              }
+            }
+      }
       title={
         disabled ? undefined : `Toggle breakpoint at ${hex4(instr.address)}`
       }
@@ -89,6 +101,12 @@ export function DisassemblyRow({
         className={KIND_COLOR[operand.kind]}
       >
         {operand.text}
+      </span>
+      <span
+        data-testid={`disasm-meta-${idHex}`}
+        className="ml-auto shrink-0 pl-2 text-[var(--dim)]"
+      >
+        {instr.bytes}B · {instr.cycles}c
       </span>
     </div>
   );

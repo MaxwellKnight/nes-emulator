@@ -30,7 +30,7 @@ export function BreakpointsPanel({
   revealDelay,
   className,
 }: BreakpointsPanelProps): JSX.Element {
-  const { breakpoints, actions } = useEmulator();
+  const { breakpoints, running, actions } = useEmulator();
   const { addToast } = useToast();
   const [input, setInput] = useState("");
   const [removing, setRemoving] = useState<number | null>(null);
@@ -74,18 +74,20 @@ export function BreakpointsPanel({
         <input
           data-testid="breakpoint-input"
           value={input}
+          disabled={running}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => {
             if (e.key === "Enter") handleAdd();
           }}
           placeholder="address (hex)"
-          className="press min-w-0 flex-1 rounded-[var(--radius-sm)] border border-[var(--bd-strong)] bg-[var(--b2)] px-[7px] py-[3px] font-mono text-[10px] text-[var(--tx)] outline-none placeholder:text-[var(--tx-dim)] focus:border-[var(--acc)]"
+          className="press min-w-0 flex-1 rounded-[var(--radius-sm)] border border-[var(--bd-strong)] bg-[var(--b2)] px-[7px] py-[3px] font-mono text-[10px] text-[var(--tx)] outline-none placeholder:text-[var(--tx-dim)] focus:border-[var(--acc)] disabled:cursor-not-allowed disabled:opacity-40"
         />
         <button
           type="button"
           data-testid="breakpoint-add"
+          disabled={running}
           onClick={handleAdd}
-          className="press rounded-[var(--radius-sm)] bg-[var(--acc)] px-[9px] py-[3px] text-[10px] font-medium text-white hover:bg-[var(--acc-hi)]"
+          className="press rounded-[var(--radius-sm)] bg-[var(--acc)] px-[9px] py-[3px] text-[10px] font-medium text-white hover:bg-[var(--acc-hi)] disabled:cursor-not-allowed disabled:opacity-40"
         >
           + Add
         </button>
@@ -115,8 +117,9 @@ export function BreakpointsPanel({
                 type="button"
                 data-testid={`breakpoint-remove-0x${idFor(addr)}`}
                 title={`Remove breakpoint at ${hex4(addr)}`}
+                disabled={running}
                 onClick={() => handleRemove(addr)}
-                className="press rounded px-[5px] text-[11px] text-[var(--tx-dim)] hover:bg-[var(--red)]/15 hover:text-[var(--red)]"
+                className="press rounded px-[5px] text-[11px] text-[var(--tx-dim)] hover:bg-[var(--red)]/15 hover:text-[var(--red)] disabled:cursor-not-allowed disabled:opacity-40"
               >
                 ✕
               </button>

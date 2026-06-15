@@ -98,6 +98,29 @@ describe("EmulatorProvider", () => {
     await waitFor(() => expect(result.current.breakpoints).toEqual([]));
   });
 
+  it("toggleBreakpoint drives the bridge and fires an info toast", async () => {
+    const { result, mock } = await renderWithToast();
+    act(() => {
+      result.current.emu.actions.toggleBreakpoint(0x42);
+    });
+    await waitFor(() =>
+      expect(result.current.emu.breakpoints).toEqual([0x42]),
+    );
+    expect(mock._state.breakpoints.has(0x42)).toBe(true);
+    expect(
+      result.current.toast.toasts.some(
+        (t) => t.message === "Breakpoint toggled at $0042" && t.type === "info",
+      ),
+    ).toBe(true);
+
+    // Toggling again removes it from both the state and the bridge.
+    act(() => {
+      result.current.emu.actions.toggleBreakpoint(0x42);
+    });
+    await waitFor(() => expect(result.current.emu.breakpoints).toEqual([]));
+    expect(mock._state.breakpoints.has(0x42)).toBe(false);
+  });
+
   it("writeMemory delegates to the bridge and refreshes the snapshot", async () => {
     const { result, mock } = await renderReady();
     act(() => {

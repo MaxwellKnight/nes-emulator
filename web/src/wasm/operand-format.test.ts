@@ -35,6 +35,44 @@ describe("formatOperand", () => {
     expect(result.text).toBe("#$05");
   });
 
+  it("formats ADC #$10 (opcode 0x69) as immediate", () => {
+    const result = formatOperand(
+      instr({ opcode: 0x69, operand: 0x10, bytes: 2, formatted: "ADC #$10" })
+    );
+    expect(result.kind).toBe("immediate");
+    expect(result.text).toBe("#$10");
+  });
+
+  it("detects an indexed operand from the formatted string ($0200,X)", () => {
+    // LDA $0200,X (opcode 0xBD) — absolute,X
+    const result = formatOperand(
+      instr({
+        opcode: 0xbd,
+        operand: 0x0200,
+        bytes: 3,
+        mnemonic: "LDA",
+        formatted: "LDA $0200,X",
+      })
+    );
+    expect(result.kind).toBe("indexed");
+    expect(result.text).toBe("$0200,X");
+  });
+
+  it("detects an indirect operand from the formatted string (($20),Y)", () => {
+    // LDA ($20),Y (opcode 0xB1) — indirect indexed
+    const result = formatOperand(
+      instr({
+        opcode: 0xb1,
+        operand: 0x20,
+        bytes: 2,
+        mnemonic: "LDA",
+        formatted: "LDA ($20),Y",
+      })
+    );
+    expect(result.kind).toBe("indirect");
+    expect(result.text).toBe("($20),Y");
+  });
+
   it("formats a relative branch target ((op & 0x1F) === 0x10)", () => {
     // BNE (0xD0) at $0C00 with offset +4 -> target = 0x0C00 + 2 + 4 = 0x0C06
     const result = formatOperand(

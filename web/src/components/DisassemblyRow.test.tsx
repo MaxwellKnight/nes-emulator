@@ -90,4 +90,55 @@ describe("DisassemblyRow", () => {
     await user.click(screen.getByTestId("disasm-row-0x0c00"));
     expect(onToggle).not.toHaveBeenCalled();
   });
+
+  it("renders a trailing bytes/cycles column", () => {
+    render(
+      <DisassemblyRow
+        instr={ldxImm}
+        isCurrent={false}
+        hasBreakpoint={false}
+        onToggle={() => {}}
+      />,
+    );
+    expect(screen.getByTestId("disasm-meta-0x0c00")).toHaveTextContent(
+      "2B · 2c",
+    );
+  });
+
+  it("is keyboard-focusable and toggles on Enter/Space", async () => {
+    const user = userEvent.setup();
+    const onToggle = vi.fn();
+    render(
+      <DisassemblyRow
+        instr={ldxImm}
+        isCurrent={false}
+        hasBreakpoint={false}
+        onToggle={onToggle}
+      />,
+    );
+    const row = screen.getByTestId("disasm-row-0x0c00");
+    expect(row).toHaveAttribute("role", "button");
+    expect(row).toHaveAttribute("tabindex", "0");
+    row.focus();
+    await user.keyboard("{Enter}");
+    expect(onToggle).toHaveBeenCalledWith(0x0c00);
+    await user.keyboard(" ");
+    expect(onToggle).toHaveBeenCalledTimes(2);
+  });
+
+  it("is not keyboard-focusable when disabled", () => {
+    render(
+      <DisassemblyRow
+        instr={ldxImm}
+        isCurrent={false}
+        hasBreakpoint={false}
+        disabled
+        onToggle={() => {}}
+      />,
+    );
+    expect(screen.getByTestId("disasm-row-0x0c00")).toHaveAttribute(
+      "tabindex",
+      "-1",
+    );
+  });
 });

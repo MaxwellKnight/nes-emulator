@@ -51,6 +51,13 @@ export function EmulatorProvider(props: {
   const [status, setStatus] = useState<EmulatorStatus>("loading");
   const [snapshot, setSnapshot] = useState<EmulatorSnapshot | null>(null);
   const [breakpoints, setBreakpoints] = useState<number[]>([]);
+  // Mirror the breakpoints state in a ref so toggleBreakpoint can read the
+  // current set synchronously without doing side-effects inside a setState
+  // updater (updaters must stay pure).
+  const breakpointsRef = useRef<number[]>([]);
+  useEffect(() => {
+    breakpointsRef.current = breakpoints;
+  }, [breakpoints]);
 
   const publishSnapshot = useCallback((s: EmulatorSnapshot) => {
     setSnapshot(s);
@@ -159,18 +166,26 @@ export function EmulatorProvider(props: {
 
   const toggleBreakpoint = useCallback(
     (addr: number) => {
-      setBreakpoints((prev) => {
-        const bridge = dbgRef.current;
-        if (!bridge) return prev;
-        if (prev.includes(addr)) {
-          bridge.removeBreakpoint(addr);
-          return prev.filter((b) => b !== addr);
-        }
+      const bridge = dbgRef.current;
+      if (!bridge) return;
+      // Read the current set synchronously from the ref, perform bridge
+      // side-effects + the toast here, and hand a pure value to setState.
+      const current = breakpointsRef.current;
+      if (current.includes(addr)) {
+        bridge.removeBreakpoint(addr);
+        setBreakpoints((prev) => prev.filter((b) => b !== addr));
+      } else {
         bridge.addBreakpoint(addr);
-        return [...prev, addr].sort((a, b) => a - b);
-      });
+        setBreakpoints((prev) =>
+          prev.includes(addr) ? prev : [...prev, addr].sort((a, b) => a - b),
+        );
+      }
+      addToast(
+        `Breakpoint toggled at $${addr.toString(16).toUpperCase().padStart(4, "0")}`,
+        "info",
+      );
     },
-    [],
+    [addToast],
   );
 
   const writeMemory = useCallback(

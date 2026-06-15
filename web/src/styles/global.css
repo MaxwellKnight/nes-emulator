@@ -176,17 +176,6 @@ body {
   }
 }
 
-@keyframes toast-out {
-  from {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-  to {
-    opacity: 0;
-    transform: translateY(8px) scale(0.97);
-  }
-}
-
 @keyframes overlay-in {
   from {
     opacity: 0;

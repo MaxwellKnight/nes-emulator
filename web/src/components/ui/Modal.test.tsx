@@ -45,4 +45,31 @@ describe("Modal", () => {
     await userEvent.click(screen.getByTestId("modal-backdrop"));
     expect(onClose).toHaveBeenCalledTimes(1);
   });
+
+  it("moves focus into the dialog when opened", () => {
+    render(
+      <Modal open onClose={() => {}} title="Edit Memory">
+        <input data-testid="field" />
+      </Modal>,
+    );
+    const dialog = screen.getByRole("dialog");
+    expect(dialog.contains(document.activeElement)).toBe(true);
+  });
+
+  it("traps Tab focus within the dialog", async () => {
+    render(
+      <Modal open onClose={() => {}} title="Edit Memory">
+        <input data-testid="field" />
+      </Modal>,
+    );
+    const dialog = screen.getByRole("dialog");
+    // Tabbing from the last focusable element wraps back into the dialog.
+    const focusables = dialog.querySelectorAll<HTMLElement>(
+      "a[href], button, input, select, textarea",
+    );
+    const last = focusables[focusables.length - 1];
+    last.focus();
+    await userEvent.tab();
+    expect(dialog.contains(document.activeElement)).toBe(true);
+  });
 });

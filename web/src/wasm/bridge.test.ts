@@ -131,7 +131,7 @@ describe("createBridge", () => {
     expect(range[0].opcode).toBe(162);
   });
 
-  it("loadROM writes bytes from 0x0C00, sets 0xFFFD, and sets PC to 0x0C00", () => {
+  it("loadROM writes bytes from 0x0C00, sets the reset vector, and sets PC to 0x0C00", () => {
     const mod = createMockModule();
     const dbg = createBridge(mod);
 
@@ -141,20 +141,24 @@ describe("createBridge", () => {
     expect(mod._state.memory[0x0c01]).toBe(0x05);
     expect(mod._state.memory[0x0c02]).toBe(0xa9);
     expect(mod._state.memory[0x0c03]).toBe(0x0a);
-    // high byte of the reset vector
+    // little-endian reset vector: low byte at $FFFC, high byte at $FFFD
+    expect(mod._state.memory[0xfffc]).toBe(0x00);
     expect(mod._state.memory[0xfffd]).toBe(0x0c);
     // PC positioned at the start address
     expect(mod._state.registers.pc).toBe(0x0c00);
   });
 
-  it("loadROM honors a custom start address", () => {
+  it("loadROM honors a custom start address and writes both reset-vector bytes", () => {
     const mod = createMockModule();
     const dbg = createBridge(mod);
 
-    dbg.loadROM([0xea], 0x8000);
+    // 0x80C5 has a non-zero low byte, exercising the $FFFC write.
+    dbg.loadROM([0xea], 0x80c5);
 
-    expect(mod._state.memory[0x8000]).toBe(0xea);
+    expect(mod._state.memory[0x80c5]).toBe(0xea);
+    // little-endian reset vector
+    expect(mod._state.memory[0xfffc]).toBe(0xc5);
     expect(mod._state.memory[0xfffd]).toBe(0x80);
-    expect(mod._state.registers.pc).toBe(0x8000);
+    expect(mod._state.registers.pc).toBe(0x80c5);
   });
 });

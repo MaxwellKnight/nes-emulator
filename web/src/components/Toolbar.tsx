@@ -109,16 +109,38 @@ export function Toolbar({ romName, onHelp, onLoadCode }: ToolbarProps): JSX.Elem
         aria-label="Execution controls"
         className="ml-2 flex overflow-hidden rounded-lg border border-[var(--bd-strong)]"
       >
-        <SegButton primary onClick={actions.run} disabled={running}>
-          ▶ Run
+        <SegButton
+          primary
+          onClick={actions.run}
+          disabled={running}
+          aria-label="Run"
+          title="Run (start continuous execution)"
+        >
+          <span aria-hidden>▶</span> Run
         </SegButton>
-        <SegButton onClick={actions.step} disabled={running}>
-          ⤓ Step
+        <SegButton
+          onClick={actions.step}
+          disabled={running}
+          aria-label="Step"
+          title="Step (execute a single instruction)"
+        >
+          <span aria-hidden>⤓</span> Step
         </SegButton>
-        <SegButton onClick={actions.stop} disabled={!running}>
-          ■ Stop
+        <SegButton
+          onClick={actions.stop}
+          disabled={!running}
+          aria-label="Stop"
+          title="Stop (halt execution)"
+        >
+          <span aria-hidden>■</span> Stop
         </SegButton>
-        <SegButton onClick={actions.reset}>↺ Reset</SegButton>
+        <SegButton
+          onClick={actions.reset}
+          aria-label="Reset"
+          title="Reset (reset the CPU)"
+        >
+          <span aria-hidden>↺</span> Reset
+        </SegButton>
       </div>
 
       {/* right cluster */}
@@ -155,6 +177,8 @@ export function Toolbar({ romName, onHelp, onLoadCode }: ToolbarProps): JSX.Elem
         <button
           type="button"
           onClick={openFilePicker}
+          aria-label="Load ROM"
+          title="Load a .nes ROM file from disk"
           className="press rounded-md border border-[var(--bd-strong)] bg-[var(--b2)] px-[9px] py-[4px] text-[10px] text-[var(--tx)] hover:bg-[var(--b3)]"
         >
           Load ROM
@@ -163,6 +187,8 @@ export function Toolbar({ romName, onHelp, onLoadCode }: ToolbarProps): JSX.Elem
           type="button"
           data-testid="loadcode-open"
           onClick={onLoadCode}
+          aria-label="Load Code"
+          title="Load and assemble hex opcodes"
           className="press rounded-md border border-[var(--bd-strong)] bg-[var(--b2)] px-[9px] py-[4px] text-[10px] text-[var(--tx)] hover:bg-[var(--b3)]"
         >
           Load Code

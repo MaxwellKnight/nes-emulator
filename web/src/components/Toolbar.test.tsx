@@ -104,6 +104,15 @@ describe("Toolbar", () => {
     );
   });
 
+  it("gives transport, Load ROM, and Load Code buttons accessible names and tooltips", () => {
+    render(<Toolbar onHelp={vi.fn()} onLoadCode={vi.fn()} />);
+    for (const name of ["Run", "Step", "Stop", "Reset", "Load ROM", "Load Code"]) {
+      const btn = screen.getByRole("button", { name });
+      expect(btn).toBeInTheDocument();
+      expect(btn).toHaveAttribute("title");
+    }
+  });
+
   it("opens the Load Code popover via onLoadCode", async () => {
     const onLoadCode = vi.fn();
     render(<Toolbar onHelp={vi.fn()} onLoadCode={onLoadCode} />);

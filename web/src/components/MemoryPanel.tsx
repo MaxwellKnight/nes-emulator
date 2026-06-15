@@ -93,7 +93,7 @@ export function MemoryPanel({
           size: 0x100,
         },
       );
-      addToast(`Jumped to memory address ${hex4(aligned)}`, "success");
+      addToast(`Jumped to memory address ${hex4(aligned)}`, "info");
     }
     setJump("");
   };
@@ -181,6 +181,8 @@ export function MemoryPanel({
                       data-testid={cellId(address)}
                       data-pc={String(isPc)}
                       data-sp={String(isSp)}
+                      role="button"
+                      tabIndex={running ? -1 : 0}
                       title={
                         running
                           ? undefined
@@ -188,6 +190,16 @@ export function MemoryPanel({
                       }
                       onClick={
                         running ? undefined : () => setEditAddress(address)
+                      }
+                      onKeyDown={
+                        running
+                          ? undefined
+                          : (e) => {
+                              if (e.key === "Enter" || e.key === " ") {
+                                if (e.key === " ") e.preventDefault();
+                                setEditAddress(address);
+                              }
+                            }
                       }
                       className={[
                         "px-[3px] py-px text-center transition-colors duration-[var(--dur)]",

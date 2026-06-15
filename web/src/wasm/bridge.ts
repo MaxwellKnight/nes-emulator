@@ -209,6 +209,8 @@ export function createBridge(module: WasmModule): Debugger {
     for (let i = 0; i < data.length; i += 1) {
       writeMemory(startAddr + i, data[i]);
     }
+    // Reset vector is little-endian: low byte at $FFFC, high byte at $FFFD.
+    writeMemory(0xfffc, startAddr & 0xff);
     writeMemory(0xfffd, (startAddr >> 8) & 0xff);
     setPC(startAddr);
   }

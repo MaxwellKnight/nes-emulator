@@ -19,12 +19,12 @@ let mockCtx: EmulatorContextValue;
 const addBreakpoint = vi.fn();
 const removeBreakpoint = vi.fn();
 
-function makeCtx(breakpoints: number[]): EmulatorContextValue {
+function makeCtx(breakpoints: number[], running = false): EmulatorContextValue {
   return {
     status: "ready",
     snapshot: null,
     breakpoints,
-    running: false,
+    running,
     dbg: null,
     actions: { addBreakpoint, removeBreakpoint } as unknown as EmulatorContextValue["actions"],
   };
@@ -93,5 +93,14 @@ describe("BreakpointsPanel", () => {
     await vi.waitFor(() => {
       expect(removeBreakpoint).toHaveBeenCalledWith(0x8000);
     });
+  });
+
+  it("disables the input, add button, and remove buttons while running", () => {
+    mockCtx = makeCtx([0x8000, 0xc000], true);
+    render(<BreakpointsPanel />);
+    expect(screen.getByTestId("breakpoint-input")).toBeDisabled();
+    expect(screen.getByTestId("breakpoint-add")).toBeDisabled();
+    expect(screen.getByTestId("breakpoint-remove-0x8000")).toBeDisabled();
+    expect(screen.getByTestId("breakpoint-remove-0xc000")).toBeDisabled();
   });
 });

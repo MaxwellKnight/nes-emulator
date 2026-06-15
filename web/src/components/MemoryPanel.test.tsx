@@ -1,5 +1,5 @@
 // web/src/components/MemoryPanel.test.tsx
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { MemoryPanel } from "./MemoryPanel";
@@ -83,7 +83,7 @@ describe("MemoryPanel", () => {
     expect(addToast).toHaveBeenCalledWith("Invalid memory address", "danger");
   });
 
-  it("raises a success toast when a valid jump navigates the view", async () => {
+  it("raises an info toast when a valid jump navigates the view", async () => {
     const user = userEvent.setup();
     mockCtx = makeCtx(0x0c03, 0xfd);
     render(<MemoryPanel />);
@@ -91,7 +91,7 @@ describe("MemoryPanel", () => {
     await user.click(screen.getByTestId("memory-jump-button"));
     expect(addToast).toHaveBeenCalledWith(
       "Jumped to memory address $0200",
-      "success",
+      "info",
     );
   });
 
@@ -104,11 +104,11 @@ describe("MemoryPanel", () => {
     await user.click(screen.getByTestId("memory-jump-button"));
     expect(addToast).toHaveBeenCalledWith(
       "Jumped to memory address $0C00",
-      "success",
+      "info",
     );
   });
 
-  it("does not show a success toast when the jump target is the current page", async () => {
+  it("does not show a jump toast when the jump target is the current page", async () => {
     const user = userEvent.setup();
     mockCtx = makeCtx(0x0c03, 0xfd);
     render(<MemoryPanel />);
@@ -117,7 +117,7 @@ describe("MemoryPanel", () => {
     await user.click(screen.getByTestId("memory-jump-button"));
     expect(addToast).not.toHaveBeenCalledWith(
       expect.stringContaining("Jumped to"),
-      "success",
+      "info",
     );
   });
 
@@ -134,5 +134,28 @@ describe("MemoryPanel", () => {
     render(<MemoryPanel />);
     await user.click(screen.getByTestId("memory-cell-0x0c05"));
     expect(screen.getByTestId("memory-edit-modal")).toHaveAttribute("data-address", "0x0c05");
+  });
+
+  it("opens the edit modal via the keyboard (Enter) on a focusable cell", () => {
+    mockCtx = makeCtx(0x0c03, 0xfd);
+    render(<MemoryPanel />);
+    const cell = screen.getByTestId("memory-cell-0x0c05");
+    expect(cell).toHaveAttribute("role", "button");
+    expect(cell).toHaveAttribute("tabindex", "0");
+    fireEvent.keyDown(cell, { key: "Enter" });
+    expect(screen.getByTestId("memory-edit-modal")).toHaveAttribute(
+      "data-address",
+      "0x0c05",
+    );
+  });
+
+  it("makes interactive cells non-focusable while running", () => {
+    mockCtx = makeCtx(0x0c03, 0xfd);
+    mockCtx.running = true;
+    render(<MemoryPanel />);
+    expect(screen.getByTestId("memory-cell-0x0c05")).toHaveAttribute(
+      "tabindex",
+      "-1",
+    );
   });
 });
