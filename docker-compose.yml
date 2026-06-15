@@ -7,11 +7,11 @@ x-build-base: &build-base
   restart: "no"
 
 x-web-base: &web-base
-  image: python:3-alpine
+  image: node:20-alpine
   volumes:
-    - ./web:/app/web
+    - .:/app
   working_dir: /app
-  command: python -m http.server 5173 --directory /app/web
+  command: sh -c "corepack enable && pnpm install && pnpm --dir web dev --host --port 5173"
 
 services:
   # Development services
