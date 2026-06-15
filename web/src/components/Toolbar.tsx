@@ -5,7 +5,7 @@ import { ThemeToggle } from "./ui/ThemeToggle";
 
 export interface ToolbarProps {
   romName?: string;
-  onHelp: () => void;
+  onHelp?: () => void;
 }
 
 export function Toolbar({ romName, onHelp }: ToolbarProps): JSX.Element {
@@ -34,7 +34,7 @@ export function Toolbar({ romName, onHelp }: ToolbarProps): JSX.Element {
   }
 
   return (
-    <header className="flex items-center gap-3 border-b border-[var(--border)] bg-[var(--panel)] px-4 py-2">
+    <header data-testid="app-toolbar" className="flex items-center gap-3 border-b border-[var(--border)] bg-[var(--panel)] px-4 py-2">
       <div className="flex items-center gap-2">
         <span className="text-sm font-semibold text-[var(--heading)]">
           6502 Debugger

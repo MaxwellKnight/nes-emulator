@@ -1,45 +1,75 @@
-import React from "react";
+import { useState } from "react";
+import { useEmulator } from "../emulator/EmulatorProvider";
+import { Toolbar } from "./Toolbar";
+import { ScreenPanel } from "./ScreenPanel";
+import { DisassemblyPanel } from "./DisassemblyPanel";
+import { RegistersPanel } from "./RegistersPanel";
+import { StackPanel } from "./StackPanel";
+import { BreakpointsPanel } from "./BreakpointsPanel";
+import { StatisticsPanel } from "./StatisticsPanel";
+import { LoadCodePanel } from "./LoadCodePanel";
+import { MemoryPanel } from "./MemoryPanel";
+import { HelpModal } from "./HelpModal";
+import { Toaster } from "./toast/Toaster";
+import { Panel } from "./ui/Panel";
+import { Button } from "./ui/Button";
 
-export interface AppShellProps {
-  toolbar: React.ReactNode;
-  screen: React.ReactNode;
-  disassembly: React.ReactNode;
-  sidebar: React.ReactNode;
-  memory: React.ReactNode;
-}
+export function AppShell(): JSX.Element {
+  const { status, running } = useEmulator();
+  const [helpOpen, setHelpOpen] = useState(false);
 
-export function AppShell({
-  toolbar,
-  screen,
-  disassembly,
-  sidebar,
-  memory,
-}: AppShellProps): JSX.Element {
-  return (
-    <div className="flex h-screen flex-col bg-[var(--bg)] text-[var(--text)]">
-      <div data-testid="shell-toolbar" className="shrink-0">
-        {toolbar}
+  if (status === "loading") {
+    return (
+      <div
+        data-testid="app-loading"
+        className="flex h-screen items-center justify-center bg-[var(--bg)] text-[var(--text-muted)]"
+      >
+        Loading emulator…
       </div>
-      <div className="grid min-h-0 flex-1 grid-cols-[minmax(0,1fr)_360px] gap-3 p-3">
-        <div className="grid min-h-0 grid-rows-[auto_minmax(0,1fr)] gap-3">
-          <div
-            data-testid="shell-center"
-            className="grid min-h-0 grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)] gap-3"
-          >
-            <div className="min-h-0">{screen}</div>
-            <div className="min-h-0 overflow-auto">{disassembly}</div>
-          </div>
-          <div data-testid="shell-memory" className="min-h-0 overflow-auto">
-            {memory}
+    );
+  }
+
+  if (status === "error") {
+    return (
+      <div
+        data-testid="app-error"
+        className="flex h-screen items-center justify-center bg-[var(--bg)]"
+      >
+        <Panel title="Failed to load emulator">
+          <p className="mb-3 text-[12px] text-[var(--text-muted)]">
+            The WebAssembly core could not be loaded.
+          </p>
+          <Button onClick={() => window.location.reload()}>Retry</Button>
+        </Panel>
+      </div>
+    );
+  }
+
+  const dimmed = running ? "pointer-events-none opacity-60" : "";
+
+  return (
+    <div className="flex min-h-screen flex-col bg-[var(--bg)] text-[var(--text)]">
+      <Toolbar onHelp={() => setHelpOpen(true)} />
+      <main className="grid flex-1 grid-cols-1 gap-4 p-4 lg:grid-cols-[2fr_1fr]">
+        <div className="flex flex-col gap-4">
+          <ScreenPanel />
+          <div className={dimmed}>
+            <DisassemblyPanel />
           </div>
         </div>
-        <aside
-          data-testid="shell-sidebar"
-          className="flex min-h-0 flex-col gap-3 overflow-auto"
-        >
-          {sidebar}
+        <aside className="flex flex-col gap-4">
+          <RegistersPanel />
+          <StackPanel />
+          <BreakpointsPanel />
+          <StatisticsPanel />
+          <LoadCodePanel />
         </aside>
-      </div>
+        <div className={`lg:col-span-2 ${dimmed}`}>
+          <MemoryPanel />
+        </div>
+      </main>
+      <HelpModal open={helpOpen} onClose={() => setHelpOpen(false)} />
+      <Toaster />
     </div>
   );
 }

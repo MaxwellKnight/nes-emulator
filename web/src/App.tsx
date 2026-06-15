@@ -1,7 +1,20 @@
-export default function App() {
+import { ToastProvider } from "./components/toast/ToastProvider";
+import { EmulatorProvider } from "./emulator/EmulatorProvider";
+import { AppShell } from "./components/AppShell";
+import type { WasmModule } from "./wasm/bridge";
+
+export interface AppProps {
+  loadModule?: () => Promise<WasmModule>;
+}
+
+export function App({ loadModule }: AppProps = {}): JSX.Element {
   return (
-    <main className="min-h-screen bg-bg text-text">
-      <h1 className="text-heading">NES Studio</h1>
-    </main>
+    <ToastProvider>
+      <EmulatorProvider loadModule={loadModule}>
+        <AppShell />
+      </EmulatorProvider>
+    </ToastProvider>
   );
 }
+
+export default App;
