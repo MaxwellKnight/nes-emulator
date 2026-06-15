@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { Button } from "./Button";
 
 type Theme = "dark" | "light";
 
@@ -31,13 +30,16 @@ export function ThemeToggle(): JSX.Element {
   }
 
   return (
-    <Button
-      variant="ghost"
+    <button
+      type="button"
       onClick={toggle}
       aria-label="Toggle theme"
       title={theme === "dark" ? "Switch to light theme" : "Switch to dark theme"}
+      className="press flex h-6 w-6 items-center justify-center rounded-md text-[var(--tx-dim)] hover:bg-[var(--b2)] hover:text-[var(--tx)]"
     >
-      {theme === "dark" ? "Light" : "Dark"}
-    </Button>
+      <span aria-hidden className="text-[12px] leading-none">
+        {theme === "dark" ? "☾" : "☀"}
+      </span>
+    </button>
   );
 }

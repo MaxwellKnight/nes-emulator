@@ -14,14 +14,15 @@ export interface ButtonProps
 }
 
 const VARIANT_CLASSES: Record<ButtonVariant, string> = {
-  primary: "bg-[var(--accent)] text-white hover:bg-[var(--accent-soft)]",
+  primary:
+    "bg-[var(--acc)] text-white shadow-[var(--glow)] hover:bg-[var(--acc-hi)] active:bg-[var(--acc-press)]",
   secondary:
-    "bg-[var(--panel-2)] text-[var(--text)] border border-[var(--border)] hover:bg-[var(--panel)]",
-  success: "bg-[var(--success)] text-black hover:opacity-90",
-  info: "bg-[var(--accent-soft)] text-black hover:opacity-90",
-  danger: "bg-[var(--danger)] text-white hover:opacity-90",
+    "border border-[var(--bd-strong)] bg-[var(--b2)] text-[var(--tx)] hover:bg-[var(--b3)]",
+  success: "bg-[var(--grn)] text-black hover:opacity-90",
+  info: "bg-[var(--acc-hi)] text-black hover:opacity-90",
+  danger: "bg-[var(--red)] text-white hover:opacity-90",
   ghost:
-    "bg-transparent text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--panel-2)]",
+    "bg-transparent text-[var(--tx-mut)] hover:bg-[var(--b2)] hover:text-[var(--tx)]",
 };
 
 export function Button({
@@ -34,7 +35,7 @@ export function Button({
     <button
       type={type}
       data-variant={variant}
-      className={`inline-flex items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${VARIANT_CLASSES[variant]} ${className}`.trim()}
+      className={`press inline-flex items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium disabled:cursor-not-allowed disabled:opacity-40 ${VARIANT_CLASSES[variant]} ${className}`.trim()}
       {...rest}
     />
   );

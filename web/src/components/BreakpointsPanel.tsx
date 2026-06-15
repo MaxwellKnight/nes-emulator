@@ -2,8 +2,7 @@
 import { useState } from "react";
 import { useEmulator } from "../emulator/EmulatorProvider";
 import { useToast } from "./toast/ToastProvider";
-import { Panel } from "./ui/Panel";
-import { Button } from "./ui/Button";
+import { Tile } from "./ui/Tile";
 
 function hex4(value: number): string {
   return `$${value.toString(16).toUpperCase().padStart(4, "0")}`;
@@ -18,10 +17,23 @@ function parseAddress(raw: string): number | null {
   return value;
 }
 
-export function BreakpointsPanel(): JSX.Element {
+function idFor(addr: number): string {
+  return addr.toString(16).toLowerCase().padStart(4, "0");
+}
+
+export interface BreakpointsPanelProps {
+  revealDelay?: number;
+  className?: string;
+}
+
+export function BreakpointsPanel({
+  revealDelay,
+  className,
+}: BreakpointsPanelProps): JSX.Element {
   const { breakpoints, actions } = useEmulator();
   const { addToast } = useToast();
   const [input, setInput] = useState("");
+  const [removing, setRemoving] = useState<number | null>(null);
 
   const sorted = [...breakpoints].sort((a, b) => a - b);
 
@@ -37,13 +49,23 @@ export function BreakpointsPanel(): JSX.Element {
   };
 
   const handleRemove = (addr: number) => {
-    actions.removeBreakpoint(addr);
+    // Brief slide-out before the context actually drops the breakpoint.
+    setRemoving(addr);
     addToast(`Breakpoint removed from ${hex4(addr)}`, "info");
+    window.setTimeout(() => {
+      actions.removeBreakpoint(addr);
+      setRemoving((cur) => (cur === addr ? null : cur));
+    }, 180);
   };
 
   return (
-    <Panel title="Breakpoints">
-      <div className="mb-3 flex gap-2">
+    <Tile
+      title="Breakpoints"
+      revealDelay={revealDelay}
+      className={className}
+      bodyClassName="nes-scroll overflow-auto"
+    >
+      <div className="mb-[7px] flex gap-[6px]">
         <input
           data-testid="breakpoint-input"
           value={input}
@@ -51,37 +73,52 @@ export function BreakpointsPanel(): JSX.Element {
           onKeyDown={(e) => {
             if (e.key === "Enter") handleAdd();
           }}
-          placeholder="e.g. C000"
-          className="min-w-0 flex-1 rounded bg-[var(--panel-2)] px-2 py-1 font-mono text-[12px] text-[var(--text)] outline-none focus:ring-1 focus:ring-[var(--accent)]"
+          placeholder="address (hex)"
+          className="press min-w-0 flex-1 rounded-[var(--radius-sm)] border border-[var(--bd-strong)] bg-[var(--b2)] px-[7px] py-[3px] font-mono text-[10px] text-[var(--tx)] outline-none placeholder:text-[var(--tx-dim)] focus:border-[var(--acc)]"
         />
-        <Button data-testid="breakpoint-add" onClick={handleAdd}>
-          Add
-        </Button>
+        <button
+          type="button"
+          data-testid="breakpoint-add"
+          onClick={handleAdd}
+          className="press rounded-[var(--radius-sm)] bg-[var(--acc)] px-[9px] py-[3px] text-[10px] font-medium text-white hover:bg-[var(--acc-hi)]"
+        >
+          + Add
+        </button>
       </div>
       {sorted.length === 0 ? (
-        <p className="text-[12px] text-[var(--text-muted)]">No breakpoints set</p>
+        <p className="font-mono text-[10px] text-[var(--tx-dim)]">
+          No breakpoints set
+        </p>
       ) : (
-        <ul className="flex flex-col gap-1">
+        <ul className="flex flex-col gap-[2px]">
           {sorted.map((addr) => (
             <li
               key={addr}
-              data-testid={`breakpoint-item-0x${addr.toString(16).toLowerCase().padStart(4, "0")}`}
-              className="flex items-center justify-between rounded bg-[var(--panel-2)] px-2 py-1"
+              data-testid={`breakpoint-item-0x${idFor(addr)}`}
+              className={[
+                "flex items-center justify-between py-[2px]",
+                removing === addr ? "bp-row-out" : "",
+              ]
+                .filter(Boolean)
+                .join(" ")}
             >
-              <span className="font-mono text-[12px] text-[var(--danger)]">{hex4(addr)}</span>
+              <span className="flex items-center gap-[5px] font-mono text-[11px] text-[var(--red)]">
+                <span className="text-[8px] leading-none">●</span>
+                {hex4(addr)}
+              </span>
               <button
                 type="button"
-                data-testid={`breakpoint-remove-0x${addr.toString(16).toLowerCase().padStart(4, "0")}`}
+                data-testid={`breakpoint-remove-0x${idFor(addr)}`}
                 title={`Remove breakpoint at ${hex4(addr)}`}
                 onClick={() => handleRemove(addr)}
-                className="rounded px-2 py-0.5 text-[11px] text-[var(--text-muted)] hover:bg-[var(--danger)]/20 hover:text-[var(--danger)]"
+                className="press rounded px-[5px] text-[11px] text-[var(--tx-dim)] hover:bg-[var(--red)]/15 hover:text-[var(--red)]"
               >
-                Remove
+                ✕
               </button>
             </li>
           ))}
         </ul>
       )}
-    </Panel>
+    </Tile>
   );
 }

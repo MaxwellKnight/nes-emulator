@@ -16,18 +16,22 @@ describe("FlagsBadges", () => {
     ]);
   });
 
-  it("shows 0 and unset styling when a flag is clear", () => {
+  it("shows the flag letter and unset styling when a flag is clear", () => {
     render(<FlagsBadges flags={allClear} />);
     const z = screen.getByTestId("flag-z");
     expect(z).toHaveTextContent("Z");
-    expect(z).toHaveTextContent("0");
     expect(z.getAttribute("data-set")).toBe("false");
   });
 
-  it("shows 1 and set styling when a flag is set", () => {
+  it("renders the unused bit as an em-dash", () => {
+    render(<FlagsBadges flags={allClear} />);
+    expect(screen.getByTestId("flag-u")).toHaveTextContent("–");
+  });
+
+  it("marks set flags with data-set true (LED on)", () => {
     render(<FlagsBadges flags={{ ...allClear, n: true, c: true }} />);
     const n = screen.getByTestId("flag-n");
-    expect(n).toHaveTextContent("1");
+    expect(n).toHaveTextContent("N");
     expect(n.getAttribute("data-set")).toBe("true");
     expect(screen.getByTestId("flag-c").getAttribute("data-set")).toBe("true");
     expect(screen.getByTestId("flag-v").getAttribute("data-set")).toBe("false");

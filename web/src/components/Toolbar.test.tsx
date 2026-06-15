@@ -74,9 +74,9 @@ describe("Toolbar", () => {
     const ctx = makeContext();
     mockContext.value = ctx;
     render(<Toolbar onHelp={vi.fn()} />);
-    await userEvent.click(screen.getByRole("button", { name: "Run" }));
-    await userEvent.click(screen.getByRole("button", { name: "Step" }));
-    await userEvent.click(screen.getByRole("button", { name: "Reset" }));
+    await userEvent.click(screen.getByRole("button", { name: /Run/ }));
+    await userEvent.click(screen.getByRole("button", { name: /Step/ }));
+    await userEvent.click(screen.getByRole("button", { name: /Reset/ }));
     expect(ctx.actions.run).toHaveBeenCalledTimes(1);
     expect(ctx.actions.step).toHaveBeenCalledTimes(1);
     expect(ctx.actions.reset).toHaveBeenCalledTimes(1);
@@ -85,15 +85,30 @@ describe("Toolbar", () => {
   it("disables Run and Step while running and enables Stop", () => {
     mockContext.value = makeContext({ running: true });
     render(<Toolbar onHelp={vi.fn()} />);
-    expect(screen.getByRole("button", { name: "Run" })).toBeDisabled();
-    expect(screen.getByRole("button", { name: "Step" })).toBeDisabled();
-    expect(screen.getByRole("button", { name: "Stop" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: /Run/ })).toBeDisabled();
+    expect(screen.getByRole("button", { name: /Step/ })).toBeDisabled();
+    expect(screen.getByRole("button", { name: /Stop/ })).toBeEnabled();
   });
 
   it("disables Stop when not running", () => {
     mockContext.value = makeContext({ running: false });
     render(<Toolbar onHelp={vi.fn()} />);
-    expect(screen.getByRole("button", { name: "Stop" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: /Stop/ })).toBeDisabled();
+  });
+
+  it("pulses the running dot while executing", () => {
+    mockContext.value = makeContext({ running: true });
+    render(<Toolbar onHelp={vi.fn()} />);
+    expect(screen.getByTestId("running-dot").getAttribute("data-running")).toBe(
+      "true",
+    );
+  });
+
+  it("opens the Load Code popover via onLoadCode", async () => {
+    const onLoadCode = vi.fn();
+    render(<Toolbar onHelp={vi.fn()} onLoadCode={onLoadCode} />);
+    await userEvent.click(screen.getByTestId("loadcode-open"));
+    expect(onLoadCode).toHaveBeenCalledTimes(1);
   });
 
   it("calls onHelp when the Help button is clicked", async () => {
@@ -138,7 +153,7 @@ describe("Toolbar", () => {
       "https://www.linkedin.com/in/maxwell-knight/",
     );
     expect(email).toHaveAttribute("href", "mailto:maxwell.knight98@gmail.com");
-    expect(screen.getByText(/Developed by @Maxwell Knight/i)).toBeInTheDocument();
+    expect(screen.getByText(/by Maxwell Knight/i)).toBeInTheDocument();
   });
 
   it("shows the loaded ROM name and a success toast on file load", async () => {

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 
 export interface ModalProps {
   open: boolean;
@@ -15,31 +15,41 @@ export function Modal({
   className = "",
   children,
 }: ModalProps): JSX.Element | null {
+  // ESC closes the dialog while it is open.
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open, onClose]);
+
   if (!open) {
     return null;
   }
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div
         data-testid="modal-backdrop"
-        className="absolute inset-0 bg-black/60"
+        className="overlay-in absolute inset-0 bg-black/55 backdrop-blur-sm"
         onClick={onClose}
       />
       <div
         role="dialog"
         aria-modal="true"
         aria-label={title}
-        className={`relative z-10 w-full max-w-lg rounded-lg border border-[var(--border)] bg-[var(--panel)] shadow-xl ${className}`.trim()}
+        className={`dialog-in relative z-10 w-full max-w-lg rounded-[var(--radius)] border border-[var(--bd-strong)] bg-[var(--b1)] shadow-[0_24px_70px_rgba(0,0,0,0.55),var(--glow)] ${className}`.trim()}
       >
-        <header className="flex items-center justify-between border-b border-[var(--border)] px-4 py-3">
-          <h2 className="text-sm font-semibold text-[var(--heading)]">
+        <header className="flex items-center justify-between border-b border-[var(--bd)] px-4 py-3">
+          <h2 className="font-sans text-[11px] font-semibold uppercase tracking-[0.11em] text-[var(--tx-mut)]">
             {title}
           </h2>
           <button
             type="button"
             aria-label="Close"
             onClick={onClose}
-            className="rounded p-1 text-[var(--text-muted)] hover:bg-[var(--panel-2)] hover:text-[var(--text)]"
+            className="press rounded p-1 text-[var(--tx-mut)] hover:bg-[var(--b2)] hover:text-[var(--tx)]"
           >
             ✕
           </button>

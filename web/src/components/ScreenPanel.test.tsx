@@ -12,7 +12,7 @@ describe("ScreenPanel", () => {
 
   it("renders the resolution label", () => {
     render(<ScreenPanel />);
-    expect(screen.getByText("256 x 240")).toBeInTheDocument();
+    expect(screen.getByText("256 × 240")).toBeInTheDocument();
   });
 
   it("renders a well that holds the 256:240 aspect placeholder", () => {

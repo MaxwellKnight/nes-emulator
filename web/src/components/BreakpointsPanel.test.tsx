@@ -78,11 +78,20 @@ describe("BreakpointsPanel", () => {
     mockCtx = makeCtx([0xc000, 0x8000]);
     render(<BreakpointsPanel />);
     const items = screen.getAllByTestId(/^breakpoint-item-/);
-    expect(items.map((i) => i.textContent)).toEqual(
-      expect.arrayContaining(["$8000Remove", "$C000Remove"]),
-    );
+    const ids = items.map((i) => i.getAttribute("data-testid"));
+    expect(ids).toEqual([
+      "breakpoint-item-0x8000",
+      "breakpoint-item-0xc000",
+    ]);
+    // Each item shows its address and an ✕ remove control.
+    expect(screen.getByTestId("breakpoint-item-0x8000")).toHaveTextContent("$8000");
+    expect(screen.getByTestId("breakpoint-remove-0x8000")).toHaveTextContent("✕");
+
     await user.click(screen.getByTestId("breakpoint-remove-0x8000"));
-    expect(removeBreakpoint).toHaveBeenCalledWith(0x8000);
+    // The info toast is immediate; the actual removal is animated/deferred.
     expect(addToast).toHaveBeenCalledWith("Breakpoint removed from $8000", "info");
+    await vi.waitFor(() => {
+      expect(removeBreakpoint).toHaveBeenCalledWith(0x8000);
+    });
   });
 });

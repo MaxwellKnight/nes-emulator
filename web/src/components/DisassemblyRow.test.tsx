@@ -16,40 +16,31 @@ const ldxImm: DisassembledInstruction = {
 };
 
 describe("DisassemblyRow", () => {
-  it("renders address, opcode bytes, mnemonic, operand and bytes/cycles summary", () => {
+  it("renders address, opcode bytes, mnemonic and operand", () => {
     render(
-      <table>
-        <tbody>
-          <DisassemblyRow
-            instr={ldxImm}
-            isCurrent={false}
-            hasBreakpoint={false}
-            onToggle={() => {}}
-          />
-        </tbody>
-      </table>,
+      <DisassemblyRow
+        instr={ldxImm}
+        isCurrent={false}
+        hasBreakpoint={false}
+        onToggle={() => {}}
+      />,
     );
     const row = screen.getByTestId("disasm-row-0x0c00");
-    expect(row).toHaveTextContent("$0C00");
-    expect(row).toHaveTextContent("0xA2");
-    expect(row).toHaveTextContent("0x05");
+    // Address rendered bare-hex (the $ prefix lives in titles/tooltips now).
+    expect(row).toHaveTextContent("0C00");
+    expect(row).toHaveTextContent("A2 05");
     expect(row).toHaveTextContent("LDX");
     expect(row).toHaveTextContent("#$05");
-    expect(row).toHaveTextContent("2 B, 2 cyc");
   });
 
   it("colors an immediate operand with the immediate kind class", () => {
     render(
-      <table>
-        <tbody>
-          <DisassemblyRow
-            instr={ldxImm}
-            isCurrent={false}
-            hasBreakpoint={false}
-            onToggle={() => {}}
-          />
-        </tbody>
-      </table>,
+      <DisassemblyRow
+        instr={ldxImm}
+        isCurrent={false}
+        hasBreakpoint={false}
+        onToggle={() => {}}
+      />,
     );
     const operand = screen.getByTestId("disasm-operand-0x0c00");
     expect(operand.getAttribute("data-kind")).toBe("immediate");
@@ -57,16 +48,12 @@ describe("DisassemblyRow", () => {
 
   it("marks the current row and breakpoint row", () => {
     render(
-      <table>
-        <tbody>
-          <DisassemblyRow
-            instr={ldxImm}
-            isCurrent={true}
-            hasBreakpoint={true}
-            onToggle={() => {}}
-          />
-        </tbody>
-      </table>,
+      <DisassemblyRow
+        instr={ldxImm}
+        isCurrent={true}
+        hasBreakpoint={true}
+        onToggle={() => {}}
+      />,
     );
     const row = screen.getByTestId("disasm-row-0x0c00");
     expect(row.getAttribute("data-current")).toBe("true");
@@ -77,18 +64,30 @@ describe("DisassemblyRow", () => {
     const user = userEvent.setup();
     const onToggle = vi.fn();
     render(
-      <table>
-        <tbody>
-          <DisassemblyRow
-            instr={ldxImm}
-            isCurrent={false}
-            hasBreakpoint={false}
-            onToggle={onToggle}
-          />
-        </tbody>
-      </table>,
+      <DisassemblyRow
+        instr={ldxImm}
+        isCurrent={false}
+        hasBreakpoint={false}
+        onToggle={onToggle}
+      />,
     );
     await user.click(screen.getByTestId("disasm-row-0x0c00"));
     expect(onToggle).toHaveBeenCalledWith(0x0c00);
+  });
+
+  it("does not call onToggle when disabled", async () => {
+    const user = userEvent.setup();
+    const onToggle = vi.fn();
+    render(
+      <DisassemblyRow
+        instr={ldxImm}
+        isCurrent={false}
+        hasBreakpoint={false}
+        disabled
+        onToggle={onToggle}
+      />,
+    );
+    await user.click(screen.getByTestId("disasm-row-0x0c00"));
+    expect(onToggle).not.toHaveBeenCalled();
   });
 });

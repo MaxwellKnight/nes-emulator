@@ -4,8 +4,7 @@ import { useEmulator } from "../emulator/EmulatorProvider";
 import { useMemory } from "../emulator/useMemory";
 import { useToast } from "./toast/ToastProvider";
 import { MEMORY_PAGES, type MemoryPage, type MemoryPageId } from "../wasm/types";
-import { Panel } from "./ui/Panel";
-import { Button } from "./ui/Button";
+import { Tile } from "./ui/Tile";
 import { MemoryEditModal } from "./MemoryEditModal";
 
 const COLUMNS = Array.from({ length: 16 }, (_, i) => i);
@@ -35,18 +34,23 @@ function findPage(id: MemoryPageId): MemoryPage {
   return MEMORY_PAGES.find((p) => p.id === id) ?? MEMORY_PAGES[0];
 }
 
-export function MemoryPanel(): JSX.Element {
-  const { snapshot } = useEmulator();
+export interface MemoryPanelProps {
+  revealDelay?: number;
+  className?: string;
+}
+
+export function MemoryPanel({
+  revealDelay,
+  className,
+}: MemoryPanelProps): JSX.Element {
+  const { snapshot, running } = useEmulator();
   const { addToast } = useToast();
-  // The active view is a full MemoryPage so we can render any 256-byte page,
-  // including ones outside the preset list (parity with the old debugger).
   const [page, setPage] = useState<MemoryPage>(() => findPage("zeropage"));
   const [jump, setJump] = useState("");
   const [editAddress, setEditAddress] = useState<number | null>(null);
 
   const { rows } = useMemory(page);
 
-  // The select reflects a preset only when the current view matches one.
   const selectedPreset =
     MEMORY_PAGES.find((p) => p.start === page.start)?.id ?? "";
 
@@ -83,14 +87,22 @@ export function MemoryPanel(): JSX.Element {
     setJump("");
   };
 
+  const inputClass =
+    "press rounded-[var(--radius-sm)] border border-[var(--bd-strong)] bg-[var(--b2)] px-[7px] py-[3px] font-mono text-[10px] text-[var(--tx)] outline-none focus:border-[var(--acc)]";
+
   return (
-    <Panel title="Memory">
-      <div className="mb-3 flex flex-wrap items-center gap-2">
+    <Tile
+      title="Memory"
+      revealDelay={revealDelay}
+      className={className}
+      bodyClassName="flex flex-col"
+    >
+      <div className="mb-[7px] flex shrink-0 gap-[7px]">
         <select
           data-testid="memory-page-select"
           value={selectedPreset}
           onChange={(e) => handlePageChange(e.target.value as MemoryPageId)}
-          className="rounded bg-[var(--panel-2)] px-2 py-1 text-[12px] text-[var(--text)] outline-none"
+          className={`${inputClass} flex-1`}
         >
           {MEMORY_PAGES.map((p) => (
             <option key={p.id} value={p.id}>
@@ -105,71 +117,97 @@ export function MemoryPanel(): JSX.Element {
           onKeyDown={(e) => {
             if (e.key === "Enter") handleJump();
           }}
-          placeholder="Jump to $XXXX"
-          className="w-32 rounded bg-[var(--panel-2)] px-2 py-1 font-mono text-[12px] text-[var(--text)] outline-none focus:ring-1 focus:ring-[var(--accent)]"
+          placeholder="$ jump →"
+          className={`${inputClass} w-[88px] text-[var(--tx-mut)] placeholder:text-[var(--tx-dim)]`}
         />
-        <Button data-testid="memory-jump-button" onClick={handleJump}>
-          Jump
-        </Button>
+        <button
+          type="button"
+          data-testid="memory-jump-button"
+          onClick={handleJump}
+          className="press rounded-[var(--radius-sm)] bg-[var(--acc)] px-[9px] py-[3px] text-[10px] font-medium text-white hover:bg-[var(--acc-hi)]"
+        >
+          Go
+        </button>
       </div>
-      <div className="overflow-auto">
-        <table className="border-collapse font-mono text-[12px]">
+
+      <div
+        data-running={String(running)}
+        className={[
+          "nes-scroll relative min-h-0 flex-1 overflow-auto",
+          running ? "cursor-default select-none opacity-90 saturate-[0.7]" : "",
+        ].join(" ")}
+      >
+        <table className="border-collapse font-mono text-[10px] tracking-[0.4px]">
           <thead>
-            <tr className="text-[var(--text-muted)]">
-              <th className="px-2 py-1 text-left">Addr</th>
+            <tr className="text-[var(--tx-dim)]">
+              <th className="px-1 py-px text-left font-normal" />
               {COLUMNS.map((c) => (
                 <th
                   key={c}
                   data-testid={`memory-col-header-${c.toString(16).toUpperCase()}`}
-                  className="px-1.5 py-1"
+                  className="px-[3px] py-px font-normal"
                 >
                   {c.toString(16).toUpperCase()}
                 </th>
               ))}
-              <th className="px-2 py-1 text-left">ASCII</th>
+              <th className="px-2 py-px text-left font-normal">ASCII</th>
             </tr>
           </thead>
           <tbody>
             {rows.map((row) => (
               <tr key={row.address}>
-                <td className="px-2 py-0.5 text-[var(--text-muted)]">{hex4(row.address)}</td>
+                <td className="px-1 py-px text-[var(--tx-dim)]">
+                  {row.address.toString(16).toUpperCase().padStart(4, "0")}
+                </td>
                 {row.bytes.map((byte, i) => {
                   const address = row.address + i;
                   const isPc = address === pc;
-                  const isSp =
-                    page.start === 0x0100 && address === spAddress;
+                  const isSp = page.start === 0x0100 && address === spAddress;
                   return (
                     <td
                       key={address}
                       data-testid={cellId(address)}
                       data-pc={String(isPc)}
                       data-sp={String(isSp)}
-                      title={`Click to edit memory at ${hex4(address)}`}
-                      onClick={() => setEditAddress(address)}
+                      title={
+                        running
+                          ? undefined
+                          : `Click to edit memory at ${hex4(address)}`
+                      }
+                      onClick={
+                        running ? undefined : () => setEditAddress(address)
+                      }
                       className={[
-                        "cursor-pointer px-1.5 py-0.5 text-center",
+                        "px-[3px] py-px text-center transition-colors duration-[var(--dur)]",
+                        running ? "cursor-default" : "cursor-pointer",
                         isPc
-                          ? "bg-[var(--danger)] text-white"
+                          ? "rounded-[2px] bg-[var(--red)] font-semibold text-white"
                           : isSp
-                            ? "bg-[var(--success)] text-black"
-                            : "text-[var(--text)] hover:bg-[var(--panel-2)]",
-                      ].join(" ")}
+                            ? "rounded-[2px] bg-[var(--grn)] font-semibold text-black"
+                            : !running
+                              ? "text-[var(--tx)] hover:bg-[var(--b2)]"
+                              : "text-[var(--tx)]",
+                      ]
+                        .filter(Boolean)
+                        .join(" ")}
                     >
                       {hex2(byte & 0xff)}
                     </td>
                   );
                 })}
-                <td className="px-2 py-0.5 text-[var(--text-dim)]">{row.ascii}</td>
+                <td className="px-2 py-px text-[var(--tx-dim)]">{row.ascii}</td>
               </tr>
             ))}
           </tbody>
         </table>
+        <div className="scroll-fade" />
       </div>
+
       <MemoryEditModal
         address={editAddress ?? 0}
         open={editAddress !== null}
         onClose={() => setEditAddress(null)}
       />
-    </Panel>
+    </Tile>
   );
 }
