@@ -18,3 +18,5 @@ compile_commands.json
 .clang-format
 *.wasm
 .env
+test_detail.json
+test_detail.xml
