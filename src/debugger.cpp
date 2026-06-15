@@ -286,6 +286,16 @@ void Debugger::reset() {
   _running = false;
 }
 
+void Debugger::reset_to_vector() {
+  reset();
+  // Real 6502 power-on loads PC from the reset vector at $FFFC/$FFFD. These
+  // reads route through the inserted cartridge's PRG, so the ROM begins at its
+  // own entry point instead of executing the vector bytes as code.
+  const u16 lo = _bus.cpu_read(0xFFFC);
+  const u16 hi = _bus.cpu_read(0xFFFD);
+  _cpu.set_pc(static_cast<u16>(lo | (hi << 8)));
+}
+
 bool Debugger::is_running() const { return _running; }
 
 // Breakpoint methods

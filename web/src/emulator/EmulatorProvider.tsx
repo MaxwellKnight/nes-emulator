@@ -246,7 +246,9 @@ export function EmulatorProvider(props: {
       stopLoop();
       const status = bridge.loadRom(data);
       if (status === 0) {
-        bridge.reset();
+        // Do NOT reset() here: load_rom already boots the cartridge (PC <- reset
+        // vector). A second reset() would send PC back to $FFFC and the ROM would
+        // never run. Just publish the freshly-rendered framebuffer.
         setFramebuffer(new Uint8ClampedArray(bridge.getFramebuffer()));
       }
       refresh();
