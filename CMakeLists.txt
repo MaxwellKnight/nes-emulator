@@ -78,12 +78,34 @@ else()
             find_package(GTest QUIET)
         endif()
 
+        # If no system/CI GTest is available, fetch and build it from source.
+        # This makes `ctest --test-dir native_build` work on a clean machine
+        # (e.g. local macOS without `brew install googletest`).
+        if(NOT GTEST_FOUND AND NOT DEFINED ENV{GTEST_ROOT} AND NOT EXISTS "/usr/lib/libgtest.a")
+            message(STATUS "GTest not found; fetching googletest via FetchContent")
+            include(FetchContent)
+            FetchContent_Declare(
+                googletest
+                GIT_REPOSITORY https://github.com/google/googletest.git
+                GIT_TAG v1.14.0
+            )
+            # Prevent googletest from overriding our compiler/linker options on Windows
+            set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+            FetchContent_MakeAvailable(googletest)
+            set(NES_USE_FETCHED_GTEST ON)
+        endif()
+
         # Function to add test executables
         function(add_cpu_test test_name test_file)
             add_executable(${test_name} ${test_file})
             target_link_libraries(${test_name} cpu_core)
 
-            if(GTEST_FOUND)
+            if(NES_USE_FETCHED_GTEST)
+                target_link_libraries(${test_name} GTest::gtest GTest::gtest_main)
+                if(UNIX)
+                    target_link_libraries(${test_name} pthread)
+                endif()
+            elseif(GTEST_FOUND)
                 target_include_directories(${test_name} PRIVATE ${GTEST_INCLUDE_DIRS})
                 target_link_libraries(${test_name} ${GTEST_BOTH_LIBRARIES})
                 if(UNIX)
