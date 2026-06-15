@@ -897,6 +897,30 @@ void CPU::trigger_nmi() {
   _cycles = 7;
 }
 
+bool CPU::trigger_irq() {
+  // Maskable: ignored while the interrupt-disable flag is set.
+  if (get_flag(Flag::INTERRUPT_DISABLE)) return false;
+
+  write_byte(0x0100 + _SP, (_PC >> 8) & 0xFF);
+  _SP--;
+  write_byte(0x0100 + _SP, _PC & 0xFF);
+  _SP--;
+
+  u8 status_to_push = (_status | (u8)Flag::UNUSED) & ~(u8)Flag::BREAK;
+  write_byte(0x0100 + _SP, status_to_push);
+  _SP--;
+
+  set_flag(Flag::INTERRUPT_DISABLE, true);
+
+  // Load PC from the IRQ/BRK vector $FFFE (low) / $FFFF (high).
+  u16 low_byte = read_byte(0xFFFE);
+  u16 high_byte = read_byte(0xFFFF);
+  _PC = (high_byte << 8) | low_byte;
+
+  _cycles = 7;
+  return true;
+}
+
 // Flag operations
 void CPU::op_clc() { set_flag(Flag::CARRY, false); }
 void CPU::op_cld() { set_flag(Flag::DECIMAL, false); }

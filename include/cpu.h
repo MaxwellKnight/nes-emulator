@@ -147,6 +147,7 @@ class CPU {
   void clock();
   void reset();
   void trigger_nmi();  // Non-maskable interrupt entry: push PC+status, jump to $FFFA/$FFFB.
+  bool trigger_irq();  // Maskable interrupt via $FFFE/$FFFF. Returns false (no-op) if I set.
 
   // Getters
   u8 get_accumulator() const;

@@ -108,10 +108,20 @@ u16 PPU::nt_index(u16 addr, u16& offset) const {
   Cartridge::MirrorMode mode =
       _cartridge ? _cartridge->mirror_mode() : Cartridge::MirrorMode::HORIZONTAL;
   u16 table;
-  if (mode == Cartridge::MirrorMode::VERTICAL) {
-    table = (addr >> 10) & 1;
-  } else {  // HORIZONTAL
-    table = (addr >> 11) & 1;
+  switch (mode) {
+    case Cartridge::MirrorMode::VERTICAL:
+      table = (addr >> 10) & 1;
+      break;
+    case Cartridge::MirrorMode::SINGLE_LO:
+      table = 0;  // both logical nametables map to physical table 0
+      break;
+    case Cartridge::MirrorMode::SINGLE_HI:
+      table = 1;
+      break;
+    case Cartridge::MirrorMode::HORIZONTAL:
+    default:
+      table = (addr >> 11) & 1;
+      break;
   }
   return table;
 }
@@ -220,6 +230,12 @@ void PPU::clock() {
       if (_dot == 257) copy_x();
     }
     if (_scanline == 261 && _dot >= 280 && _dot <= 304) copy_y();
+
+    // Pulse the mapper's scanline IRQ counter once per line (approximating the
+    // PPU A12 rising edge that drives the MMC3 counter).
+    if (_dot == 260 && (_scanline < 240 || _scanline == 261)) {
+      if (_cartridge) _cartridge->signal_scanline();
+    }
   }
 }
 

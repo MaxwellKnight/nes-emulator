@@ -23,6 +23,10 @@ set(SOURCES
     src/cartridge.cpp
     src/mapper.cpp
     src/mapper_zero.cpp
+    src/mapper_mmc1.cpp
+    src/mapper_uxrom.cpp
+    src/mapper_cnrom.cpp
+    src/mapper_mmc3.cpp
     src/debugger.cpp
     src/palette.cpp
 )
@@ -173,5 +177,6 @@ else()
         add_cpu_test(cartridge_test_ines tests/cartridge_test_ines.cpp)
         add_cpu_test(debugger_test_rom_boot tests/debugger_test_rom_boot.cpp)
         add_cpu_test(controller_test tests/controller_test.cpp)
+        add_cpu_test(mapper_test tests/mapper_test.cpp)
     endif()
 endif()

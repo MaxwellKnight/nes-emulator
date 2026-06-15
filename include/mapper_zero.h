@@ -10,7 +10,7 @@ class MapperZero : public Mapper {
  public:
   bool cpu_read(u16 address, u32& mapped) const override;
   bool ppu_read(u16 address, u32& mapped) const override;
-  bool cpu_write(u16 address, u32& mapped) override;
+  bool cpu_write(u16 address, u8 value, u32& mapped) override;
   bool ppu_write(u16 address, u32& mapped) override;
 };
 };  // namespace nes

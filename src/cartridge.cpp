@@ -1,6 +1,10 @@
 #include "cartridge.h"
 #include <fstream>
 #include <memory>
+#include "mapper_cnrom.h"
+#include "mapper_mmc1.h"
+#include "mapper_mmc3.h"
+#include "mapper_uxrom.h"
 #include "mapper_zero.h"
 
 namespace nes {
@@ -57,8 +61,13 @@ Cartridge::Cartridge(const std::string& file) {
 }
 
 bool Cartridge::cpu_read(u16 address, u8& data) const {
+  // PRG-RAM / save RAM at $6000-$7FFF for mappers that provide it.
+  if (address >= 0x6000 && address <= 0x7FFF && !_prg_ram.empty()) {
+    data = _prg_ram[address & 0x1FFF];
+    return true;
+  }
   u32 mapped_addr = 0x00;
-  if (_mapper->cpu_read(address, mapped_addr)) {
+  if (_mapper->cpu_read(address, mapped_addr) && mapped_addr < _prg_memory.size()) {
     data = _prg_memory[mapped_addr];
     return true;
   }
@@ -67,7 +76,7 @@ bool Cartridge::cpu_read(u16 address, u8& data) const {
 
 bool Cartridge::ppu_read(u16 address, u8& data) const {
   u32 mapped_addr = 0x00;
-  if (_mapper->ppu_read(address, mapped_addr)) {
+  if (_mapper->ppu_read(address, mapped_addr) && mapped_addr < _chr_memory.size()) {
     data = _chr_memory[mapped_addr];
     return true;
   }
@@ -75,30 +84,53 @@ bool Cartridge::ppu_read(u16 address, u8& data) const {
 }
 
 bool Cartridge::cpu_write(u16 address, u8 value) {
+  // PRG-RAM / save RAM at $6000-$7FFF.
+  if (address >= 0x6000 && address <= 0x7FFF && !_prg_ram.empty()) {
+    _prg_ram[address & 0x1FFF] = value;
+    return true;
+  }
+  // $8000-$FFFF writes are usually mapper-register writes (the mapper updates
+  // bank state and returns false); only writable PRG-ROM returns a mapped offset.
   u32 mapped_addr = 0x00;
-  if (_mapper->cpu_write(address, mapped_addr)) {
-    _prg_memory[mapped_addr] = value;
+  if (_mapper->cpu_write(address, value, mapped_addr)) {
+    if (mapped_addr < _prg_memory.size()) _prg_memory[mapped_addr] = value;
     return true;
   }
   return false;
 }
 
 bool Cartridge::ppu_write(u16 address, u8 value) {
-  u32 mapped_addr = 0x00;
-  if (_mapper->ppu_write(address, mapped_addr)) {
-    _chr_memory[mapped_addr] = value;
-    return true;
-  }
-  // CHR-RAM: the mapper declines CHR writes, but RAM-backed CHR must accept
-  // writes to the pattern-table region ($0000-$1FFF).
-  if (_chr_is_ram && address <= 0x1FFF && address < _chr_memory.size()) {
-    _chr_memory[address] = value;
-    return true;
+  // Only RAM-backed CHR is writable; use the mapper's banked offset.
+  if (_chr_is_ram && address <= 0x1FFF) {
+    u32 mapped_addr = address;
+    _mapper->ppu_read(address, mapped_addr);  // resolve banked CHR-RAM offset
+    if (mapped_addr < _chr_memory.size()) {
+      _chr_memory[mapped_addr] = value;
+      return true;
+    }
   }
   return false;
 }
 
-Cartridge::MirrorMode Cartridge::mirror_mode() const { return _mirror; }
+Cartridge::MirrorMode Cartridge::mirror_mode() const {
+  switch (_mapper ? _mapper->mirror() : -1) {
+    case 0: return MirrorMode::HORIZONTAL;
+    case 1: return MirrorMode::VERTICAL;
+    case 2: return MirrorMode::SINGLE_LO;
+    case 3: return MirrorMode::SINGLE_HI;
+    default: return _mirror;  // -1: use the iNES header value
+  }
+}
+
+void Cartridge::signal_scanline() {
+  if (_mapper) _mapper->scanline();
+}
+bool Cartridge::irq_pending() const {
+  return _mapper && _mapper->irq_pending();
+}
+void Cartridge::irq_clear() {
+  if (_mapper) _mapper->irq_clear();
+}
 
 std::shared_ptr<Cartridge> Cartridge::from_ines(const std::vector<u8>& bytes,
                                                 int& out_status) {
@@ -120,9 +152,9 @@ std::shared_ptr<Cartridge> Cartridge::from_ines(const std::vector<u8>& bytes,
     return nullptr;
   }
 
-  // Mapper number must be 0 (NROM).
+  // Supported mappers: 0 NROM, 1 MMC1, 2 UxROM, 3 CNROM, 4 MMC3.
   const u8 mapper = (flags7 & 0xF0) | (flags6 >> 4);
-  if (mapper != 0) {
+  if (mapper != 0 && mapper != 1 && mapper != 2 && mapper != 3 && mapper != 4) {
     out_status = 2;
     return nullptr;
   }
@@ -162,8 +194,26 @@ std::shared_ptr<Cartridge> Cartridge::from_ines(const std::vector<u8>& bytes,
     cart->_chr_is_ram = false;
   }
 
-  cart->_mapper = std::make_shared<MapperZero>(cart->_prg_banks,
-                                               cart->_chr_banks);
+  // MMC1 and MMC3 boards carry 8KB of work/save RAM at $6000-$7FFF.
+  if (mapper == 1 || mapper == 4) cart->_prg_ram.assign(8192, 0);
+
+  switch (mapper) {
+    case 1:
+      cart->_mapper = std::make_shared<MapperMMC1>(prg_banks, chr_banks);
+      break;
+    case 2:
+      cart->_mapper = std::make_shared<MapperUxROM>(prg_banks, chr_banks);
+      break;
+    case 3:
+      cart->_mapper = std::make_shared<MapperCNROM>(prg_banks, chr_banks);
+      break;
+    case 4:
+      cart->_mapper = std::make_shared<MapperMMC3>(prg_banks, chr_banks);
+      break;
+    default:
+      cart->_mapper = std::make_shared<MapperZero>(prg_banks, chr_banks);
+      break;
+  }
   out_status = 0;
   return cart;
 }

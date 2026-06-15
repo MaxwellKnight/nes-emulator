@@ -19,6 +19,11 @@ void Bus::clock() {
   if (_ppu.take_nmi()) {
     _cpu.trigger_nmi();
   }
+  // Deliver a pending mapper IRQ (MMC3). If the CPU has interrupts masked the
+  // request stays pending until the I flag clears (level-triggered).
+  if (_cartridge && _cartridge->irq_pending()) {
+    if (_cpu.trigger_irq()) _cartridge->irq_clear();
+  }
   _sys_clock++;
 }
 void Bus::reset() {
