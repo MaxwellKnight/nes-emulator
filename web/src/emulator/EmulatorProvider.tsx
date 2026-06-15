@@ -103,6 +103,16 @@ export function EmulatorProvider(props: {
         dbgRef.current = bridge;
         setDbg(bridge);
         setSnapshot(bridge.getSnapshot());
+        // Publish the framebuffer once at load so the Screen shows the PPU's
+        // current output (or the DEV demo image) at idle — the run loop only
+        // calls onFrame while running, so without this the canvas stays black
+        // until the user hits Run. Copy out of the heap view (it's reused).
+        try {
+          const fb = bridge.getFramebuffer();
+          setFramebuffer(new Uint8ClampedArray(fb));
+        } catch {
+          /* no framebuffer export (stale build) — leave canvas blank */
+        }
         setStatus("ready");
       })
       .catch(() => {
