@@ -20,6 +20,7 @@ class Bus {
   void clock();
   void reset();
   CPU& get_cpu();
+  PPU& get_ppu();
   void insert_cartridge(const std::shared_ptr<Cartridge>& cartridge);
 
  private:

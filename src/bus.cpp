@@ -8,14 +8,22 @@ Bus::Bus()
 
 void Bus::clock() {
   _cpu.clock();
+  _ppu.clock();
+  _ppu.clock();
+  _ppu.clock();
+  if (_ppu.take_nmi()) {
+    _cpu.trigger_nmi();
+  }
   _sys_clock++;
 }
 void Bus::reset() {
   _sys_clock = 0;
   _cpu.reset();
+  _ppu.reset();
 }
 
 CPU& Bus::get_cpu() { return _cpu; }
+PPU& Bus::get_ppu() { return _ppu; }
 void Bus::insert_cartridge(const std::shared_ptr<Cartridge>& cartridge) {
   _cartridge = cartridge;
   _ppu.insert_cartridge(cartridge);
@@ -27,6 +35,8 @@ void Bus::cpu_write(u16 address, u8 value) {
     _ram[address & 0x07FF] = value;
   } else if (address >= 0x2000 && address <= 0x3FFF) {
     _ppu.cpu_write(address & 0x0007, value);
+  } else if (address == 0x4014) {
+    // OAMDMA stub — implemented in Phase 2 (sprites). No-op for now.
   }
 }
 

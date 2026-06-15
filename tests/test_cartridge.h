@@ -21,13 +21,19 @@ class MockCartridge : public nes::Cartridge {
   }
 
   bool cpu_read(u16 address, u8& data) const override {
-    data = _mem[address];
-    return true;
+    if (address >= 0x8000) {
+      data = _mem[address];
+      return true;
+    }
+    return false;
   }
 
   bool cpu_write(u16 address, u8 value) override {
-    _mem[address] = value;
-    return true;
+    if (address >= 0x8000) {
+      _mem[address] = value;
+      return true;
+    }
+    return false;
   }
 
  private:
