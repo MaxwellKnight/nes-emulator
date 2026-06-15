@@ -139,24 +139,27 @@ body {
 /* ---------- themed thin scrollbars for the scrollable panels ---------- */
 .nes-scroll {
   scrollbar-width: thin;
-  scrollbar-color: var(--b3) transparent;
+  scrollbar-color: rgba(255, 255, 255, 0.13) transparent;
 }
 .nes-scroll::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 11px;
+  height: 11px;
 }
 .nes-scroll::-webkit-scrollbar-track {
   background: transparent;
 }
 .nes-scroll::-webkit-scrollbar-thumb {
-  background: var(--b3);
+  background: rgba(255, 255, 255, 0.13);
   border-radius: 999px;
-  border: 2px solid transparent;
+  border: 3px solid transparent;
   background-clip: padding-box;
 }
 .nes-scroll::-webkit-scrollbar-thumb:hover {
-  background: var(--bd2);
+  background: rgba(255, 255, 255, 0.24);
   background-clip: padding-box;
+}
+.nes-scroll::-webkit-scrollbar-corner {
+  background: transparent;
 }
 
 /* ---------- keyframes (transform/opacity/colour only — no glow) ---------- */
@@ -291,19 +294,6 @@ body {
 }
 .press:active:not(:disabled) {
   transform: scale(0.97);
-}
-
-/* bottom fade applied to the scroll wells (Disassembly, Memory) */
-.scroll-fade {
-  position: absolute;
-  left: 1px;
-  right: 1px;
-  bottom: 1px;
-  height: 18px;
-  background: linear-gradient(transparent, var(--b1));
-  pointer-events: none;
-  z-index: 1;
-  border-radius: 0 0 var(--radius) var(--radius);
 }
 
 /* respect reduced-motion: drop all the non-essential motion */

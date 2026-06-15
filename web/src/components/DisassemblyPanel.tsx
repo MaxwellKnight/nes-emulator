@@ -84,7 +84,6 @@ export function DisassemblyPanel({
               );
             })}
           </div>
-          <div className="scroll-fade" />
         </>
       )}
     </Module>

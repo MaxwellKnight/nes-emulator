@@ -37,9 +37,7 @@ export function Module({
 }: ModuleProps): JSX.Element {
   return (
     <section
-      className={["module tile-reveal overflow-hidden", className]
-        .filter(Boolean)
-        .join(" ")}
+      className={["module tile-reveal", className].filter(Boolean).join(" ")}
       style={
         revealDelay !== undefined
           ? { animationDelay: `${revealDelay}ms` }

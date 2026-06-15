@@ -57,7 +57,10 @@ export function MemoryPanel({
   // contiguous from the current base address (continues past page boundaries).
   const scrollRef = useRef<HTMLDivElement>(null);
   const fillRows = useFillRows(scrollRef, ROW_PX, 16);
-  const { rows } = useMemory(page, fillRows);
+  // Render a couple extra rows beyond the measured fit (one is consumed by the
+  // sticky column header, plus rounding slack) so the well is always full to
+  // the edge; overflow is hidden, so Memory never shows a scrollbar.
+  const { rows } = useMemory(page, fillRows + 2);
 
   const selectedPreset =
     MEMORY_PAGES.find((p) => p.start === page.start)?.id ?? "";
@@ -142,7 +145,7 @@ export function MemoryPanel({
         ref={scrollRef}
         data-running={String(running)}
         className={[
-          "nes-scroll relative min-h-0 flex-1 overflow-auto",
+          "relative min-h-0 flex-1 overflow-hidden",
           running ? "cursor-default select-none opacity-90 saturate-[0.7]" : "",
         ].join(" ")}
       >
@@ -209,7 +212,6 @@ export function MemoryPanel({
             ))}
           </tbody>
         </table>
-        <div className="scroll-fade" />
       </div>
 
       <MemoryEditModal
