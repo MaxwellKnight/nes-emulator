@@ -18,12 +18,10 @@ function fmt(n: number): string {
 
 interface SegButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   primary?: boolean;
-  pulse?: boolean;
 }
 
 function SegButton({
   primary = false,
-  pulse = false,
   className = "",
   children,
   ...rest
@@ -32,11 +30,10 @@ function SegButton({
     <button
       type="button"
       className={[
-        "press border-r border-[var(--bd)] px-[11px] py-[5px] text-[10px] font-medium last:border-r-0 disabled:cursor-not-allowed disabled:opacity-40",
+        "press border-r border-[var(--bd)] px-[12px] py-[5px] text-[10px] font-medium last:border-r-0 disabled:cursor-not-allowed disabled:opacity-40",
         primary
-          ? "bg-[var(--acc)] font-semibold text-white shadow-[var(--glow)] hover:bg-[var(--acc-hi)]"
+          ? "bg-[var(--acc)] font-semibold text-white hover:bg-[var(--acc2)]"
           : "text-[var(--tx)] hover:bg-[var(--b3)]",
-        pulse ? "glow-pulse" : "",
         className,
       ]
         .filter(Boolean)
@@ -90,10 +87,8 @@ export function Toolbar({ romName, onHelp, onLoadCode }: ToolbarProps): JSX.Elem
         data-running={String(running)}
         aria-hidden
         className={[
-          "h-[9px] w-[9px] shrink-0 rounded-full transition-colors duration-[var(--dur)]",
-          running
-            ? "run-dot-pulse bg-[var(--grn)] shadow-[0_0_8px_var(--grn)]"
-            : "bg-[var(--tx-dim)]",
+          "h-[7px] w-[7px] shrink-0 rounded-full transition-colors duration-[var(--dur)]",
+          running ? "run-dot-pulse bg-[var(--grn)]" : "bg-[var(--dim)]",
         ].join(" ")}
       />
       <span className="font-sans text-[13px] font-bold leading-none tracking-[0.4px] text-[var(--tx)]">
@@ -114,12 +109,7 @@ export function Toolbar({ romName, onHelp, onLoadCode }: ToolbarProps): JSX.Elem
         aria-label="Execution controls"
         className="ml-2 flex overflow-hidden rounded-lg border border-[var(--bd-strong)]"
       >
-        <SegButton
-          primary
-          pulse={running}
-          onClick={actions.run}
-          disabled={running}
-        >
+        <SegButton primary onClick={actions.run} disabled={running}>
           ▶ Run
         </SegButton>
         <SegButton onClick={actions.step} disabled={running}>

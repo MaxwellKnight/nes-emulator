@@ -20,7 +20,7 @@ export function AppShell(): JSX.Element {
     return (
       <div
         data-testid="app-loading"
-        className="flex h-[100dvh] items-center justify-center bg-[var(--b0)] font-sans text-[var(--tx-mut)]"
+        className="flex h-[100dvh] items-center justify-center bg-[var(--b0)] font-sans text-[var(--mut)]"
       >
         <span className="run-dot-pulse mr-2 inline-block h-[9px] w-[9px] rounded-full bg-[var(--acc)]" />
         Loading emulator…
@@ -34,11 +34,11 @@ export function AppShell(): JSX.Element {
         data-testid="app-error"
         className="flex h-[100dvh] items-center justify-center bg-[var(--b0)] p-6"
       >
-        <section className="tile-reveal max-w-sm rounded-[var(--radius)] border border-[var(--bd-strong)] bg-[var(--b1)] p-6 shadow-[var(--glow)]">
+        <section className="tile-reveal max-w-sm rounded-[var(--radius)] border border-[var(--bd2)] bg-[var(--b1)] p-6">
           <h1 className="mb-2 font-sans text-[15px] font-semibold text-[var(--tx)]">
             Failed to load emulator
           </h1>
-          <p className="mb-4 text-[12px] text-[var(--tx-mut)]">
+          <p className="mb-4 text-[12px] text-[var(--mut)]">
             The WebAssembly core could not be loaded.
           </p>
           <Button variant="primary" onClick={() => window.location.reload()}>
@@ -57,42 +57,34 @@ export function AppShell(): JSX.Element {
       />
 
       <main
-        data-testid="bento-grid"
-        className="grid min-h-0 flex-1 gap-[10px] p-[10px]"
-        style={{
-          gridTemplateColumns: "286px 1.5fr 1.35fr",
-          gridTemplateRows: "212px 1fr",
-        }}
+        data-testid="cockpit"
+        className="flex min-h-0 flex-1 flex-col gap-[12px] p-[12px]"
       >
-        {/* col 1, row 1 */}
-        <ScreenPanel />
-        {/* col 1, row 2 */}
-        <CpuStatePanel
-          revealDelay={50}
-          className="col-start-1 row-start-2"
-        />
-        {/* col 2, spans both rows — the glowing hero */}
-        <DisassemblyPanel
-          revealDelay={100}
-          className="col-start-2 row-span-2 row-start-1"
-        />
-        {/* col 3, row 1 */}
-        <MemoryPanel
-          revealDelay={150}
-          className="col-start-3 row-start-1"
-        />
-        {/* col 3, row 2 */}
-        <BreakpointsPanel
-          revealDelay={200}
-          className="col-start-3 row-start-2"
-        />
+        {/* CPU readout strip — full width, fixed band */}
+        <CpuStatePanel revealDelay={0} className="h-[96px] flex-none" />
+
+        {/* main grid — fills remaining height */}
+        <div
+          data-testid="cockpit-grid"
+          className="grid min-h-0 flex-1 gap-[12px]"
+          style={{ gridTemplateColumns: "1.35fr 1fr 1.18fr" }}
+        >
+          {/* left column: Screen (hero) over Breakpoints (compact) */}
+          <div className="flex min-h-0 flex-col gap-[12px]">
+            <ScreenPanel revealDelay={50} className="min-h-0 flex-1" />
+            <BreakpointsPanel revealDelay={100} className="h-[148px] flex-none" />
+          </div>
+
+          {/* middle: Disassembly (full height, fills rows) */}
+          <DisassemblyPanel revealDelay={150} className="min-h-0" />
+
+          {/* right: Memory (full height, fills rows) */}
+          <MemoryPanel revealDelay={200} className="min-h-0" />
+        </div>
       </main>
 
       <HelpModal open={helpOpen} onClose={() => setHelpOpen(false)} />
-      <LoadCodeModal
-        open={loadCodeOpen}
-        onClose={() => setLoadCodeOpen(false)}
-      />
+      <LoadCodeModal open={loadCodeOpen} onClose={() => setLoadCodeOpen(false)} />
       <Toaster />
     </div>
   );

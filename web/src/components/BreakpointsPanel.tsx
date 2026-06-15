@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { useEmulator } from "../emulator/EmulatorProvider";
 import { useToast } from "./toast/ToastProvider";
-import { Tile } from "./ui/Tile";
+import { Module } from "./ui/Module";
 
 function hex4(value: number): string {
   return `$${value.toString(16).toUpperCase().padStart(4, "0")}`;
@@ -59,13 +59,18 @@ export function BreakpointsPanel({
   };
 
   return (
-    <Tile
+    <Module
       title="Breakpoints"
+      status={
+        sorted.length > 0 ? (
+          <span data-testid="breakpoint-count">{sorted.length} set</span>
+        ) : undefined
+      }
       revealDelay={revealDelay}
       className={className}
       bodyClassName="nes-scroll overflow-auto"
     >
-      <div className="mb-[7px] flex gap-[6px]">
+      <div className="mb-[8px] flex gap-[7px]">
         <input
           data-testid="breakpoint-input"
           value={input}
@@ -119,6 +124,6 @@ export function BreakpointsPanel({
           ))}
         </ul>
       )}
-    </Tile>
+    </Module>
   );
 }

@@ -42,10 +42,8 @@ function Led({
       data-set={String(set)}
       title={`${label === "–" ? "Unused" : label} flag is ${set ? "set" : "clear"}`}
       className={[
-        "flex h-[17px] w-[17px] items-center justify-center rounded-[5px] font-mono text-[9px] font-bold transition-[background-color,box-shadow,color] duration-[var(--dur)]",
-        set
-          ? "bg-[var(--acc)] text-white shadow-[var(--glow)]"
-          : "bg-[var(--b3)] text-[var(--tx-dim)]",
+        "flex h-[26px] w-[26px] items-center justify-center rounded-[5px] border border-transparent font-mono text-[10px] font-bold transition-[background-color,color] duration-[var(--dur)]",
+        set ? "bg-[var(--acc)] text-white" : "bg-[var(--b3)] text-[var(--dim)]",
         pop ? "led-pop" : "",
       ]
         .filter(Boolean)
