@@ -61,7 +61,7 @@ export function AppShell(): JSX.Element {
         className="flex min-h-0 flex-1 flex-col gap-[12px] p-[12px]"
       >
         {/* CPU readout strip — full width, fixed band */}
-        <CpuStatePanel revealDelay={0} className="h-[96px] flex-none" />
+        <CpuStatePanel revealDelay={0} className="h-[118px] flex-none" />
 
         {/* main grid — fills remaining height */}
         <div

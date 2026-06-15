@@ -1,9 +1,9 @@
 import React from "react";
 
 export interface ModuleProps {
-  /** Uppercase legend label cut into the top border (Outfit, with accent square). */
+  /** Uppercase header label (Outfit, with a small accent square). */
   title: string;
-  /** Optional content rendered on the right edge of the top border (e.g. ● live). */
+  /** Optional content rendered on the right of the header (e.g. ● live). */
   status?: React.ReactNode;
   /** Page-load staggered reveal delay in ms. */
   revealDelay?: number;
@@ -16,15 +16,15 @@ export interface ModuleProps {
   children: React.ReactNode;
 }
 
+/** Fixed header height shared by every module so they all line up. */
+const HEADER_H = "h-[30px]";
+
 /**
- * A "module": a framed panel whose title is cut into its top border as a
- * legend (a small uppercase Outfit label with a tiny accent square, painted
- * over the border using the page background). No header bar, no border-bottom
- * divider — uniform on every module. An optional right-side status sits on the
- * border too. Hierarchy comes from the 1px border + typography, never glow.
- *
- * min-height:0 + overflow-hidden so internal scrollers work inside the fixed
- * viewport.
+ * A framed panel with a consistent card header: a fixed-height row holding the
+ * uppercase title (with a small accent square) and an optional right-aligned
+ * status. There is deliberately NO header border-bottom — separation comes from
+ * the header's height + typography, never a divider rule or glow. Every module
+ * uses the same header height so the grid lines up.
  */
 export function Module({
   title,
@@ -37,21 +37,35 @@ export function Module({
 }: ModuleProps): JSX.Element {
   return (
     <section
-      className={["module tile-reveal", className].filter(Boolean).join(" ")}
+      className={["module tile-reveal overflow-hidden", className]
+        .filter(Boolean)
+        .join(" ")}
       style={
         revealDelay !== undefined
           ? { animationDelay: `${revealDelay}ms` }
           : undefined
       }
     >
-      <span className="module-legend">{title}</span>
-      {status !== undefined && status !== null ? (
-        <span className="module-status">{status}</span>
-      ) : null}
+      <header
+        className={`flex ${HEADER_H} flex-none items-center justify-between gap-2 px-[12px]`}
+      >
+        <span className="flex items-center gap-[7px] font-sans text-[9px] font-semibold uppercase leading-none tracking-[0.16em] text-[var(--mut)]">
+          <span
+            aria-hidden
+            className="h-[5px] w-[5px] flex-none rounded-[1px] bg-[var(--acc)]"
+          />
+          {title}
+        </span>
+        {status !== undefined && status !== null ? (
+          <span className="font-mono text-[9px] leading-none text-[var(--dim)]">
+            {status}
+          </span>
+        ) : null}
+      </header>
       <div
         className={[
-          "relative flex min-h-0 flex-1 flex-col overflow-hidden rounded-[var(--radius)]",
-          flush ? "" : "p-[11px]",
+          "relative flex min-h-0 flex-1 flex-col",
+          flush ? "" : "px-[11px] pb-[11px]",
           bodyClassName,
         ]
           .filter(Boolean)

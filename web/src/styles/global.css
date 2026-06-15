@@ -82,11 +82,11 @@ body {
   border-radius: var(--radius-sm);
 }
 
-/* ---------- the "module" framing: title cut into the top border ----------
- * A legend is positioned on the top border and masks the border behind it by
- * painting the page background. No header bars, no border-bottom dividers. */
+/* ---------- the "module": a framed card with a fixed-height header row ----------
+ * The header (title + optional status) lives in ui/Module.tsx. There is NO
+ * header border-bottom — separation comes from the header height + typography,
+ * never a divider rule or glow. Every module shares the same header height. */
 .module {
-  position: relative;
   display: flex;
   flex-direction: column;
   min-height: 0;
@@ -94,46 +94,6 @@ body {
   border: 1px solid var(--bd);
   border-radius: var(--radius);
   background: var(--b1);
-}
-.module-legend,
-.module-status {
-  position: absolute;
-  top: 0;
-  transform: translateY(-50%);
-  background: var(--legend-bg);
-  padding: 0 9px;
-  z-index: 2;
-  white-space: nowrap;
-  pointer-events: none;
-}
-.module-legend {
-  left: 14px;
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  font-family: var(--font-ui);
-  font-weight: 600;
-  font-size: 9px;
-  line-height: 1;
-  letter-spacing: 0.17em;
-  text-transform: uppercase;
-  color: var(--mut);
-}
-.module-legend::before {
-  content: "";
-  width: 5px;
-  height: 5px;
-  background: var(--acc);
-  border-radius: 1px;
-}
-.module-status {
-  right: 14px;
-  font-family: var(--font-mono);
-  font-size: 9px;
-  color: var(--dim);
-}
-.module-status > * {
-  pointer-events: auto;
 }
 
 /* ---------- themed thin scrollbars for the scrollable panels ---------- */

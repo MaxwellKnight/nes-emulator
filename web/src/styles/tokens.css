@@ -10,20 +10,20 @@
  * tokens so the whole component tree resolves consistently.
  */
 :root {
-  /* surfaces */
-  --b0: #0b0c10;
-  --b1: #13151b;
-  --b2: #1a1d25;
-  --b3: #222631;
+  /* surfaces — the page sits clearly below the cards for separation */
+  --b0: #07080b; /* page / gutter (near-black) */
+  --b1: #171a22; /* card surface — a visible step up from the page */
+  --b2: #20242e; /* inset wells (inputs, chips) */
+  --b3: #2c313d; /* quiet fills / scrollbar thumb */
 
-  /* borders */
-  --bd: rgba(255, 255, 255, 0.08);
-  --bd2: rgba(255, 255, 255, 0.15);
+  /* borders — a touch stronger so card edges read against the page */
+  --bd: rgba(255, 255, 255, 0.11);
+  --bd2: rgba(255, 255, 255, 0.2);
 
-  /* text */
-  --tx: #eef1f8;
-  --mut: #7c8398;
-  --dim: #4e5567;
+  /* text — brighter secondary tiers so data stays readable */
+  --tx: #f1f3f9;
+  --mut: #969db2;
+  --dim: #6a7286;
 
   /* accent + semantic */
   --acc: #7e85f2;
