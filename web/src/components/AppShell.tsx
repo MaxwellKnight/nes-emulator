@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useEmulator } from "../emulator/EmulatorProvider";
 import { Toolbar } from "./Toolbar";
 import { ScreenPanel } from "./ScreenPanel";
+import { PpuViewer } from "./PpuViewer";
 import { CpuStatePanel } from "./CpuStatePanel";
 import { DisassemblyPanel } from "./DisassemblyPanel";
 import { BreakpointsPanel } from "./BreakpointsPanel";
@@ -12,9 +13,10 @@ import { Toaster } from "./toast/Toaster";
 import { Button } from "./ui/Button";
 
 export function AppShell(): JSX.Element {
-  const { status, framebuffer } = useEmulator();
+  const { status, framebuffer, dbg } = useEmulator();
   const [helpOpen, setHelpOpen] = useState(false);
   const [loadCodeOpen, setLoadCodeOpen] = useState(false);
+  const [ppuOpen, setPpuOpen] = useState(false);
 
   if (status === "loading") {
     return (
@@ -69,10 +71,32 @@ export function AppShell(): JSX.Element {
           className="grid min-h-0 flex-1 gap-[12px]"
           style={{ gridTemplateColumns: "1.35fr 1fr 1.18fr" }}
         >
-          {/* left column: Screen (hero) over Breakpoints (compact) */}
+          {/* left column: Screen (hero) over Breakpoints/PPU (compact) */}
           <div className="flex min-h-0 flex-col gap-[12px]">
-            <ScreenPanel framebuffer={framebuffer} revealDelay={50} className="min-h-0 flex-1" />
-            <BreakpointsPanel revealDelay={100} className="h-[148px] flex-none" />
+            <ScreenPanel
+              framebuffer={framebuffer}
+              revealDelay={50}
+              className="min-h-0 flex-1"
+            />
+            <div className="flex justify-end">
+              <button
+                type="button"
+                data-testid="ppu-debug-toggle"
+                aria-pressed={ppuOpen}
+                onClick={() => setPpuOpen((v) => !v)}
+                className="press rounded-md border border-[var(--bd-strong)] bg-[var(--b2)] px-[9px] py-[4px] text-[10px] text-[var(--tx)] hover:bg-[var(--b3)]"
+              >
+                {ppuOpen ? "Hide PPU Debug" : "Show PPU Debug"}
+              </button>
+            </div>
+            {ppuOpen ? (
+              <PpuViewer dbg={dbg} revealDelay={120} className="flex-none" />
+            ) : (
+              <BreakpointsPanel
+                revealDelay={100}
+                className="h-[148px] flex-none"
+              />
+            )}
           </div>
 
           {/* middle: Disassembly (full height, fills rows) */}
