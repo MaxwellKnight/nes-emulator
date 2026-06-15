@@ -1,4 +1,5 @@
 #include "ppu.h"
+#include "palette.h"
 
 namespace nes {
 
@@ -221,11 +222,62 @@ void PPU::clock() {
   }
 }
 
-void PPU::render_scanline(u16 line) { (void)line; }
+// --- Scanline background renderer -----------------------------------------
+void PPU::render_scanline(u16 line) {
+  // BG disabled: fill the line with the backdrop color.
+  if (!(_mask & 0x08)) {
+    u32 backdrop = palette_rgba(_palette[0] & 0x3F);
+    for (int x = 0; x < 256; x++) _framebuffer[line * 256 + x] = backdrop;
+    return;
+  }
+
+  u16 bg_base = (_ctrl & 0x10) ? 0x1000 : 0x0000;
+  for (int x = 0; x < 256; x++) {
+    // Fetch nametable tile id for the current coarse position.
+    u8 tile = ppu_read(0x2000 | (_v & 0x0FFF));
+
+    // Fetch attribute byte and extract the 2-bit palette for this quadrant.
+    u8 attr = ppu_read(0x23C0 | (_v & 0x0C00) | ((_v >> 4) & 0x38) | ((_v >> 2) & 0x07));
+    u8 palette_hi = ((attr >> (((_v >> 4) & 4) | (_v & 2))) & 3) << 2;
+
+    // Fetch the two bitplanes for the current fine-Y row.
+    u16 pat = bg_base | (static_cast<u16>(tile) << 4) | ((_v >> 12) & 7);
+    u8 lo = ppu_read(pat);
+    u8 hi = ppu_read(pat + 8);
+
+    // Select the bit using fine-X within the tile.
+    int bit = 7 - ((x + _x) & 7);
+    u8 pixel2 = static_cast<u8>(((hi >> bit) & 1) << 1) | static_cast<u8>((lo >> bit) & 1);
+
+    u8 color_index = (pixel2 == 0) ? _palette[0] : _palette[(palette_hi | pixel2) & 0x1F];
+    _framebuffer[line * 256 + x] = palette_rgba(color_index & 0x3F);
+
+    // Advance coarse-X every 8 rendered pixels (after the last px of a tile).
+    if (((x + _x) & 7) == 7) inc_coarse_x();
+  }
+}
+
+// --- Pattern-table debug render -------------------------------------------
 void PPU::render_pattern_table(int table, int palette, u32* out) const {
-  (void)table;
-  (void)palette;
-  (void)out;
+  u16 table_base = static_cast<u16>(table & 1) * 0x1000;
+  for (int tile_y = 0; tile_y < 16; tile_y++) {
+    for (int tile_x = 0; tile_x < 16; tile_x++) {
+      int tile = tile_y * 16 + tile_x;
+      u16 tile_base = table_base + static_cast<u16>(tile) * 16;
+      for (int row = 0; row < 8; row++) {
+        u8 lo = ppu_read(tile_base + row);
+        u8 hi = ppu_read(tile_base + 8 + row);
+        for (int col = 0; col < 8; col++) {
+          int bit = 7 - col;
+          u8 pixel2 = static_cast<u8>(((hi >> bit) & 1) << 1) | static_cast<u8>((lo >> bit) & 1);
+          u8 color_index = _palette[((palette << 2) | pixel2) & 0x1F];
+          int px = tile_x * 8 + col;
+          int py = tile_y * 8 + row;
+          out[py * 128 + px] = palette_rgba(color_index & 0x3F);
+        }
+      }
+    }
+  }
 }
 
 bool PPU::take_nmi() {
