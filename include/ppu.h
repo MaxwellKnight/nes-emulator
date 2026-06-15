@@ -41,9 +41,17 @@ class PPU {
   const u8* nametable_ram() const;  // 2048 bytes (&_name[0][0])
   const u8* palette_ram() const;    // 32 bytes
 
+  // Object Attribute Memory (sprites). oam_write() advances OAMADDR (used by
+  // both $2004 and the $4014 DMA copy); oam_read() does not. oam_data() exposes
+  // the raw 256-byte buffer for the debugger's sprite viewer.
+  void oam_write(u8 value);
+  u8 oam_read() const;
+  const u8* oam_data() const;  // 256 bytes (64 sprites x 4)
+
  private:
   u16 nt_index(u16 addr, u16& offset) const;  // returns table; sets offset
   void render_scanline(u16 line);
+  void render_sprites(u16 line, const u8* bg_pix);  // overlay sprites onto line
 
   // loopy scroll helpers
   void inc_coarse_x();
@@ -61,6 +69,7 @@ class PPU {
   u8 _mask = 0;
   mutable u8 _status = 0;
   u8 _oam_addr = 0;
+  u8 _oam[256] = {};  // 64 sprites x 4 bytes (Y, tile, attr, X)
   mutable u8 _data_buffer = 0;
 
   mutable u16 _v = 0;  // current VRAM address (15 bit)

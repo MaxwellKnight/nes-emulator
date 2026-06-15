@@ -3,6 +3,7 @@ import { useEmulator } from "../emulator/EmulatorProvider";
 import { Toolbar } from "./Toolbar";
 import { ScreenPanel } from "./ScreenPanel";
 import { PpuViewer } from "./PpuViewer";
+import { OamViewer } from "./OamViewer";
 import { CpuStatePanel } from "./CpuStatePanel";
 import { DisassemblyPanel } from "./DisassemblyPanel";
 import { BreakpointsPanel } from "./BreakpointsPanel";
@@ -90,7 +91,10 @@ export function AppShell(): JSX.Element {
               </button>
             </div>
             {ppuOpen ? (
-              <PpuViewer dbg={dbg} revealDelay={120} className="flex-none" />
+              <>
+                <PpuViewer dbg={dbg} revealDelay={120} className="flex-none" />
+                <OamViewer dbg={dbg} revealDelay={150} className="flex-none" />
+              </>
             ) : (
               <BreakpointsPanel
                 revealDelay={100}

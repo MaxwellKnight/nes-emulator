@@ -41,7 +41,7 @@ if(EMSCRIPTEN)
 
     # Emscripten-specific flags
     set(EM_LINK_FLAGS
-        "-s WASM=1 -s MODULARIZE=1 -s EXPORT_ES6=1 -s EXPORT_NAME='CPUEmulator' -s ALLOW_MEMORY_GROWTH=1 -s EXPORTED_RUNTIME_METHODS=['ccall','cwrap','UTF8ToString','writeAsciiToMemory','HEAPU8'] -s NO_EXIT_RUNTIME=1 -s EXPORTED_FUNCTIONS=['_debugger_step','_debugger_run','_debugger_stop','_debugger_reset','_debugger_is_running','_debugger_add_breakpoint','_debugger_remove_breakpoint','_debugger_clear_breakpoints','_debugger_get_register_a','_debugger_get_register_x','_debugger_get_register_y','_debugger_get_register_sp','_debugger_get_register_pc','_debugger_get_register_status','_debugger_get_status_flag','_debugger_read_memory','_debugger_write_memory','_debugger_get_instruction_count','_debugger_get_cycle_count','_debugger_set_pc','_debugger_disassemble_around_pc','_debugger_disassemble_range','_load_rom','_get_framebuffer_ptr','_get_framebuffer_len','_get_frame_count','_run_frame','_ppu_render_pattern_table','_get_nametable_ptr','_get_palette_ram_ptr','_ppu_get_ctrl','_ppu_get_mask','_ppu_get_status','_ppu_get_scanline','_malloc','_free']")
+        "-s WASM=1 -s MODULARIZE=1 -s EXPORT_ES6=1 -s EXPORT_NAME='CPUEmulator' -s ALLOW_MEMORY_GROWTH=1 -s EXPORTED_RUNTIME_METHODS=['ccall','cwrap','UTF8ToString','writeAsciiToMemory','HEAPU8'] -s NO_EXIT_RUNTIME=1 -s EXPORTED_FUNCTIONS=['_debugger_step','_debugger_run','_debugger_stop','_debugger_reset','_debugger_is_running','_debugger_add_breakpoint','_debugger_remove_breakpoint','_debugger_clear_breakpoints','_debugger_get_register_a','_debugger_get_register_x','_debugger_get_register_y','_debugger_get_register_sp','_debugger_get_register_pc','_debugger_get_register_status','_debugger_get_status_flag','_debugger_read_memory','_debugger_write_memory','_debugger_get_instruction_count','_debugger_get_cycle_count','_debugger_set_pc','_debugger_disassemble_around_pc','_debugger_disassemble_range','_load_rom','_get_framebuffer_ptr','_get_framebuffer_len','_get_frame_count','_run_frame','_ppu_render_pattern_table','_get_nametable_ptr','_get_palette_ram_ptr','_get_oam_ptr','_ppu_get_ctrl','_ppu_get_mask','_ppu_get_status','_ppu_get_scanline','_malloc','_free']")
 
     # Export main as CPU_wasm
     set_target_properties(cpu_wasm PROPERTIES
@@ -165,10 +165,12 @@ else()
         add_cpu_test(ppu_test_loopy tests/ppu_test_loopy.cpp)
         add_cpu_test(ppu_test_timing tests/ppu_test_timing.cpp)
         add_cpu_test(ppu_test_render tests/ppu_test_render.cpp)
+        add_cpu_test(ppu_test_sprites tests/ppu_test_sprites.cpp)
 
         # PPU foundation tests
         add_cpu_test(palette_test tests/palette_test.cpp)
         add_cpu_test(cpu_test_nmi tests/cpu_test_nmi.cpp)
         add_cpu_test(cartridge_test_ines tests/cartridge_test_ines.cpp)
+        add_cpu_test(debugger_test_rom_boot tests/debugger_test_rom_boot.cpp)
     endif()
 endif()

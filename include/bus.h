@@ -26,6 +26,7 @@ class Bus {
  private:
   static constexpr size_t _CPU_RAM_SIZE = 2 * 1024;  // 2KB
   u32 _sys_clock = 0;
+  int _dma_stall = 0;  // CPU cycles remaining stalled by an OAM ($4014) DMA
   CPU _cpu;
   PPU _ppu;
   std::shared_ptr<Cartridge> _cartridge;

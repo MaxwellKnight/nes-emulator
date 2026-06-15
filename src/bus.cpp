@@ -7,7 +7,12 @@ Bus::Bus()
   , _cartridge(nullptr) {}
 
 void Bus::clock() {
-  _cpu.clock();
+  // While an OAM DMA is in progress the CPU is halted; the PPU keeps running.
+  if (_dma_stall > 0) {
+    _dma_stall--;
+  } else {
+    _cpu.clock();
+  }
   _ppu.clock();
   _ppu.clock();
   _ppu.clock();
@@ -36,7 +41,13 @@ void Bus::cpu_write(u16 address, u8 value) {
   } else if (address >= 0x2000 && address <= 0x3FFF) {
     _ppu.cpu_write(address & 0x0007, value);
   } else if (address == 0x4014) {
-    // OAMDMA stub — implemented in Phase 2 (sprites). No-op for now.
+    // OAMDMA: copy 256 bytes from CPU page $XX00 into PPU OAM (through OAMADDR),
+    // then stall the CPU ~513 cycles while the transfer "runs".
+    u16 base = static_cast<u16>(value) << 8;
+    for (int i = 0; i < 256; i++) {
+      _ppu.oam_write(cpu_read(base + static_cast<u16>(i)));
+    }
+    _dma_stall += 513;
   }
 }
 

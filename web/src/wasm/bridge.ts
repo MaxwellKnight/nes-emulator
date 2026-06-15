@@ -56,6 +56,7 @@ export interface Debugger {
   renderPatternTable(table: number, palette: number): Uint8ClampedArray;
   getNametable(): Uint8Array;
   getPaletteRam(): Uint8Array;
+  getOam(): Uint8Array;
   ppuState(): { ctrl: number; mask: number; status: number; scanline: number };
 }
 
@@ -158,6 +159,7 @@ export function createBridge(module: WasmModule): Debugger {
     "number",
     []
   ) as () => number;
+  const getOamPtr = module.cwrap("get_oam_ptr", "number", []) as () => number;
   const ppuGetCtrl = module.cwrap("ppu_get_ctrl", "number", []) as () => number;
   const ppuGetMask = module.cwrap("ppu_get_mask", "number", []) as () => number;
   const ppuGetStatus = module.cwrap(
@@ -325,6 +327,11 @@ export function createBridge(module: WasmModule): Debugger {
     return new Uint8Array(module.HEAPU8.buffer, ptr, 32);
   }
 
+  function getOam(): Uint8Array {
+    const ptr = getOamPtr();
+    return new Uint8Array(module.HEAPU8.buffer, ptr, 256);
+  }
+
   function ppuState(): {
     ctrl: number;
     mask: number;
@@ -366,6 +373,7 @@ export function createBridge(module: WasmModule): Debugger {
     renderPatternTable,
     getNametable,
     getPaletteRam,
+    getOam,
     ppuState,
   };
 }

@@ -40,6 +40,7 @@ export interface MockState {
   patternTable: Uint8Array; // 128*128*4 RGBA
   nametable: Uint8Array; // 2048 bytes
   paletteRam: Uint8Array; // 32 bytes
+  oam: Uint8Array; // 256 bytes (64 sprites x 4)
   ppu: { ctrl: number; mask: number; status: number; scanline: number };
   frameReason: number; // reason returned by run_frame: 0 frame, 1 breakpoint, 2 brk
 }
@@ -69,6 +70,7 @@ export function createMockModule(opts?: {
     patternTable: new Uint8Array(PT_LEN),
     nametable: new Uint8Array(2048),
     paletteRam: new Uint8Array(32),
+    oam: new Uint8Array(256),
     ppu: { ctrl: 0, mask: 0, status: 0, scanline: 0 },
     frameReason: opts?.frameReason ?? 0,
   };
@@ -88,12 +90,14 @@ export function createMockModule(opts?: {
   // after a generous gap so malloc'd ROM buffers never collide with them.
   const NT_PTR = FB_LEN + 16;
   const PAL_PTR = NT_PTR + 2048 + 16;
-  brk = PAL_PTR + 32 + 16;
+  const OAM_PTR = PAL_PTR + 32 + 16;
+  brk = OAM_PTR + 256 + 16;
 
   function syncOut(): void {
     heap.set(state.framebuffer, FB_PTR);
     heap.set(state.nametable, NT_PTR);
     heap.set(state.paletteRam, PAL_PTR);
+    heap.set(state.oam, OAM_PTR);
   }
   syncOut();
 
@@ -206,6 +210,9 @@ export function createMockModule(opts?: {
       case "get_palette_ram_ptr":
         heap.set(state.paletteRam, PAL_PTR);
         return PAL_PTR;
+      case "get_oam_ptr":
+        heap.set(state.oam, OAM_PTR);
+        return OAM_PTR;
       case "ppu_get_ctrl":
         return state.ppu.ctrl;
       case "ppu_get_mask":

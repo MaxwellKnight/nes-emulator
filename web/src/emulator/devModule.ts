@@ -152,8 +152,27 @@ export function createDevModule(): WasmModule {
   fillDemoFramebuffer(s.framebuffer);
   fillDemoNametable(s.nametable);
   fillDemoPalette(s.paletteRam);
+  fillDemoOam(s.oam);
 
   return mock;
+}
+
+// A few demo sprites (Y, tile, attr, X) so the OAM viewer shows content in the
+// WASM-less dev preview. Sprite 0 up top, a couple mid-screen, rest parked.
+function fillDemoOam(oam: Uint8Array): void {
+  const demo = [
+    [0x20, 0x00, 0x00, 0x30],
+    [0x58, 0x32, 0x01, 0x80],
+    [0x58, 0x33, 0x41, 0x88],
+    [0x90, 0x10, 0x20, 0x40],
+  ];
+  for (let i = 0; i < 64; i++) {
+    const s = demo[i] ?? [0xf8, 0x00, 0x00, 0x00]; // park the rest offscreen
+    oam[i * 4] = s[0];
+    oam[i * 4 + 1] = s[1];
+    oam[i * 4 + 2] = s[2];
+    oam[i * 4 + 3] = s[3];
+  }
 }
 
 /**

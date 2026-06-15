@@ -77,6 +77,11 @@ EMSCRIPTEN_KEEPALIVE extern "C" uint8_t* get_palette_ram_ptr() {
   return const_cast<uint8_t*>(g_bus.get_ppu().palette_ram());
 }
 
+// Pointer to the 256-byte OAM (64 sprites x 4: Y, tile, attr, X).
+EMSCRIPTEN_KEEPALIVE extern "C" uint8_t* get_oam_ptr() {
+  return const_cast<uint8_t*>(g_bus.get_ppu().oam_data());
+}
+
 // PPU register / scanline debug getters (no side effects).
 EMSCRIPTEN_KEEPALIVE extern "C" uint8_t ppu_get_ctrl() { return g_bus.get_ppu().reg_ctrl(); }
 EMSCRIPTEN_KEEPALIVE extern "C" uint8_t ppu_get_mask() { return g_bus.get_ppu().reg_mask(); }

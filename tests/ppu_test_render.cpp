@@ -91,8 +91,8 @@ TEST_F(PPURenderTest, SolidTileRendersExactPixels) {
   ppu.cpu_write(6, 0x00);
   ppu.cpu_write(6, 0x00);
 
-  // BG enabled.
-  ppu.cpu_write(1, 0x08);
+  // BG enabled (d1 set so the leftmost 8px show too, since we assert x<8).
+  ppu.cpu_write(1, 0x0A);
 
   // Render scanline 0.
   for (int d = 0; d <= 257; d++) ppu.clock();
