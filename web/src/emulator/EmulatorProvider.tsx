@@ -28,6 +28,7 @@ export interface EmulatorActions {
   loadROM(data: Uint8Array): void;
   loadRom(data: Uint8Array): number;
   loadOpcodes(text: string): void;
+  setController(state: number, port?: number): void;
 }
 
 export interface EmulatorContextValue {
@@ -265,6 +266,10 @@ export function EmulatorProvider(props: {
     [loadROM],
   );
 
+  const setController = useCallback((state: number, port = 0) => {
+    dbgRef.current?.setController(state, port);
+  }, []);
+
   const actions = useMemo<EmulatorActions>(
     () => ({
       step,
@@ -278,6 +283,7 @@ export function EmulatorProvider(props: {
       loadROM,
       loadRom,
       loadOpcodes,
+      setController,
     }),
     [
       step,
@@ -291,6 +297,7 @@ export function EmulatorProvider(props: {
       loadROM,
       loadRom,
       loadOpcodes,
+      setController,
     ],
   );
 

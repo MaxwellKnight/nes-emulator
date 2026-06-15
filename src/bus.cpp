@@ -25,6 +25,8 @@ void Bus::reset() {
   _sys_clock = 0;
   _cpu.reset();
   _ppu.reset();
+  _pad[0].reset();
+  _pad[1].reset();
 }
 
 CPU& Bus::get_cpu() { return _cpu; }
@@ -48,6 +50,10 @@ void Bus::cpu_write(u16 address, u8 value) {
       _ppu.oam_write(cpu_read(base + static_cast<u16>(i)));
     }
     _dma_stall += 513;
+  } else if (address == 0x4016) {
+    // Controller strobe is shared by both ports.
+    _pad[0].write(value);
+    _pad[1].write(value);
   }
 }
 
@@ -58,8 +64,16 @@ u8 Bus::cpu_read(u16 address) const {
     data = _ram[address & 0x07FF];
   } else if (address >= 0x2000 && address <= 0x3FFF) {
     data = _ppu.cpu_read(address & 0x0007);
+  } else if (address == 0x4016) {
+    data = _pad[0].read();  // player 1 serial read
+  } else if (address == 0x4017) {
+    data = _pad[1].read();  // player 2 serial read
   }
 
   return data;
+}
+
+void Bus::set_controller(int port, u8 buttons) {
+  _pad[port & 1].set_buttons(buttons);
 }
 }  // namespace nes

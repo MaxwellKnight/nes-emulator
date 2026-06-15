@@ -57,6 +57,7 @@ export interface Debugger {
   getNametable(): Uint8Array;
   getPaletteRam(): Uint8Array;
   getOam(): Uint8Array;
+  setController(state: number, port?: number): void;
   ppuState(): { ctrl: number; mask: number; status: number; scanline: number };
 }
 
@@ -160,6 +161,10 @@ export function createBridge(module: WasmModule): Debugger {
     []
   ) as () => number;
   const getOamPtr = module.cwrap("get_oam_ptr", "number", []) as () => number;
+  const setControllerRaw = module.cwrap("set_controller", null, [
+    "number",
+    "number",
+  ]) as (port: number, buttons: number) => void;
   const ppuGetCtrl = module.cwrap("ppu_get_ctrl", "number", []) as () => number;
   const ppuGetMask = module.cwrap("ppu_get_mask", "number", []) as () => number;
   const ppuGetStatus = module.cwrap(
@@ -332,6 +337,10 @@ export function createBridge(module: WasmModule): Debugger {
     return new Uint8Array(module.HEAPU8.buffer, ptr, 256);
   }
 
+  function setController(state: number, port = 0): void {
+    setControllerRaw(port, state & 0xff);
+  }
+
   function ppuState(): {
     ctrl: number;
     mask: number;
@@ -374,6 +383,7 @@ export function createBridge(module: WasmModule): Debugger {
     getNametable,
     getPaletteRam,
     getOam,
+    setController,
     ppuState,
   };
 }

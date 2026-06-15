@@ -213,6 +213,8 @@ export function createMockModule(opts?: {
       case "get_oam_ptr":
         heap.set(state.oam, OAM_PTR);
         return OAM_PTR;
+      case "set_controller":
+        return;  // no-op in the mock (input is exercised via the real core)
       case "ppu_get_ctrl":
         return state.ppu.ctrl;
       case "ppu_get_mask":

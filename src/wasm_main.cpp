@@ -82,6 +82,12 @@ EMSCRIPTEN_KEEPALIVE extern "C" uint8_t* get_oam_ptr() {
   return const_cast<uint8_t*>(g_bus.get_ppu().oam_data());
 }
 
+// Latch controller buttons. port 0 = player 1, 1 = player 2. Bit layout:
+// d0 A, d1 B, d2 Select, d3 Start, d4 Up, d5 Down, d6 Left, d7 Right.
+EMSCRIPTEN_KEEPALIVE extern "C" void set_controller(int port, int buttons) {
+  g_bus.set_controller(port, static_cast<nes::u8>(buttons));
+}
+
 // PPU register / scanline debug getters (no side effects).
 EMSCRIPTEN_KEEPALIVE extern "C" uint8_t ppu_get_ctrl() { return g_bus.get_ppu().reg_ctrl(); }
 EMSCRIPTEN_KEEPALIVE extern "C" uint8_t ppu_get_mask() { return g_bus.get_ppu().reg_mask(); }
