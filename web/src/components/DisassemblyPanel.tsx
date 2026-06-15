@@ -2,25 +2,35 @@
 import { useEffect, useRef } from "react";
 import { useEmulator } from "../emulator/EmulatorProvider";
 import { useDisassembly } from "../emulator/useDisassembly";
+import { useFillRows } from "../emulator/useFillRows";
 import { DisassemblyRow } from "./DisassemblyRow";
-import { Tile } from "./ui/Tile";
+import { Module } from "./ui/Module";
 
 export interface DisassemblyPanelProps {
   revealDelay?: number;
   className?: string;
 }
 
+// row height in px used to measure how many instructions fill the body
+const ROW_PX = 23;
+const BEFORE = 6;
+
 export function DisassemblyPanel({
   revealDelay,
   className,
 }: DisassemblyPanelProps): JSX.Element {
   const { snapshot, breakpoints, running, actions } = useEmulator();
-  const instructions = useDisassembly();
-  const pc = snapshot?.registers.pc ?? -1;
-  const breakpointSet = new Set(breakpoints);
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const currentRef = useRef<HTMLDivElement>(null);
+
+  // Measure the scroll body and disassemble enough instructions to fill it,
+  // plus a comfortable overflow so the PC line can sit mid-panel.
+  const fillRows = useFillRows(scrollRef, ROW_PX, 24);
+  const instructions = useDisassembly(BEFORE, fillRows + BEFORE);
+
+  const pc = snapshot?.registers.pc ?? -1;
+  const breakpointSet = new Set(breakpoints);
 
   // Keep the current-PC row in view as PC moves. Guarded because some
   // environments (jsdom) don't implement scrollIntoView.
@@ -32,22 +42,21 @@ export function DisassemblyPanel({
   }, [pc, instructions]);
 
   const livePill = (
-    <span className="inline-flex items-center gap-1 rounded-full bg-[var(--grn)]/15 px-[7px] py-[2px] font-sans text-[9px] text-[var(--grn)]">
-      <span className="text-[7px] leading-none">●</span> live
+    <span className="inline-flex items-center gap-[5px] text-[var(--grn)]">
+      <span className="h-[5px] w-[5px] rounded-full bg-[var(--grn)]" /> live
     </span>
   );
 
   return (
-    <Tile
+    <Module
       title="Disassembly"
-      hero
-      headerRight={livePill}
+      status={livePill}
       revealDelay={revealDelay}
       className={className}
       bodyClassName="p-0"
     >
       {instructions.length === 0 ? (
-        <p className="p-[10px] font-mono text-[11px] text-[var(--tx-mut)]">
+        <p className="p-[11px] font-mono text-[11px] text-[var(--mut)]">
           No disassembly available
         </p>
       ) : (
@@ -56,7 +65,7 @@ export function DisassemblyPanel({
             ref={scrollRef}
             data-running={String(running)}
             className={[
-              "nes-scroll h-full overflow-auto px-[10px] py-[8px]",
+              "nes-scroll min-h-0 flex-1 overflow-auto px-[11px] py-[8px]",
               running ? "cursor-default select-none opacity-90 saturate-[0.7]" : "",
             ].join(" ")}
           >
@@ -78,6 +87,6 @@ export function DisassemblyPanel({
           <div className="scroll-fade" />
         </>
       )}
-    </Tile>
+    </Module>
   );
 }

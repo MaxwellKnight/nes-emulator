@@ -1,13 +1,17 @@
 // web/src/components/MemoryPanel.tsx
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useEmulator } from "../emulator/EmulatorProvider";
 import { useMemory } from "../emulator/useMemory";
+import { useFillRows } from "../emulator/useFillRows";
 import { useToast } from "./toast/ToastProvider";
 import { MEMORY_PAGES, type MemoryPage, type MemoryPageId } from "../wasm/types";
-import { Tile } from "./ui/Tile";
+import { Module } from "./ui/Module";
 import { MemoryEditModal } from "./MemoryEditModal";
 
 const COLUMNS = Array.from({ length: 16 }, (_, i) => i);
+
+// height of one rendered memory row in px (used to fill the body exactly)
+const ROW_PX = 17;
 
 function hex4(value: number): string {
   return `$${value.toString(16).toUpperCase().padStart(4, "0")}`;
@@ -49,7 +53,11 @@ export function MemoryPanel({
   const [jump, setJump] = useState("");
   const [editAddress, setEditAddress] = useState<number | null>(null);
 
-  const { rows } = useMemory(page);
+  // Measure the scroll body and render exactly enough 16-byte rows to fill it,
+  // contiguous from the current base address (continues past page boundaries).
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const fillRows = useFillRows(scrollRef, ROW_PX, 16);
+  const { rows } = useMemory(page, fillRows);
 
   const selectedPreset =
     MEMORY_PAGES.find((p) => p.start === page.start)?.id ?? "";
@@ -88,21 +96,21 @@ export function MemoryPanel({
   };
 
   const inputClass =
-    "press rounded-[var(--radius-sm)] border border-[var(--bd-strong)] bg-[var(--b2)] px-[7px] py-[3px] font-mono text-[10px] text-[var(--tx)] outline-none focus:border-[var(--acc)]";
+    "press rounded-[var(--radius-sm)] border border-[var(--bd2)] bg-[var(--b2)] px-[9px] py-[4px] font-mono text-[10px] text-[var(--tx)] outline-none focus:border-[var(--acc)]";
 
   return (
-    <Tile
+    <Module
       title="Memory"
       revealDelay={revealDelay}
       className={className}
       bodyClassName="flex flex-col"
     >
-      <div className="mb-[7px] flex shrink-0 gap-[7px]">
+      <div className="mb-[8px] flex shrink-0 gap-[7px]">
         <select
           data-testid="memory-page-select"
           value={selectedPreset}
           onChange={(e) => handlePageChange(e.target.value as MemoryPageId)}
-          className={`${inputClass} flex-1`}
+          className={`${inputClass} flex-1 text-[var(--mut)]`}
         >
           {MEMORY_PAGES.map((p) => (
             <option key={p.id} value={p.id}>
@@ -118,28 +126,29 @@ export function MemoryPanel({
             if (e.key === "Enter") handleJump();
           }}
           placeholder="$ jump →"
-          className={`${inputClass} w-[88px] text-[var(--tx-mut)] placeholder:text-[var(--tx-dim)]`}
+          className={`${inputClass} w-[88px] text-[var(--mut)] placeholder:text-[var(--dim)]`}
         />
         <button
           type="button"
           data-testid="memory-jump-button"
           onClick={handleJump}
-          className="press rounded-[var(--radius-sm)] bg-[var(--acc)] px-[9px] py-[3px] text-[10px] font-medium text-white hover:bg-[var(--acc-hi)]"
+          className="press rounded-[var(--radius-sm)] bg-[var(--acc)] px-[9px] py-[4px] text-[10px] font-medium text-white hover:bg-[var(--acc2)]"
         >
           Go
         </button>
       </div>
 
       <div
+        ref={scrollRef}
         data-running={String(running)}
         className={[
           "nes-scroll relative min-h-0 flex-1 overflow-auto",
           running ? "cursor-default select-none opacity-90 saturate-[0.7]" : "",
         ].join(" ")}
       >
-        <table className="border-collapse font-mono text-[10px] tracking-[0.4px]">
+        <table className="w-full border-collapse font-mono text-[10.5px] tracking-[0.3px]">
           <thead>
-            <tr className="text-[var(--tx-dim)]">
+            <tr className="text-[var(--dim)]">
               <th className="px-1 py-px text-left font-normal" />
               {COLUMNS.map((c) => (
                 <th
@@ -156,7 +165,7 @@ export function MemoryPanel({
           <tbody>
             {rows.map((row) => (
               <tr key={row.address}>
-                <td className="px-1 py-px text-[var(--tx-dim)]">
+                <td className="px-1 py-px text-[var(--dim)]">
                   {row.address.toString(16).toUpperCase().padStart(4, "0")}
                 </td>
                 {row.bytes.map((byte, i) => {
@@ -195,7 +204,7 @@ export function MemoryPanel({
                     </td>
                   );
                 })}
-                <td className="px-2 py-px text-[var(--tx-dim)]">{row.ascii}</td>
+                <td className="px-2 py-px text-[var(--dim)]">{row.ascii}</td>
               </tr>
             ))}
           </tbody>
@@ -208,6 +217,6 @@ export function MemoryPanel({
         open={editAddress !== null}
         onClose={() => setEditAddress(null)}
       />
-    </Tile>
+    </Module>
   );
 }

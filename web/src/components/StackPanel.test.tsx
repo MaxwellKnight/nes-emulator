@@ -52,10 +52,10 @@ describe("StackPanel", () => {
       actions: {} as EmulatorContextValue["actions"],
     };
     render(<StackPanel />);
-    // SP row: address $01FD, byte = 0xFD = "$FD"
+    // SP row: address $01FD (sr-only), byte = 0xFD rendered as "FD"
     const spRow = screen.getByTestId("stack-row-0x01fd");
     expect(spRow).toHaveTextContent("$01FD");
-    expect(spRow).toHaveTextContent("$FD");
+    expect(spRow).toHaveTextContent("FD");
     expect(spRow.getAttribute("data-current")).toBe("true");
   });
 

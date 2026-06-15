@@ -2,6 +2,7 @@
 import { render, screen } from "@testing-library/react";
 import { describe, it, expect, vi } from "vitest";
 import { RegistersPanel } from "./RegistersPanel";
+import { FlagsBlock } from "./FlagsBlock";
 import type { EmulatorContextValue } from "../emulator/EmulatorProvider";
 import type { EmulatorSnapshot } from "../wasm/types";
 
@@ -39,7 +40,7 @@ describe("RegistersPanel", () => {
     expect(screen.getByTestId("reg-pc")).toHaveTextContent("$0C00");
   });
 
-  it("renders FlagsBadges with a set flag", () => {
+  it("renders the FlagsBlock LED bank with a set flag", () => {
     mockCtx = {
       status: "ready",
       snapshot: makeSnapshot(),
@@ -48,7 +49,9 @@ describe("RegistersPanel", () => {
       dbg: null,
       actions: {} as EmulatorContextValue["actions"],
     };
-    render(<RegistersPanel />);
+    // The Flags LED bank lives in the readout strip's FlagsBlock, not the
+    // register gauges.
+    render(<FlagsBlock />);
     expect(screen.getByTestId("flag-i").getAttribute("data-set")).toBe("true");
     expect(screen.getByTestId("flag-u").getAttribute("data-set")).toBe("true");
     expect(screen.getByTestId("flag-n").getAttribute("data-set")).toBe("false");

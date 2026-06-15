@@ -29,11 +29,12 @@ function makeWrapper(mock: ReturnType<typeof createMockModule>) {
 function renderUseMemory(
   page: MemoryPage,
   mock: ReturnType<typeof createMockModule>,
+  rowCount?: number,
 ) {
   return renderHook(
     () => {
       const emu = useEmulator();
-      const mem = useMemory(page);
+      const mem = useMemory(page, rowCount);
       return { emu, mem };
     },
     { wrapper: makeWrapper(mock) },
@@ -80,6 +81,20 @@ describe("useMemory", () => {
     expect(result.current.mem.rows[0].address).toBe(0xfffa);
     expect(allBytes[0]).toBe(0x11);
     expect(allBytes[5]).toBe(0x99);
+  });
+
+  it("fill mode renders exactly rowCount contiguous rows, past the page boundary", async () => {
+    const mock = createMockModule();
+    mock._state.memory[0x0100] = 0xaa; // first byte of the page after zeropage
+    const zp = getPage("zeropage");
+    // 20 rows of 16 bytes = 320 bytes, which runs past the 256-byte page.
+    const { result } = renderUseMemory(zp, mock, 20);
+    await waitFor(() => expect(result.current.emu.status).toBe("ready"));
+    expect(result.current.mem.rows).toHaveLength(20);
+    expect(result.current.mem.rows[0].address).toBe(0x0000);
+    // row 16 continues contiguously into $0100 (not clamped to the page)
+    expect(result.current.mem.rows[16].address).toBe(0x0100);
+    expect(result.current.mem.rows[16].bytes[0]).toBe(0xaa);
   });
 
   it("recomputes rows when the snapshot changes after a write", async () => {

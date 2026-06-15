@@ -13,18 +13,16 @@ describe("App integration", () => {
     expect(screen.getByTestId("app-loading")).toBeInTheDocument();
   });
 
-  it("renders the toolbar and the bento tiles once the emulator is ready", async () => {
+  it("renders the toolbar and the cockpit modules once the emulator is ready", async () => {
     render(<App loadModule={loadMock} />);
     await waitFor(() => {
       expect(screen.getByTestId("app-toolbar")).toBeInTheDocument();
     });
-    expect(screen.getByTestId("bento-grid")).toBeInTheDocument();
-    expect(
-      screen.getByRole("heading", { name: "CPU State" }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole("heading", { name: "Disassembly" }),
-    ).toBeInTheDocument();
+    expect(screen.getByTestId("cockpit")).toBeInTheDocument();
+    expect(screen.getByTestId("cockpit-grid")).toBeInTheDocument();
+    // module legends are cut into each module's top border
+    expect(screen.getByText("CPU State")).toBeInTheDocument();
+    expect(screen.getByText("Disassembly")).toBeInTheDocument();
     expect(screen.queryByTestId("app-loading")).toBeNull();
   });
 

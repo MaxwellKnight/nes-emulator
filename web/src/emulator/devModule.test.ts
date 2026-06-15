@@ -9,7 +9,7 @@ describe("createDevModule", () => {
     const regs = dbg.getRegisters();
     expect(regs.a).toBe(0x0a);
     expect(regs.x).toBe(0x0a);
-    expect(regs.pc).toBe(0x0c00);
+    expect(regs.pc).toBe(0x0c0c);
     expect(regs.sp).toBe(0xfd);
   });
 

@@ -54,10 +54,10 @@ export function DisassemblyRow({
         disabled ? undefined : `Toggle breakpoint at ${hex4(instr.address)}`
       }
       className={[
-        "group flex items-center gap-[11px] rounded-[4px] px-[6px] py-[3px] font-mono text-[11px] leading-tight transition-[background-color,box-shadow] duration-[var(--dur)]",
+        "group flex items-center gap-[9px] rounded-[4px] px-[6px] py-[3px] font-mono text-[11px] leading-tight transition-[background-color] duration-[var(--dur)]",
         disabled ? "cursor-default" : "cursor-pointer",
         isCurrent
-          ? "bg-[var(--acc)]/15 shadow-[inset_2px_0_0_var(--acc),var(--glow)]"
+          ? "bg-[color-mix(in_srgb,var(--acc)_13%,transparent)] shadow-[inset_2px_0_0_var(--acc)]"
           : !disabled
             ? "hover:bg-[var(--b2)]"
             : "",
@@ -68,19 +68,19 @@ export function DisassemblyRow({
       <span
         aria-hidden
         className={[
-          "h-[7px] w-[7px] shrink-0 rounded-full transition-[background-color,box-shadow] duration-[var(--dur)]",
+          "h-[6px] w-[6px] shrink-0 rounded-full transition-[background-color,box-shadow] duration-[var(--dur)]",
           hasBreakpoint
-            ? "bg-[var(--red)] shadow-[var(--red-glow)]"
-            : "bg-transparent group-hover:bg-[var(--bd-strong)]",
+            ? "bg-[var(--red)]"
+            : "bg-transparent shadow-[inset_0_0_0_1px_var(--dim)] group-hover:bg-[var(--bd2)]",
         ].join(" ")}
       />
-      <span className="w-[38px] shrink-0 text-[var(--tx-dim)]">
+      <span className="w-[40px] shrink-0 text-[var(--dim)]">
         {instr.address.toString(16).toUpperCase().padStart(4, "0")}
       </span>
-      <span className="w-[64px] shrink-0 text-[#4f566b]">
+      <span className="w-[64px] shrink-0 text-[#525a6e]">
         {opcodeBytes(instr)}
       </span>
-      <span className="w-[34px] shrink-0 font-semibold text-[var(--acc-hi)]">
+      <span className="w-[34px] shrink-0 font-semibold text-[var(--acc2)]">
         {instr.mnemonic}
       </span>
       <span
