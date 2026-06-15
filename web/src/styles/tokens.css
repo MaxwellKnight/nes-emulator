@@ -77,26 +77,27 @@
 }
 
 [data-theme="light"] {
-  /* light slate / white surfaces */
-  --b0: #e8eaf1;
-  --b1: #ffffff;
-  --b2: #f1f3f9;
-  --b3: #e3e6ef;
+  /* Cool-slate page so the white module surfaces read as distinct panels,
+     with firmer borders for separation. The accent stays vivid on white. */
+  --b0: #d6dae6; /* page / gutter — noticeably cooler than the surfaces */
+  --b1: #fbfcff; /* module surface */
+  --b2: #eef1f8; /* inset wells (inputs, chips) */
+  --b3: #dde2ee; /* scrollbar thumb / quiet fills */
 
-  --bd: rgba(15, 20, 35, 0.1);
-  --bd2: rgba(15, 20, 35, 0.18);
+  --bd: rgba(20, 26, 48, 0.14);
+  --bd2: rgba(20, 26, 48, 0.26);
 
-  --tx: #181c28;
-  --mut: #5a6175;
-  --dim: #8a90a2;
+  --tx: #141826;
+  --mut: #535b71;
+  --dim: #8d94a8;
 
-  /* slightly darker accent for contrast on white surfaces */
-  --acc: #565ddb;
-  --acc2: #6b72e8;
-  --grn: #1f9a64;
-  --amb: #bf741d;
-  --red: #d23b30;
+  --acc: #4b52df;
+  --acc2: #5b62ec;
+  --grn: #128a57;
+  --amb: #b06c10;
+  --red: #ce372c;
 
   --legend-bg: var(--b0);
-  --screen-well: #c2c7d6;
+  /* the NES screen is a CRT — it stays black in every theme */
+  --screen-well: #0b0c10;
 }

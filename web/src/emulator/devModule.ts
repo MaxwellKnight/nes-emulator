@@ -1,7 +1,18 @@
 // web/src/emulator/devModule.ts
-import type { WasmModule } from "../wasm/bridge";
+import { createBridge, type WasmModule } from "../wasm/bridge";
 import { createMockModule } from "../wasm/testing/mockModule";
 import { loadEmulatorModule } from "../wasm/loader";
+
+// The counter demo program (loaded at $0C00) + a sprinkle of zero-page bytes,
+// shared between the seeded mock and the real-module dev seeding below.
+const DEMO_PROGRAM = [
+  0xa2, 0x0a, 0x8e, 0x00, 0x02, 0xa0, 0x03, 0x8c, 0x01, 0x02, 0xac, 0x00, 0x02,
+  0xa9, 0x00, 0x18, 0x6d, 0x01, 0x02, 0x88, 0xd0, 0xfa, 0x8d, 0x02, 0x02, 0x4c,
+  0x0c, 0xc0,
+];
+const ZP_SEED = [
+  0x0a, 0x03, 0x00, 0x18, 0x6d, 0x01, 0x00, 0x88, 0xd0, 0xfa, 0x8d, 0x02,
+];
 
 /**
  * A realistic `#`-delimited disassembly string for a small counter demo,
@@ -61,20 +72,13 @@ export function createDevModule(): WasmModule {
   s.registers.status = 0b1000_0110;
 
   // The counter demo program at $0C00 (matches the brief's byte sequence).
-  const program = [
-    0xa2, 0x0a, 0x8e, 0x00, 0x02, 0xa0, 0x03, 0x8c, 0x01, 0x02, 0xac, 0x00,
-    0x02, 0xa9, 0x00, 0x18, 0x6d, 0x01, 0x02, 0x88, 0xd0, 0xfa, 0x8d, 0x02,
-    0x02, 0x4c, 0x0c, 0xc0,
-  ];
-  program.forEach((b, i) => {
+  DEMO_PROGRAM.forEach((b, i) => {
     s.memory[0x0c00 + i] = b;
   });
   // Some zero-page values so the default Memory view isn't empty.
-  [0x0a, 0x03, 0x00, 0x18, 0x6d, 0x01, 0x00, 0x88, 0xd0, 0xfa, 0x8d, 0x02].forEach(
-    (b, i) => {
-      s.memory[i] = b;
-    },
-  );
+  ZP_SEED.forEach((b, i) => {
+    s.memory[i] = b;
+  });
   // Stack contents around SP ($01FD).
   [0xfd, 0xc0, 0x03, 0xa9, 0x00, 0x18, 0x6d, 0x01, 0x02].forEach((b, i) => {
     s.memory[0x01fd + i] = b;
@@ -99,7 +103,22 @@ export function createDevModule(): WasmModule {
  */
 export async function loadModuleWithDevFallback(): Promise<WasmModule> {
   try {
-    return await loadEmulatorModule();
+    const module = await loadEmulatorModule();
+    // DEV-only: seed the real module with the demo program so the cockpit boots
+    // alive (filled disassembly, a non-reset PC, populated memory) instead of a
+    // sea of $00 / BRK. No-op in production builds; tests inject their own module.
+    if (import.meta.env.DEV) {
+      try {
+        const bridge = createBridge(module);
+        bridge.loadROM(Uint8Array.from(DEMO_PROGRAM));
+        ZP_SEED.forEach((b, i) => bridge.writeMemory(i, b));
+        // Advance a few instructions so the registers/flags read as live.
+        for (let i = 0; i < 6; i++) bridge.step();
+      } catch {
+        /* ignore — leave the empty initial state */
+      }
+    }
+    return module;
   } catch (error) {
     if (import.meta.env.DEV) {
       // eslint-disable-next-line no-console
