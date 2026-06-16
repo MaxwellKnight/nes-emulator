@@ -101,6 +101,24 @@ class CPU {
   void op_jsr(u16 addr);
   void op_jmp_ind(u16 addr);
 
+  // Unofficial / "illegal" opcodes (stable, commonly used by games and exercised
+  // by blargg's instr_test). Combined read-modify-write + ALU operations reuse
+  // the same logic as their official halves.
+  void op_nop_addr(u16 addr);  // multi-byte NOP: fetch operand, do nothing
+  void op_lax(u16 addr);       // LDA + LDX
+  void op_sax(u16 addr);       // store A & X
+  void op_dcp(u16 addr);       // DEC then CMP
+  void op_isc(u16 addr);       // INC then SBC
+  void op_slo(u16 addr);       // ASL then ORA
+  void op_rla(u16 addr);       // ROL then AND
+  void op_sre(u16 addr);       // LSR then EOR
+  void op_rra(u16 addr);       // ROR then ADC
+  void op_anc(u16 addr);       // AND, then copy bit 7 into carry
+  void op_alr(u16 addr);       // AND then LSR A
+  void op_arr(u16 addr);       // AND then ROR A (with quirky V/C)
+  void op_axs(u16 addr);       // X <- (A & X) - imm, sets carry like CMP
+  void op_las(u16 addr);       // A,X,SP <- memory & SP
+
   // Operations that don't require an address (implied operations)
   // No operation
   void op_nop();

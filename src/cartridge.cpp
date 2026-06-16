@@ -58,8 +58,10 @@ Cartridge::Cartridge(const std::string& file) {
     }
   }
 
-  // MMC1/MMC3 boards carry 8KB of work/save RAM at $6000-$7FFF.
-  if (_mapper_id == 1 || _mapper_id == 4) _prg_ram.assign(8192, 0);
+  // Provide 8KB of work/save RAM at $6000-$7FFF. MMC1/MMC3 boards always carry
+  // it; many NROM boards (and most blargg/conformance test ROMs) expect it too,
+  // so we back the whole region unconditionally — harmless for carts that ignore it.
+  _prg_ram.assign(8192, 0);
 
   // Load the appropriate mapper (defaults to NROM for unknown ids).
   switch (_mapper_id) {
@@ -207,8 +209,9 @@ std::shared_ptr<Cartridge> Cartridge::from_ines(const std::vector<u8>& bytes,
     cart->_chr_is_ram = false;
   }
 
-  // MMC1 and MMC3 boards carry 8KB of work/save RAM at $6000-$7FFF.
-  if (mapper == 1 || mapper == 4) cart->_prg_ram.assign(8192, 0);
+  // Back $6000-$7FFF with 8KB of work/save RAM unconditionally (see the file
+  // constructor above): MMC1/MMC3 always have it and NROM conformance ROMs use it.
+  cart->_prg_ram.assign(8192, 0);
 
   switch (mapper) {
     case 1:
