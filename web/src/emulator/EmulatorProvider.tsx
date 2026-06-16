@@ -19,7 +19,12 @@ import { parseMovie } from "./movie";
 import { useToast } from "../components/toast/ToastProvider";
 
 // The live-agent server (python -m nesenv.live) streams Server-Sent Events to here.
-const LIVE_AGENT_URL = "http://localhost:8000/stream";
+// This is a local dev / research feature: in production the default points at the
+// visitor's own machine (and an HTTPS page blocks plain-http localhost anyway), so
+// the Spawn Agent button is hidden unless VITE_LIVE_AGENT_URL is set (see Toolbar).
+const LIVE_AGENT_URL =
+  (import.meta.env.VITE_LIVE_AGENT_URL as string | undefined) ??
+  "http://localhost:8000/stream";
 
 function base64ToBytes(b64: string): Uint8Array {
   const bin = atob(b64);

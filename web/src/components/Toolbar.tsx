@@ -60,6 +60,11 @@ export function Toolbar({
   const cycleCount = snapshot?.stats.cycleCount ?? 0;
   const displayedRomName = loadedRomName ?? romName;
 
+  // The live agent needs a local backend (python -m nesenv.live), so only offer it
+  // in dev or when a backend URL is explicitly configured for a deployment.
+  const showSpawnAgent =
+    import.meta.env.DEV || Boolean(import.meta.env.VITE_LIVE_AGENT_URL);
+
   function openFilePicker(): void {
     fileInputRef.current?.click();
   }
@@ -230,25 +235,27 @@ export function Toolbar({
             ? `Movie ${Math.floor((100 * movie.frame) / Math.max(1, movie.total))}%`
             : "Watch Movie"}
         </button>
-        <button
-          type="button"
-          data-testid="spawn-agent"
-          onClick={() =>
-            liveAgent.connected
-              ? actions.disconnectLiveAgent()
-              : actions.connectLiveAgent()
-          }
-          aria-label="Spawn Agent"
-          title="Watch a live agent"
-          className={[
-            "press rounded-md border px-[9px] py-[4px] text-[10px]",
-            liveAgent.connected
-              ? "border-[var(--grn)] bg-[var(--grn)]/20 text-[var(--tx)]"
-              : "border-[var(--bd-strong)] bg-[var(--b2)] text-[var(--tx)] hover:bg-[var(--b3)]",
-          ].join(" ")}
-        >
-          {liveAgent.connected ? "Live Agent" : "Spawn Agent"}
-        </button>
+        {showSpawnAgent ? (
+          <button
+            type="button"
+            data-testid="spawn-agent"
+            onClick={() =>
+              liveAgent.connected
+                ? actions.disconnectLiveAgent()
+                : actions.connectLiveAgent()
+            }
+            aria-label="Spawn Agent"
+            title="Watch a live agent"
+            className={[
+              "press rounded-md border px-[9px] py-[4px] text-[10px]",
+              liveAgent.connected
+                ? "border-[var(--grn)] bg-[var(--grn)]/20 text-[var(--tx)]"
+                : "border-[var(--bd-strong)] bg-[var(--b2)] text-[var(--tx)] hover:bg-[var(--b3)]",
+            ].join(" ")}
+          >
+            {liveAgent.connected ? "Live Agent" : "Spawn Agent"}
+          </button>
+        ) : null}
         <button
           type="button"
           data-testid="loadcode-open"

@@ -115,6 +115,10 @@ brew install mprocs            # once
 NES_ROM="Super Mario Bros.nes" mprocs
 ```
 
+This is a local dev and research feature: it needs the Python server on your own
+machine, so the **Spawn Agent** button is hidden in production builds. If you host a
+backend yourself, set `VITE_LIVE_AGENT_URL` to its stream URL to show the button.
+
 ## Running it
 
 Easiest path is Docker:
