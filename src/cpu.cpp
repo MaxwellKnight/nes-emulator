@@ -860,7 +860,10 @@ void CPU::op_rti() {
   u8 pc_high = read_byte(0x0100 + ++_SP);
 
   _status = status;
+  // The 6502 status register has no physical B flag and bit 5 always reads 1, so
+  // a pulled status restores with BREAK clear and UNUSED set (matches nestest).
   _status &= ~(u8)Flag::BREAK;
+  _status |= (u8)Flag::UNUSED;
   _PC = (u16)pc_low | (u16)pc_high << 8;
 }
 
