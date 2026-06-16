@@ -7,15 +7,38 @@ Bus::Bus()
   , _cartridge(nullptr) {}
 
 void Bus::clock() {
-  _cpu.clock();
+  // While an OAM DMA is in progress the CPU is halted; the PPU keeps running.
+  if (_dma_stall > 0) {
+    _dma_stall--;
+  } else {
+    _cpu.clock();
+  }
+  _ppu.clock();
+  _ppu.clock();
+  _ppu.clock();
+  _apu.clock();  // APU runs at the CPU rate, even during a DMA stall
+  if (_ppu.take_nmi()) {
+    _cpu.trigger_nmi();
+  }
+  // Deliver a pending mapper IRQ (MMC3). If the CPU has interrupts masked the
+  // request stays pending until the I flag clears (level-triggered).
+  if (_cartridge && _cartridge->irq_pending()) {
+    if (_cpu.trigger_irq()) _cartridge->irq_clear();
+  }
   _sys_clock++;
 }
 void Bus::reset() {
   _sys_clock = 0;
   _cpu.reset();
+  _ppu.reset();
+  _apu.reset();
+  _pad[0].reset();
+  _pad[1].reset();
 }
 
 CPU& Bus::get_cpu() { return _cpu; }
+PPU& Bus::get_ppu() { return _ppu; }
+APU& Bus::get_apu() { return _apu; }
 void Bus::insert_cartridge(const std::shared_ptr<Cartridge>& cartridge) {
   _cartridge = cartridge;
   _ppu.insert_cartridge(cartridge);
@@ -27,6 +50,23 @@ void Bus::cpu_write(u16 address, u8 value) {
     _ram[address & 0x07FF] = value;
   } else if (address >= 0x2000 && address <= 0x3FFF) {
     _ppu.cpu_write(address & 0x0007, value);
+  } else if (address == 0x4014) {
+    // OAMDMA: copy 256 bytes from CPU page $XX00 into PPU OAM (through OAMADDR),
+    // then stall the CPU ~513 cycles while the transfer "runs".
+    u16 base = static_cast<u16>(value) << 8;
+    for (int i = 0; i < 256; i++) {
+      _ppu.oam_write(cpu_read(base + static_cast<u16>(i)));
+    }
+    _dma_stall += 513;
+  } else if (address == 0x4016) {
+    // Controller strobe is shared by both ports.
+    _pad[0].write(value);
+    _pad[1].write(value);
+  } else if ((address >= 0x4000 && address <= 0x4013) || address == 0x4015 ||
+             address == 0x4017) {
+    // APU channel, status/enable, and frame-counter registers. ($4017 is the
+    // APU frame counter on write; controller 2 on read.)
+    _apu.write(address, value);
   }
 }
 
@@ -37,8 +77,18 @@ u8 Bus::cpu_read(u16 address) const {
     data = _ram[address & 0x07FF];
   } else if (address >= 0x2000 && address <= 0x3FFF) {
     data = _ppu.cpu_read(address & 0x0007);
+  } else if (address == 0x4015) {
+    data = _apu.read_status();  // APU channel status
+  } else if (address == 0x4016) {
+    data = _pad[0].read();  // player 1 serial read
+  } else if (address == 0x4017) {
+    data = _pad[1].read();  // player 2 serial read
   }
 
   return data;
+}
+
+void Bus::set_controller(int port, u8 buttons) {
+  _pad[port & 1].set_buttons(buttons);
 }
 }  // namespace nes

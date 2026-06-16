@@ -33,4 +33,30 @@ describe("createDevModule", () => {
     expect(listing.length).toBeGreaterThan(0);
     expect(listing[0].mnemonic).toBe("LDX");
   });
+
+  it("seeds a non-empty demo framebuffer so the screen is non-blank on first load", () => {
+    const dbg = createBridge(createDevModule());
+    const fb = dbg.getFramebuffer();
+    expect(fb.length).toBe(256 * 240 * 4);
+    // At least one fully-opaque, non-black pixel exists.
+    let nonBlack = false;
+    for (let i = 0; i < fb.length; i += 4) {
+      if ((fb[i] | fb[i + 1] | fb[i + 2]) !== 0 && fb[i + 3] === 0xff) {
+        nonBlack = true;
+        break;
+      }
+    }
+    expect(nonBlack).toBe(true);
+  });
+
+  it("seeds demo nametable and palette RAM for the PPU debug viewer", () => {
+    const dbg = createBridge(createDevModule());
+    const nt = dbg.getNametable();
+    const pal = dbg.getPaletteRam();
+    expect(nt.length).toBe(2048);
+    expect(pal.length).toBe(32);
+    // Some nametable entry and some palette entry are non-zero.
+    expect(nt.some((b) => b !== 0)).toBe(true);
+    expect(pal.some((b) => b !== 0)).toBe(true);
+  });
 });

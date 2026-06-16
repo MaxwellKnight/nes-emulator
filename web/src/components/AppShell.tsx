@@ -1,7 +1,11 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useEmulator } from "../emulator/EmulatorProvider";
+import { useController } from "../emulator/useController";
 import { Toolbar } from "./Toolbar";
 import { ScreenPanel } from "./ScreenPanel";
+import { PlayMode } from "./PlayMode";
+import { PpuViewer } from "./PpuViewer";
+import { OamViewer } from "./OamViewer";
 import { CpuStatePanel } from "./CpuStatePanel";
 import { DisassemblyPanel } from "./DisassemblyPanel";
 import { BreakpointsPanel } from "./BreakpointsPanel";
@@ -12,9 +16,19 @@ import { Toaster } from "./toast/Toaster";
 import { Button } from "./ui/Button";
 
 export function AppShell(): JSX.Element {
-  const { status } = useEmulator();
+  const { status, framebuffer, dbg, actions } = useEmulator();
   const [helpOpen, setHelpOpen] = useState(false);
   const [loadCodeOpen, setLoadCodeOpen] = useState(false);
+  const [ppuOpen, setPpuOpen] = useState(false);
+  const [play, setPlay] = useState(false);
+
+  // Play mode: capture the keyboard for player 1 and run the core continuously;
+  // leaving it halts the run loop.
+  useController(actions.setController, play);
+  useEffect(() => {
+    if (play) actions.run();
+    else actions.stop();
+  }, [play, actions]);
 
   if (status === "loading") {
     return (
@@ -69,10 +83,43 @@ export function AppShell(): JSX.Element {
           className="grid min-h-0 flex-1 gap-[12px]"
           style={{ gridTemplateColumns: "1.35fr 1fr 1.18fr" }}
         >
-          {/* left column: Screen (hero) over Breakpoints (compact) */}
+          {/* left column: Screen (hero) over Breakpoints/PPU (compact) */}
           <div className="flex min-h-0 flex-col gap-[12px]">
-            <ScreenPanel revealDelay={50} className="min-h-0 flex-1" />
-            <BreakpointsPanel revealDelay={100} className="h-[148px] flex-none" />
+            <ScreenPanel
+              framebuffer={framebuffer}
+              revealDelay={50}
+              className="min-h-0 flex-1"
+            />
+            <div className="flex items-center justify-between">
+              <button
+                type="button"
+                data-testid="play-toggle"
+                onClick={() => setPlay(true)}
+                className="press rounded-md border border-[var(--acc)] bg-[var(--acc)]/20 px-[12px] py-[4px] text-[10px] font-medium text-[var(--tx)] hover:bg-[var(--acc)]/30"
+              >
+                ▶ Play
+              </button>
+              <button
+                type="button"
+                data-testid="ppu-debug-toggle"
+                aria-pressed={ppuOpen}
+                onClick={() => setPpuOpen((v) => !v)}
+                className="press rounded-md border border-[var(--bd-strong)] bg-[var(--b2)] px-[9px] py-[4px] text-[10px] text-[var(--tx)] hover:bg-[var(--b3)]"
+              >
+                {ppuOpen ? "Hide PPU Debug" : "Show PPU Debug"}
+              </button>
+            </div>
+            {ppuOpen ? (
+              <>
+                <PpuViewer dbg={dbg} revealDelay={120} className="flex-none" />
+                <OamViewer dbg={dbg} revealDelay={150} className="flex-none" />
+              </>
+            ) : (
+              <BreakpointsPanel
+                revealDelay={100}
+                className="h-[148px] flex-none"
+              />
+            )}
           </div>
 
           {/* middle: Disassembly (full height, fills rows) */}
@@ -82,6 +129,10 @@ export function AppShell(): JSX.Element {
           <MemoryPanel revealDelay={200} className="min-h-0" />
         </div>
       </main>
+
+      {play ? (
+        <PlayMode framebuffer={framebuffer} onExit={() => setPlay(false)} />
+      ) : null}
 
       <HelpModal open={helpOpen} onClose={() => setHelpOpen(false)} />
       <LoadCodeModal open={loadCodeOpen} onClose={() => setLoadCodeOpen(false)} />

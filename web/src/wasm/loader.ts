@@ -13,7 +13,7 @@ type EmscriptenFactory = (opts: {
  */
 export async function loadEmulatorModule(): Promise<WasmModule> {
   try {
-    const glue = (await import("./generated/cpu_wasm.js")) as {
+    const glue = (await import("./generated/cpu_wasm.js")) as unknown as {
       default: EmscriptenFactory;
     };
     const factory = glue.default;

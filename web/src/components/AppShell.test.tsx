@@ -26,13 +26,16 @@ function makeCtx(overrides: Partial<EmulatorContextValue> = {}): EmulatorContext
     toggleBreakpoint: vi.fn(),
     writeMemory: vi.fn(),
     loadROM: vi.fn(),
+    loadRom: vi.fn(() => 0),
     loadOpcodes: vi.fn(),
+    setController: vi.fn(),
   };
   return {
     status: "ready",
     snapshot: null,
     breakpoints: [],
     running: false,
+    framebuffer: null,
     dbg: null,
     actions,
     ...overrides,

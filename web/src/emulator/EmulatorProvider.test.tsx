@@ -214,9 +214,9 @@ describe("EmulatorProvider run loop", () => {
     vi.unstubAllGlobals();
   });
 
-  it("run() drives continuous stepping via the rAF loop and shows an Execution started toast", async () => {
+  it("run() drives continuous frames via the rAF loop and shows an Execution started toast", async () => {
     const { result, mock } = await renderWithToast();
-    expect(mock._state.instructionCount).toBe(0);
+    expect(mock._state.frameCount).toBe(0);
 
     act(() => {
       result.current.emu.actions.run();
@@ -229,22 +229,22 @@ describe("EmulatorProvider run loop", () => {
       ),
     ).toBe(true);
 
-    // Advance one frame past the time slice so the loop steps then yields.
+    // Advance one rAF frame so the loop calls runFrame then schedules the next.
     act(() => {
       flushFrame(20);
     });
-    expect(mock._state.instructionCount).toBeGreaterThan(0);
+    expect(mock._state.frameCount).toBeGreaterThan(0);
   });
 
-  it("auto-stops and shows a Breakpoint hit toast when isRunning flips false mid-run", async () => {
+  it("auto-stops and shows a Breakpoint hit toast when runFrame returns a breakpoint reason", async () => {
     const { result, mock } = await renderWithToast();
 
     act(() => {
       result.current.emu.actions.run();
     });
-    // Simulate the C++ core hitting a breakpoint: it clears the running flag.
+    // Simulate the C++ core hitting a breakpoint: run_frame returns reason 1.
     act(() => {
-      mock._state.running = false;
+      mock._state.frameReason = 1; // RUN_FRAME_BREAKPOINT
       flushFrame(20);
     });
 

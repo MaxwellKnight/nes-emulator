@@ -236,6 +236,47 @@ void Debugger::step() {
 
 void Debugger::run() { _running = true; }
 
+int Debugger::run_frame() {
+  const u32 start_frame = _bus.get_ppu().frame_count();
+
+  // Execute whole instructions, clocking the PPU via the Bus, until the PPU
+  // finishes a frame, a breakpoint is hit, or a BRK executes.
+  while (true) {
+    u16 current_pc = _cpu.get_pc();
+    u8 opcode = _bus.cpu_read(current_pc);
+
+    // Execute exactly one instruction by clocking the Bus until the CPU's
+    // remaining cycles drain (matches step()'s instruction granularity, but
+    // through the Bus so the PPU is clocked 3x per CPU cycle).
+    do {
+      _bus.clock();
+      _cycle_count++;
+    } while (_cpu.get_remaining_cycles() > 0);
+
+    _instruction_count++;
+
+    // BRK -> stop, reason 2 (preserve Phase 0 BRK behavior).
+    if (opcode == 0x00) {
+      stop();
+#ifdef __EMSCRIPTEN__
+      EM_ASM({ window.dispatchEvent(new CustomEvent('nes-brk-encountered')); });
+#endif
+      return 2;
+    }
+
+    // Breakpoint at the new PC -> stop, reason 1.
+    if (has_breakpoint(_cpu.get_pc())) {
+      stop();
+      return 1;
+    }
+
+    // Frame finished -> reason 0.
+    if (_bus.get_ppu().frame_count() != start_frame) {
+      return 0;
+    }
+  }
+}
+
 void Debugger::stop() { _running = false; }
 
 void Debugger::reset() {
@@ -243,6 +284,16 @@ void Debugger::reset() {
   _instruction_count = 0;
   _cycle_count = 0;
   _running = false;
+}
+
+void Debugger::reset_to_vector() {
+  reset();
+  // Real 6502 power-on loads PC from the reset vector at $FFFC/$FFFD. These
+  // reads route through the inserted cartridge's PRG, so the ROM begins at its
+  // own entry point instead of executing the vector bytes as code.
+  const u16 lo = _bus.cpu_read(0xFFFC);
+  const u16 hi = _bus.cpu_read(0xFFFD);
+  _cpu.set_pc(static_cast<u16>(lo | (hi << 8)));
 }
 
 bool Debugger::is_running() const { return _running; }

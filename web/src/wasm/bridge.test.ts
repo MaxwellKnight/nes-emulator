@@ -161,4 +161,81 @@ describe("createBridge", () => {
     expect(mod._state.memory[0xfffd]).toBe(0x80);
     expect(mod._state.registers.pc).toBe(0x80c5);
   });
+
+  it("loadRom copies bytes into the heap and returns the status code", () => {
+    const mod = createMockModule({ romStatus: 0 });
+    const dbg = createBridge(mod);
+
+    const bytes = new Uint8Array([0x4e, 0x45, 0x53, 0x1a, 0x01, 0x01]);
+    const status = dbg.loadRom(bytes);
+
+    expect(status).toBe(0);
+    expect(mod._state.loadedRom).not.toBeNull();
+    expect(Array.from(mod._state.loadedRom as Uint8Array)).toEqual(
+      Array.from(bytes),
+    );
+  });
+
+  it("loadRom surfaces a nonzero status (e.g. unsupported mapper)", () => {
+    const mod = createMockModule({ romStatus: 2 });
+    const dbg = createBridge(mod);
+    expect(dbg.loadRom(new Uint8Array([0x00]))).toBe(2);
+  });
+
+  it("getFramebuffer returns a 256*240*4 view backed by the heap", () => {
+    const mod = createMockModule();
+    // Paint a recognizable pixel so we can prove the view reflects heap bytes.
+    mod._state.framebuffer[0] = 0xde;
+    mod._state.framebuffer[1] = 0xad;
+    mod._state.framebuffer[2] = 0xbe;
+    mod._state.framebuffer[3] = 0xef;
+    const dbg = createBridge(mod);
+
+    const fb = dbg.getFramebuffer();
+    expect(fb).toBeInstanceOf(Uint8ClampedArray);
+    expect(fb.length).toBe(256 * 240 * 4);
+    expect([fb[0], fb[1], fb[2], fb[3]]).toEqual([0xde, 0xad, 0xbe, 0xef]);
+  });
+
+  it("runFrame returns the reason code and frameCount advances", () => {
+    const mod = createMockModule({ frameReason: 1 });
+    const dbg = createBridge(mod);
+    expect(dbg.frameCount()).toBe(0);
+    const reason = dbg.runFrame();
+    expect(reason).toBe(1);
+    expect(dbg.frameCount()).toBe(1);
+  });
+
+  it("renderPatternTable copies out a 128*128*4 buffer", () => {
+    const mod = createMockModule();
+    mod._state.patternTable[10] = 0x7e;
+    const dbg = createBridge(mod);
+    const out = dbg.renderPatternTable(0, 3);
+    expect(out).toBeInstanceOf(Uint8ClampedArray);
+    expect(out.length).toBe(128 * 128 * 4);
+    expect(out[10]).toBe(0x7e);
+  });
+
+  it("getNametable and getPaletteRam return the debug RAM views", () => {
+    const mod = createMockModule();
+    mod._state.nametable[5] = 0x21;
+    mod._state.paletteRam[3] = 0x30;
+    const dbg = createBridge(mod);
+    expect(dbg.getNametable().length).toBe(2048);
+    expect(dbg.getNametable()[5]).toBe(0x21);
+    expect(dbg.getPaletteRam().length).toBe(32);
+    expect(dbg.getPaletteRam()[3]).toBe(0x30);
+  });
+
+  it("ppuState maps the four PPU getters", () => {
+    const mod = createMockModule();
+    mod._state.ppu = { ctrl: 0x90, mask: 0x1e, status: 0x80, scanline: 120 };
+    const dbg = createBridge(mod);
+    expect(dbg.ppuState()).toEqual({
+      ctrl: 0x90,
+      mask: 0x1e,
+      status: 0x80,
+      scanline: 120,
+    });
+  });
 });

@@ -20,10 +20,16 @@ set(SOURCES
     src/bus.cpp
     src/cpu.cpp
     src/ppu.cpp
+    src/apu.cpp
     src/cartridge.cpp
     src/mapper.cpp
     src/mapper_zero.cpp
+    src/mapper_mmc1.cpp
+    src/mapper_uxrom.cpp
+    src/mapper_cnrom.cpp
+    src/mapper_mmc3.cpp
     src/debugger.cpp
+    src/palette.cpp
 )
 
 # Add library with the core functionality
@@ -40,7 +46,7 @@ if(EMSCRIPTEN)
 
     # Emscripten-specific flags
     set(EM_LINK_FLAGS
-        "-s WASM=1 -s MODULARIZE=1 -s EXPORT_ES6=1 -s EXPORT_NAME='CPUEmulator' -s ALLOW_MEMORY_GROWTH=1 -s EXPORTED_RUNTIME_METHODS=['ccall','cwrap','UTF8ToString','writeAsciiToMemory'] -s NO_EXIT_RUNTIME=1 -s EXPORTED_FUNCTIONS=['_debugger_step','_debugger_run','_debugger_stop','_debugger_reset','_debugger_is_running','_debugger_add_breakpoint','_debugger_remove_breakpoint','_debugger_clear_breakpoints','_debugger_get_register_a','_debugger_get_register_x','_debugger_get_register_y','_debugger_get_register_sp','_debugger_get_register_pc','_debugger_get_register_status','_debugger_get_status_flag','_debugger_read_memory','_debugger_write_memory','_debugger_get_instruction_count','_debugger_get_cycle_count','_debugger_set_pc','_debugger_disassemble_around_pc','_debugger_disassemble_range']")
+        "-s WASM=1 -s MODULARIZE=1 -s EXPORT_ES6=1 -s EXPORT_NAME='CPUEmulator' -s ALLOW_MEMORY_GROWTH=1 -s EXPORTED_RUNTIME_METHODS=['ccall','cwrap','UTF8ToString','writeAsciiToMemory','HEAPU8','HEAPF32'] -s NO_EXIT_RUNTIME=1 -s EXPORTED_FUNCTIONS=['_debugger_step','_debugger_run','_debugger_stop','_debugger_reset','_debugger_is_running','_debugger_add_breakpoint','_debugger_remove_breakpoint','_debugger_clear_breakpoints','_debugger_get_register_a','_debugger_get_register_x','_debugger_get_register_y','_debugger_get_register_sp','_debugger_get_register_pc','_debugger_get_register_status','_debugger_get_status_flag','_debugger_read_memory','_debugger_write_memory','_debugger_get_instruction_count','_debugger_get_cycle_count','_debugger_set_pc','_debugger_disassemble_around_pc','_debugger_disassemble_range','_load_rom','_get_framebuffer_ptr','_get_framebuffer_len','_get_frame_count','_run_frame','_ppu_render_pattern_table','_get_nametable_ptr','_get_palette_ram_ptr','_get_oam_ptr','_set_controller','_audio_available','_audio_drain','_ppu_get_ctrl','_ppu_get_mask','_ppu_get_status','_ppu_get_scanline','_malloc','_free']")
 
     # Export main as CPU_wasm
     set_target_properties(cpu_wasm PROPERTIES
@@ -78,12 +84,34 @@ else()
             find_package(GTest QUIET)
         endif()
 
+        # If no system/CI GTest is available, fetch and build it from source.
+        # This makes `ctest --test-dir native_build` work on a clean machine
+        # (e.g. local macOS without `brew install googletest`).
+        if(NOT GTEST_FOUND AND NOT DEFINED ENV{GTEST_ROOT} AND NOT EXISTS "/usr/lib/libgtest.a")
+            message(STATUS "GTest not found; fetching googletest via FetchContent")
+            include(FetchContent)
+            FetchContent_Declare(
+                googletest
+                GIT_REPOSITORY https://github.com/google/googletest.git
+                GIT_TAG v1.14.0
+            )
+            # Prevent googletest from overriding our compiler/linker options on Windows
+            set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+            FetchContent_MakeAvailable(googletest)
+            set(NES_USE_FETCHED_GTEST ON)
+        endif()
+
         # Function to add test executables
         function(add_cpu_test test_name test_file)
             add_executable(${test_name} ${test_file})
             target_link_libraries(${test_name} cpu_core)
 
-            if(GTEST_FOUND)
+            if(NES_USE_FETCHED_GTEST)
+                target_link_libraries(${test_name} GTest::gtest GTest::gtest_main)
+                if(UNIX)
+                    target_link_libraries(${test_name} pthread)
+                endif()
+            elseif(GTEST_FOUND)
                 target_include_directories(${test_name} PRIVATE ${GTEST_INCLUDE_DIRS})
                 target_link_libraries(${test_name} ${GTEST_BOTH_LIBRARIES})
                 if(UNIX)
@@ -134,5 +162,23 @@ else()
         add_cpu_test(cpu_test_stack tests/cpu_test_stack.cpp)
         add_cpu_test(cpu_test_store tests/cpu_test_store.cpp)
         add_cpu_test(cpu_test_transfer tests/cpu_test_transfer.cpp)
+        add_cpu_test(bus_test_ppu tests/bus_test_ppu.cpp)
+        add_cpu_test(debugger_test_run_frame tests/debugger_test_run_frame.cpp)
+        add_cpu_test(ppu_test_init tests/ppu_test_init.cpp)
+        add_cpu_test(ppu_test_registers tests/ppu_test_registers.cpp)
+        add_cpu_test(ppu_test_memory tests/ppu_test_memory.cpp)
+        add_cpu_test(ppu_test_loopy tests/ppu_test_loopy.cpp)
+        add_cpu_test(ppu_test_timing tests/ppu_test_timing.cpp)
+        add_cpu_test(ppu_test_render tests/ppu_test_render.cpp)
+        add_cpu_test(ppu_test_sprites tests/ppu_test_sprites.cpp)
+
+        # PPU foundation tests
+        add_cpu_test(palette_test tests/palette_test.cpp)
+        add_cpu_test(cpu_test_nmi tests/cpu_test_nmi.cpp)
+        add_cpu_test(cartridge_test_ines tests/cartridge_test_ines.cpp)
+        add_cpu_test(debugger_test_rom_boot tests/debugger_test_rom_boot.cpp)
+        add_cpu_test(controller_test tests/controller_test.cpp)
+        add_cpu_test(mapper_test tests/mapper_test.cpp)
+        add_cpu_test(apu_test tests/apu_test.cpp)
     endif()
 endif()

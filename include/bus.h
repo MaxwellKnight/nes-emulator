@@ -2,6 +2,8 @@
 #include <array>
 #include <cstddef>
 #include <memory>
+#include "apu.h"
+#include "controller.h"
 #include "cpu.h"
 #include "ppu.h"
 #include "types.h"
@@ -20,14 +22,21 @@ class Bus {
   void clock();
   void reset();
   CPU& get_cpu();
+  PPU& get_ppu();
+  APU& get_apu();
   void insert_cartridge(const std::shared_ptr<Cartridge>& cartridge);
+  // Latch controller button state. port 0 = player 1 ($4016), 1 = player 2.
+  void set_controller(int port, u8 buttons);
 
  private:
   static constexpr size_t _CPU_RAM_SIZE = 2 * 1024;  // 2KB
   u32 _sys_clock = 0;
+  int _dma_stall = 0;  // CPU cycles remaining stalled by an OAM ($4014) DMA
   CPU _cpu;
   PPU _ppu;
+  APU _apu;
   std::shared_ptr<Cartridge> _cartridge;
   std::array<u8, _CPU_RAM_SIZE> _ram{0};
+  mutable Controller _pad[2];  // mutable: serial reads shift on a const read path
 };
 }  // namespace nes

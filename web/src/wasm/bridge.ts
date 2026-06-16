@@ -21,6 +21,10 @@ export interface WasmModule {
     args: string[],
     values: Array<number | string>
   ): number | string | void;
+  HEAPU8: Uint8Array;
+  HEAPF32: Float32Array;
+  _malloc(size: number): number;
+  _free(ptr: number): void;
 }
 
 export interface Debugger {
@@ -46,6 +50,18 @@ export interface Debugger {
   ): DisassembledInstruction[];
   disassembleRange(start: number, end: number): DisassembledInstruction[];
   loadROM(data: Uint8Array | number[], startAddr?: number): void;
+  loadRom(bytes: Uint8Array): number;
+  getFramebuffer(): Uint8ClampedArray;
+  runFrame(): number;
+  frameCount(): number;
+  renderPatternTable(table: number, palette: number): Uint8ClampedArray;
+  getNametable(): Uint8Array;
+  getPaletteRam(): Uint8Array;
+  getOam(): Uint8Array;
+  setController(state: number, port?: number): void;
+  audioAvailable(): number;
+  audioDrain(max: number): Float32Array;
+  ppuState(): { ctrl: number; mask: number; status: number; scanline: number };
 }
 
 export function createBridge(module: WasmModule): Debugger {
@@ -111,6 +127,71 @@ export function createBridge(module: WasmModule): Debugger {
   const setPCRaw = module.cwrap("debugger_set_pc", null, ["number"]) as (
     addr: number
   ) => void;
+
+  const loadRomRaw = module.cwrap("load_rom", "number", [
+    "number",
+    "number",
+  ]) as (ptr: number, len: number) => number;
+  const getFramebufferPtr = module.cwrap(
+    "get_framebuffer_ptr",
+    "number",
+    []
+  ) as () => number;
+  const getFramebufferLen = module.cwrap(
+    "get_framebuffer_len",
+    "number",
+    []
+  ) as () => number;
+  const getFrameCount = module.cwrap(
+    "get_frame_count",
+    "number",
+    []
+  ) as () => number;
+  const runFrameRaw = module.cwrap("run_frame", "number", []) as () => number;
+  const renderPatternTableRaw = module.cwrap("ppu_render_pattern_table", null, [
+    "number",
+    "number",
+    "number",
+  ]) as (table: number, palette: number, out: number) => void;
+  const getNametablePtr = module.cwrap(
+    "get_nametable_ptr",
+    "number",
+    []
+  ) as () => number;
+  const getPaletteRamPtr = module.cwrap(
+    "get_palette_ram_ptr",
+    "number",
+    []
+  ) as () => number;
+  const getOamPtr = module.cwrap("get_oam_ptr", "number", []) as () => number;
+  const setControllerRaw = module.cwrap("set_controller", null, [
+    "number",
+    "number",
+  ]) as (port: number, buttons: number) => void;
+  const audioAvailableRaw = module.cwrap(
+    "audio_available",
+    "number",
+    [],
+  ) as () => number;
+  const audioDrainRaw = module.cwrap("audio_drain", "number", [
+    "number",
+    "number",
+  ]) as (ptr: number, max: number) => number;
+  // Reusable heap buffer for draining audio samples (one frame is ~735 samples).
+  const AUDIO_BUF = 4096;
+  const audioBufPtr = module._malloc(AUDIO_BUF * 4);
+  const ppuGetCtrl = module.cwrap("ppu_get_ctrl", "number", []) as () => number;
+  const ppuGetMask = module.cwrap("ppu_get_mask", "number", []) as () => number;
+  const ppuGetStatus = module.cwrap(
+    "ppu_get_status",
+    "number",
+    []
+  ) as () => number;
+  const ppuGetScanline = module.cwrap(
+    "ppu_get_scanline",
+    "number",
+    []
+  ) as () => number;
 
   function getRegisters(): Registers {
     return {
@@ -215,6 +296,93 @@ export function createBridge(module: WasmModule): Debugger {
     setPC(startAddr);
   }
 
+  function loadRom(bytes: Uint8Array): number {
+    const ptr = module._malloc(bytes.length);
+    try {
+      module.HEAPU8.set(bytes, ptr);
+      return loadRomRaw(ptr, bytes.length) as number;
+    } finally {
+      module._free(ptr);
+    }
+  }
+
+  function getFramebuffer(): Uint8ClampedArray {
+    const ptr = getFramebufferPtr();
+    const len = getFramebufferLen();
+    return new Uint8ClampedArray(module.HEAPU8.buffer, ptr, len);
+  }
+
+  function runFrame(): number {
+    return runFrameRaw() as number;
+  }
+
+  function frameCount(): number {
+    return getFrameCount() as number;
+  }
+
+  function renderPatternTable(
+    table: number,
+    palette: number
+  ): Uint8ClampedArray {
+    const len = 128 * 128 * 4;
+    const ptr = module._malloc(len);
+    try {
+      renderPatternTableRaw(table, palette, ptr);
+      // Copy out of the heap so the caller owns a stable buffer after free.
+      return new Uint8ClampedArray(
+        module.HEAPU8.buffer.slice(ptr, ptr + len)
+      );
+    } finally {
+      module._free(ptr);
+    }
+  }
+
+  function getNametable(): Uint8Array {
+    const ptr = getNametablePtr();
+    return new Uint8Array(module.HEAPU8.buffer, ptr, 2048);
+  }
+
+  function getPaletteRam(): Uint8Array {
+    const ptr = getPaletteRamPtr();
+    return new Uint8Array(module.HEAPU8.buffer, ptr, 32);
+  }
+
+  function getOam(): Uint8Array {
+    const ptr = getOamPtr();
+    return new Uint8Array(module.HEAPU8.buffer, ptr, 256);
+  }
+
+  function setController(state: number, port = 0): void {
+    setControllerRaw(port, state & 0xff);
+  }
+
+  function audioAvailable(): number {
+    return audioAvailableRaw();
+  }
+
+  function audioDrain(max: number): Float32Array {
+    const n = audioDrainRaw(audioBufPtr, Math.min(max, AUDIO_BUF));
+    // Copy out of the heap view so the caller owns a stable buffer.
+    return module.HEAPF32.subarray(
+      audioBufPtr / 4,
+      audioBufPtr / 4 + n,
+    ).slice();
+  }
+
+  function ppuState(): {
+    ctrl: number;
+    mask: number;
+    status: number;
+    scanline: number;
+  } {
+    return {
+      ctrl: ppuGetCtrl(),
+      mask: ppuGetMask(),
+      status: ppuGetStatus(),
+      scanline: ppuGetScanline(),
+    };
+  }
+
   return {
     step,
     run,
@@ -235,5 +403,17 @@ export function createBridge(module: WasmModule): Debugger {
     disassembleAroundPC,
     disassembleRange,
     loadROM,
+    loadRom,
+    getFramebuffer,
+    runFrame,
+    frameCount,
+    renderPatternTable,
+    getNametable,
+    getPaletteRam,
+    getOam,
+    setController,
+    audioAvailable,
+    audioDrain,
+    ppuState,
   };
 }

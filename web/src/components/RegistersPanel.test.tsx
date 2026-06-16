@@ -29,6 +29,7 @@ describe("RegistersPanel", () => {
       snapshot: makeSnapshot(),
       breakpoints: [],
       running: false,
+      framebuffer: null,
       dbg: null,
       actions: {} as EmulatorContextValue["actions"],
     };
@@ -46,6 +47,7 @@ describe("RegistersPanel", () => {
       snapshot: makeSnapshot(),
       breakpoints: [],
       running: false,
+      framebuffer: null,
       dbg: null,
       actions: {} as EmulatorContextValue["actions"],
     };
@@ -63,6 +65,7 @@ describe("RegistersPanel", () => {
       snapshot: null,
       breakpoints: [],
       running: false,
+      framebuffer: null,
       dbg: null,
       actions: {} as EmulatorContextValue["actions"],
     };

@@ -34,6 +34,7 @@ function makeCtx(pc: number, breakpoints: number[]): EmulatorContextValue {
     },
     breakpoints,
     running: false,
+    framebuffer: null,
     dbg: null,
     actions: { toggleBreakpoint } as unknown as EmulatorContextValue["actions"],
   };

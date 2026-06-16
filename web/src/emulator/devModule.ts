@@ -57,6 +57,60 @@ const DEMO_DISASM = [
   "3129|234|NOP|0||1|2",
 ].join("#");
 
+// Pack an RGBA pixel into 4 consecutive bytes (R,G,B,A) at `buf[off..]`.
+function putPixel(
+  buf: Uint8Array | Uint8ClampedArray,
+  off: number,
+  r: number,
+  g: number,
+  b: number,
+): void {
+  buf[off] = r;
+  buf[off + 1] = g;
+  buf[off + 2] = b;
+  buf[off + 3] = 0xff;
+}
+
+/**
+ * Paint a recognizable 256×240 RGBA demo image: an NES-blue backdrop with a
+ * lighter 8×8 checkerboard, so the Screen canvas is obviously non-blank before
+ * any ROM is loaded. DEV/demo-only — never used in production or by the core.
+ */
+export function fillDemoFramebuffer(
+  buf: Uint8Array | Uint8ClampedArray,
+): void {
+  const W = 256;
+  const H = 240;
+  for (let y = 0; y < H; y += 1) {
+    for (let x = 0; x < W; x += 1) {
+      const off = (y * W + x) * 4;
+      const checker = ((x >> 3) + (y >> 3)) & 1;
+      if (checker) {
+        putPixel(buf, off, 0x3c, 0x3c, 0xa0); // light NES-blue
+      } else {
+        putPixel(buf, off, 0x14, 0x14, 0x60); // dark NES-blue backdrop
+      }
+    }
+  }
+}
+
+// A tiny demo nametable + palette so the PPU debug viewer shows content too.
+function fillDemoNametable(nt: Uint8Array): void {
+  for (let i = 0; i < nt.length; i += 1) {
+    nt[i] = (i & 0x0f) === 0 ? 0x24 : i & 0x3f; // sprinkle non-zero tile ids
+  }
+}
+
+function fillDemoPalette(pal: Uint8Array): void {
+  // A plausible background palette set (indices into the master palette).
+  const demo = [
+    0x0f, 0x30, 0x21, 0x12, 0x0f, 0x27, 0x17, 0x07, 0x0f, 0x29, 0x1a, 0x0c,
+    0x0f, 0x2b, 0x1b, 0x0d, 0x0f, 0x30, 0x21, 0x12, 0x0f, 0x27, 0x17, 0x07,
+    0x0f, 0x29, 0x1a, 0x0c, 0x0f, 0x2b, 0x1b, 0x0d,
+  ];
+  for (let i = 0; i < 32; i += 1) pal[i] = demo[i];
+}
+
 /**
  * Build a seeded mock module so the cockpit UI is fully populated and
  * interactive for design review when the compiled WASM artifact isn't
@@ -93,7 +147,32 @@ export function createDevModule(): WasmModule {
   s.instructionCount = 12004;
   s.cycleCount = 48213;
 
+  // Seed a non-blank demo screen + PPU debug buffers so the cockpit shows
+  // content immediately (the mock's getters read these back through HEAPU8).
+  fillDemoFramebuffer(s.framebuffer);
+  fillDemoNametable(s.nametable);
+  fillDemoPalette(s.paletteRam);
+  fillDemoOam(s.oam);
+
   return mock;
+}
+
+// A few demo sprites (Y, tile, attr, X) so the OAM viewer shows content in the
+// WASM-less dev preview. Sprite 0 up top, a couple mid-screen, rest parked.
+function fillDemoOam(oam: Uint8Array): void {
+  const demo = [
+    [0x20, 0x00, 0x00, 0x30],
+    [0x58, 0x32, 0x01, 0x80],
+    [0x58, 0x33, 0x41, 0x88],
+    [0x90, 0x10, 0x20, 0x40],
+  ];
+  for (let i = 0; i < 64; i++) {
+    const s = demo[i] ?? [0xf8, 0x00, 0x00, 0x00]; // park the rest offscreen
+    oam[i * 4] = s[0];
+    oam[i * 4 + 1] = s[1];
+    oam[i * 4 + 2] = s[2];
+    oam[i * 4 + 3] = s[3];
+  }
 }
 
 /**
@@ -104,6 +183,21 @@ export function createDevModule(): WasmModule {
 export async function loadModuleWithDevFallback(): Promise<WasmModule> {
   try {
     const module = await loadEmulatorModule();
+    // A stale WASM build (pre-PPU) loads fine but lacks the framebuffer/PPU
+    // exports, so getFramebuffer()/renderPatternTable() would throw (black
+    // screen, PPU-viewer crash). In DEV, detect that and fall back to the
+    // seeded mock (demo framebuffer + debug buffers) so the cockpit is usable.
+    // Rebuild with `docker compose run --rm dev build_wasm.sh` for the real core.
+    const hasPpuExports =
+      typeof (module as unknown as Record<string, unknown>)
+        ._get_framebuffer_ptr === "function";
+    if (import.meta.env.DEV && !hasPpuExports) {
+      // eslint-disable-next-line no-console
+      console.warn(
+        "[dev] Compiled WASM has no PPU exports (stale build) — using the seeded dev module. Rebuild the WASM (build_wasm.sh) and restart for the real core.",
+      );
+      return createDevModule();
+    }
     // DEV-only: seed the real module with the demo program so the cockpit boots
     // alive (filled disassembly, a non-reset PC, populated memory) instead of a
     // sea of $00 / BRK. No-op in production builds; tests inject their own module.
@@ -114,6 +208,14 @@ export async function loadModuleWithDevFallback(): Promise<WasmModule> {
         ZP_SEED.forEach((b, i) => bridge.writeMemory(i, b));
         // Advance a few instructions so the registers/flags read as live.
         for (let i = 0; i < 6; i++) bridge.step();
+        // Paint a demo image straight into the framebuffer heap view so the
+        // first blit is non-blank even before a ROM is loaded (DEV-only).
+        try {
+          const fb = bridge.getFramebuffer();
+          fillDemoFramebuffer(fb);
+        } catch {
+          /* framebuffer not available yet — harmless in DEV */
+        }
       } catch {
         /* ignore — leave the empty initial state */
       }
