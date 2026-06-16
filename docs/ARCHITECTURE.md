@@ -1,124 +1,138 @@
-# Architecture
+# How it works
 
-This document explains how the emulator is put together, the timing model it uses
-(and the trade-offs behind it), and a debugging case study that shows the
-conformance-first mindset in action.
+Notes on how the emulator is put together, the timing shortcuts I took and why, and a
+debugging story that makes the case for testing against real ROMs better than any
+amount of arguing would.
 
-## Component overview
+## The pieces
 
 ```
-                         ┌──────────────────────────────────────┐
-   .nes file ──load_rom─▶│ Cartridge  ──▶  Mapper (0/1/2/3/4)    │
-                         └───────────────┬──────────────────────┘
-                                         │ PRG / CHR / mirroring
-        ┌───────────┐   reads/writes     ▼
-        │    CPU    │◀────────────┬─── Bus ───┬────────────▶ PPU ──▶ framebuffer
-        │  (6502)   │             │           │                 (256×240 RGBA)
-        └─────┬─────┘             │           └────────────▶ APU ──▶ sample ring
-              │ NMI / IRQ         │
-              └───────────────────┘           Controllers ($4016/$4017)
+                         +--------------------------------------+
+   .nes file --load_rom->| Cartridge  -->  Mapper (0/1/2/3/4)   |
+                         +---------------+----------------------+
+                                         | PRG / CHR / mirroring
+        +-----------+   reads/writes     v
+        |    CPU    |<------------+--- Bus ---+------------> PPU --> framebuffer
+        |  (6502)   |             |           |                 (256x240 RGBA)
+        +-----+-----+             |           +------------> APU --> sample ring
+              | NMI / IRQ         |
+              +-------------------+           Controllers ($4016/$4017)
 ```
 
-- **`Bus`** (`src/bus.cpp`) owns the CPU, PPU, APU, controllers, and 2 KB of work
-  RAM, and routes every CPU read/write to the right device. One "system step"
-  clocks the CPU once and the PPU three times (the NES's 1:3 ratio), then the APU,
-  then delivers any pending NMI/IRQ.
-- **`CPU`** (`src/cpu.cpp`) is a table-driven 6502: a 256-entry instruction table
-  maps each opcode to an addressing-mode handler + an operation. It implements the
-  official opcodes and the documented unofficial ones (see [below](#unofficial-opcodes)).
-- **`PPU`** (`src/ppu.cpp`) implements the `$2000`–`$2007` registers, the loopy
-  `v`/`t`/`x`/`w` scroll model, background + sprite rendering, sprite-0 hit, and NMI
-  generation.
-- **`APU`** (`src/apu.cpp`) runs two pulse channels, triangle, and noise through a
-  frame sequencer and a non-linear mixer, producing 44.1 kHz samples drained each frame.
-- **`Cartridge` + mappers** (`src/cartridge.cpp`, `src/mapper_*.cpp`) parse the iNES
-  header and bank-switch PRG/CHR, set mirroring, and (for MMC3) raise scanline IRQs.
+Everything hangs off the **`Bus`** (`src/bus.cpp`). It owns the CPU, PPU, APU,
+controllers, and the 2 KB of work RAM, and it's the thing that decides where a given
+CPU read or write actually goes. One step of the bus clocks the CPU once and the PPU
+three times. That 1:3 ratio is the real hardware, and getting it right is what keeps
+video and audio in sync with the program.
 
-The whole core compiles to a static library that is linked twice: into the native
-gtest binaries, and into a WebAssembly module (`src/wasm_main.cpp`) whose C exports
-are wrapped by a typed TypeScript bridge in `web/src/wasm/`.
+The **`CPU`** (`src/cpu.cpp`) is a table-driven 6502. A 256-entry table maps each
+opcode byte to an addressing mode plus an operation, which keeps the decode loop tiny.
+It does the official instruction set and the illegal opcodes worth caring about (more
+on those below).
 
-## Execution & timing model
+The **`PPU`** (`src/ppu.cpp`) is the picture chip: the `$2000`-`$2007` registers, the
+"loopy" `v`/`t`/`x`/`w` scroll registers, background and sprite drawing, sprite-0 hit,
+and the NMI it kicks off at the start of vblank.
 
-The CPU is **instruction-stepped with a cycle budget**: `CPU::clock()` decodes a
-whole instruction, sets `_cycles` to its documented length (plus a page-cross
-penalty where applicable), and then reports "busy" for that many system steps. The
-`Bus` clocks the PPU 3× per CPU step, so PPU time advances at the correct ratio even
-though the CPU executes an instruction atomically.
+The **`APU`** (`src/apu.cpp`) runs two pulse channels, a triangle, and a noise channel
+through a frame sequencer and a non-linear mixer, and produces 44.1 kHz samples that
+the web layer drains once a frame and hands to WebAudio.
 
-The PPU is **per-scanline**: it tracks dot/scanline/frame counters every step (so
-VBlank, NMI, sprite-0-hit clearing, loopy `v` updates, and the MMC3 IRQ clock all
-fire at the right dots), but it rasterises an entire visible line in one shot using
-the current scroll address.
+The **cartridge and mappers** (`src/cartridge.cpp`, `src/mapper_*.cpp`) read the iNES
+header and handle bank switching, mirroring, and for MMC3 the scanline IRQ that games
+like SMB3 use to split the screen.
 
-### Trade-offs
+The whole core builds into one static library that gets linked two ways: into the
+native gtest binaries, and into a WASM module (`src/wasm_main.cpp`) whose C exports a
+typed TypeScript layer wraps for the browser.
 
-| Property | This emulator | Fully cycle-accurate |
-|----------|---------------|----------------------|
-| CPU correctness | Cycle-exact per instruction (matches `nestest` to the cycle) | identical |
-| CPU mid-instruction bus timing | atomic per instruction | each read/write on its own cycle |
-| PPU rendering | per-scanline | per-dot |
-| Mid-scanline raster effects | not modelled | modelled |
-| Commercial-game compatibility | high (sprite-0 splits, scrolling, IRQs work) | highest |
-| `ppu_vbl_nmi` / dot-exact PPU ROMs | fail | pass |
+## Timing, and the shortcuts I took
 
-This is a deliberate point on the accuracy/complexity curve: it is more than enough
-to run commercial games correctly — including Super Mario Bros.'s sprite-0 status-bar
-split and MMC3 scanline-IRQ raster splits — while keeping the renderer simple. The
-documented next step is a dot-based PPU, which the conformance scoreboard
-(`ppu_vbl_nmi`) already tracks.
+The CPU runs an instruction at a time. `CPU::clock()` decodes a full instruction,
+figures out how many cycles it should take (plus the page-cross penalty where it
+applies), and then reports "busy" for that many bus steps. It doesn't split a read and
+a write across separate cycles the way real silicon does. The upside is that the cycle
+*count* is exact. It matches the `nestest` log to the cycle, even though the work
+happens in one go.
 
-## Unofficial opcodes
+The PPU is the bigger shortcut. It keeps proper dot/scanline/frame counters, so
+vblank, NMI, the sprite-0 flag clearing, the scroll updates, and the MMC3 IRQ all fire
+on the right dots. But when it's time to draw a visible line it draws the whole line
+at once from the current scroll position. Real hardware produces the line pixel by
+pixel.
 
-Real cartridges (and blargg's `instr_test`) use the 6502's "illegal" opcodes, so the
-core implements the stable ones — the unofficial `NOP`s, `LAX`, `SAX`, `SBC #imm`,
-and the read-modify-write/ALU combos `SLO`, `RLA`, `SRE`, `RRA`, `DCP`, `ISC`, plus
-`ANC`/`ALR`/`ARR`/`AXS`/`LAS`. The genuinely unstable opcodes (`XAA`, `AHX`, `SHX`,
-`SHY`, `TAS`, the `KIL` jams) are registered with the correct length and cycle count
-so the program counter stays aligned and **the core never aborts on an undefined
-opcode** — a `all_256_opcodes_registered` test enforces full coverage.
+Here's the honest version of what that buys and costs:
 
-## Verification strategy
+| | This emulator | Fully dot-accurate |
+|---|---|---|
+| CPU correctness | cycle-exact per instruction | same |
+| CPU read/write timing within an instruction | atomic | split across cycles |
+| PPU rendering | per scanline | per dot |
+| Mid-scanline raster tricks | not modelled | modelled |
+| Running commercial games | works well | works |
+| Dot-exact PPU test ROMs | fail | pass |
 
-Three layers, fastest first:
+I picked this point on purpose. It's enough to run real games correctly, sprite-0
+status-bar splits and MMC3 raster splits included, without the per-dot PPU rewrite. A
+dot-based PPU is the obvious next step, and the conformance scoreboard already has
+`ppu_vbl_nmi` sitting there as a reminder.
 
-1. **Unit tests** (`tests/*.cpp`, gtest) — per-instruction CPU behaviour, PPU
-   registers/rendering/sprites, mappers, APU, controllers. Fast and deterministic.
-2. **Conformance ROMs** (`tests/conformance_test.cpp`) — the industry-standard
-   `nestest`/`blargg` test ROMs, run headless and checked against each ROM's
-   self-reported pass/fail. This is what catches subtle timing bugs that unit tests
-   miss; it doubles as the public [scoreboard](../README.md#conformance).
-3. **Differential / golden traces** — `nestest` is additionally compared
-   line-by-line against the published golden log (PC + A/X/Y/P/SP + cycle count) for
-   all 5003 official-opcode instructions.
+## Illegal opcodes
 
-## Case study: the one-dot offset that hung Super Mario Bros.
+The 6502 has a pile of undocumented opcodes, and real cartridges lean on them, so I
+implemented the stable ones: the unofficial `NOP`s, `LAX`, `SAX`, `SBC #imm`, and the
+read-modify-write combos `SLO`, `RLA`, `SRE`, `RRA`, `DCP`, `ISC`, plus
+`ANC`/`ALR`/`ARR`/`AXS`/`LAS`. The genuinely cursed ones (`XAA`, `AHX`, `SHX`, `SHY`,
+`TAS`, and the `KIL` jams that lock up a real chip) I register with the right length
+and cycle count but don't try to reproduce their analog-dependent behaviour. The point
+of that is robustness: the core should never hit an opcode it doesn't know and fall
+over. A test (`all_256_opcodes_registered`) keeps me honest by checking every single
+byte value is mapped.
 
-A good illustration of why the conformance mindset matters.
+## Testing
 
-**Symptom.** SMB booted, showed the title, and — after pressing Start — loaded the
-"WORLD 1-1" screen but froze: no player sprite, a blank TIME, and a dead controller.
+Three layers, fastest to slowest:
 
-**Investigation.** Driving the core headless showed the CPU spinning forever at
-`$8150`, SMB's *sprite-0-hit wait* — the loop that times the split between the fixed
-status bar and the scrolling playfield. Sprite 0 was on-screen (`Y=24`, tile `$FF`),
-rendering was enabled, yet the hit flag never set. Instrumenting the sprite pass
-revealed why: the sprite's opaque pixels (tile rows 5–6, scanlines 30–31) and the
-status bar's opaque background pixels never coincided — they were misaligned by
-exactly **one scanline**.
+1. **Unit tests** (`tests/*.cpp`): the per-instruction CPU stuff, PPU registers and
+   rendering, mappers, APU, controllers. Quick, deterministic, run constantly.
+2. **Conformance ROMs** (`tests/conformance_test.cpp`): blargg's and kevtris' test
+   ROMs run headless, with the harness reading back each ROM's own pass/fail report.
+   This is the layer that catches the timing bugs unit tests sail right past, and it's
+   the public scoreboard in the [README](../README.md#conformance).
+3. **Golden trace**: on top of the pass/fail, `nestest` gets compared line by line
+   against the published reference log (PC, A/X/Y/P/SP, and cycle count) for all 5003
+   official-opcode instructions.
 
-**Root cause.** In `PPU::clock()`, the visible line was rasterised at dot 257 — but
-`inc_y()` had already advanced the loopy `v` register at dot 256. So scanline *N* was
-being drawn with scanline *N+1*'s vertical scroll, shifting the whole background up
-one line and breaking the sprite/background overlap that sprite-0 hit depends on.
-(At the title screen the block under sprite 0 is solid, so the off-by-one was
-invisible there — only gameplay's thin status-bar glyphs exposed it.)
+## A one-dot bug that froze Mario
 
-**Fix.** Rasterise each line *before* `inc_y()` advances the scroll, so it uses its
-own vertical position ([`src/ppu.cpp`](../src/ppu.cpp)). A regression test
-(`BackgroundUsesOwnScanlineFineY`) pins the behaviour: a tile opaque only on its top
-row must render on scanline 0, not scanline 1.
+This is the bug that convinced me the conformance ROMs earn their keep.
 
-**Takeaway.** A one-dot timing error is invisible to "does it look like Mario?" but
-fatal to a real game's frame logic. The same class of bug is exactly what the
-conformance ROMs exist to catch automatically — which is why they run in CI.
+Super Mario Bros. booted, showed its title, and then after you pressed Start it loaded
+the "WORLD 1-1" screen and just sat there. No Mario, blank TIME, controller did
+nothing.
+
+Running the core headless, the CPU was stuck forever at `$8150`: SMB's sprite-0-hit
+wait, the loop that times the split between the fixed status bar at the top and the
+scrolling level below it. Sprite 0 was on screen (`Y=24`, tile `$FF`), rendering was
+on, and the hit flag still never fired. When I dumped the sprite pass pixel by pixel,
+the reason showed up. The sprite's solid pixels (tile rows 5 and 6, scanlines 30 and
+31) and the status bar's solid background pixels were never on the same scanline. They
+were off by exactly one.
+
+The cause was a single misplaced line. In `PPU::clock()` I was drawing the visible
+scanline at dot 257, but `inc_y()`, the thing that advances the vertical scroll, had
+already run at dot 256. So scanline N was getting drawn with scanline N+1's scroll
+value, nudging the whole background up a pixel and breaking the sprite/background
+overlap that sprite-0 hit depends on. The title screen hid it because the tile under
+sprite 0 there is a solid block, so a one-pixel shift looks identical. Only the thin
+glyphs in the gameplay status bar gave it away.
+
+The fix was to draw the line before `inc_y()` runs, so it uses its own scroll
+position. There's a regression test (`BackgroundUsesOwnScanlineFineY`) that pins it
+down: a tile that's only opaque on its top row has to show up on scanline 0, not
+scanline 1.
+
+What sticks with me about this one is that a one-dot timing error is completely
+invisible to "yeah, that looks like Mario," but it's fatal to the game's actual frame
+logic. That's the exact kind of thing the test ROMs are built to catch on their own,
+which is why they run in CI now instead of living in my head.
