@@ -42,6 +42,21 @@ docker compose run --rm shell
 ```
 Access the application at http://localhost:5173 during development or through the configured domain in production.
 
+### Front-end development (without Docker)
+
+The web debugger lives in `web/` and is managed with **pnpm** (Node 20+):
+
+```bash
+cd web
+pnpm install        # install dependencies
+pnpm dev            # start the Vite dev server on http://localhost:5173
+pnpm test           # run the Vitest unit + component suites
+pnpm typecheck      # run tsc --noEmit
+pnpm build          # produce the production bundle in web/dist
+```
+
+The compiled WebAssembly artifacts (`cpu_wasm.js` / `cpu_wasm.wasm`) are emitted into `web/src/wasm/generated/` by the CMake/Emscripten build and are gitignored; build the WASM target (e.g. `docker compose run --rm dev`) before running the front-end against the real core.
+
 ### Local Development (without Docker)
 
 For those who prefer developing without containers:
@@ -75,15 +90,17 @@ For those who prefer developing without containers:
 
 - The register panel shows current values of A, X, Y, SP, and status flags
 - Memory can be viewed and edited in the memory panel
-- Watch specific memory addresses by adding them to the watch list
+- Step, run, reset, set breakpoints, and edit memory live from the debugger panels
 
 ## Architecture
 
 The emulator is built with a focus on accuracy and educational value:
 
 - Core 6502 CPU emulation written in C++
-- WebAssembly compilation for browser execution
-- Modern front-end interface built with HTML/CSS/JavaScript
+- WebAssembly compilation for browser execution (Emscripten, ESM glue)
+- Typed WASM bridge layer in TypeScript (`web/src/wasm/`) that wraps the exported debugger functions
+- Front-end built with **Vite + React 18 + TypeScript**, styled with **Tailwind CSS v4** and CSS-variable design tokens (the "Studio" design system)
+- State managed via a React Context provider (`EmulatorProvider`) with hooks for the run loop, memory views, and disassembly
 
 ## License
 

@@ -1,0 +1,103 @@
+/*
+ * NES Studio design tokens — the "cockpit" instrument readout.
+ * Dark is the default; [data-theme="light"] provides light-slate overrides.
+ *
+ * Hierarchy is built from crisp 1px borders, the accent colour and typography —
+ * NOT shadows or haze. There is deliberately NO glow token.
+ *
+ * The canonical tokens are the short names (--b0..--bd, --tx*, --acc*, etc.).
+ * Legacy aliases (--bg, --panel, --text-muted, ...) are mapped onto the new
+ * tokens so the whole component tree resolves consistently.
+ */
+:root {
+  /* surfaces — the page sits clearly below the cards for separation */
+  --b0: #07080b; /* page / gutter (near-black) */
+  --b1: #171a22; /* card surface — a visible step up from the page */
+  --b2: #20242e; /* inset wells (inputs, chips) */
+  --b3: #2c313d; /* quiet fills / scrollbar thumb */
+
+  /* borders — a touch stronger so card edges read against the page */
+  --bd: rgba(255, 255, 255, 0.11);
+  --bd2: rgba(255, 255, 255, 0.2);
+
+  /* text — brighter secondary tiers so data stays readable */
+  --tx: #f1f3f9;
+  --mut: #969db2;
+  --dim: #6a7286;
+
+  /* accent + semantic */
+  --acc: #7e85f2;
+  --acc2: #aab0f8;
+  --grn: #46b98a;
+  --amb: #d9a23d;
+  --red: #e0564b;
+
+  /* the page background a legend label paints over to mask the border */
+  --legend-bg: var(--b0);
+
+  /* radii + motion */
+  --radius: 9px;
+  --radius-sm: 6px;
+  --ease-spring: cubic-bezier(0.32, 0.72, 0, 1);
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --dur-fast: 120ms;
+  --dur: 200ms;
+
+  /* atmosphere */
+  --screen-well: #05060a;
+
+  /* typography */
+  --font-ui: "Outfit", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  /* ---- legacy aliases (mapped onto canonical tokens) ---- */
+  --bd-strong: var(--bd2);
+  --tx-mut: var(--mut);
+  --tx-dim: var(--dim);
+  --acc-hi: var(--acc2);
+  --acc-press: #666dde;
+
+  --bg: var(--b0);
+  --panel: var(--b1);
+  --panel-2: var(--b2);
+  --border: var(--bd);
+  --border-subtle: var(--bd);
+  --border-emphasis: var(--bd2);
+  --text: var(--tx);
+  --text-muted: var(--mut);
+  --text-dim: var(--dim);
+  --heading: var(--tx);
+  --accent: var(--acc);
+  --accent-hover: var(--acc2);
+  --accent-soft: var(--acc2);
+  --accent-soft-2: var(--acc2);
+  --danger: var(--red);
+  --success: var(--grn);
+  --warning: var(--amb);
+}
+
+[data-theme="light"] {
+  /* Cool-slate page so the white module surfaces read as distinct panels,
+     with firmer borders for separation. The accent stays vivid on white. */
+  --b0: #d6dae6; /* page / gutter — noticeably cooler than the surfaces */
+  --b1: #fbfcff; /* module surface */
+  --b2: #eef1f8; /* inset wells (inputs, chips) */
+  --b3: #dde2ee; /* scrollbar thumb / quiet fills */
+
+  --bd: rgba(20, 26, 48, 0.14);
+  --bd2: rgba(20, 26, 48, 0.26);
+
+  --tx: #141826;
+  --mut: #535b71;
+  --dim: #8d94a8;
+
+  --acc: #4b52df;
+  --acc2: #5b62ec;
+  --grn: #128a57;
+  --amb: #b06c10;
+  --red: #ce372c;
+
+  --legend-bg: var(--b0);
+  /* the NES screen is a CRT — it stays black in every theme */
+  --screen-well: #0b0c10;
+}

@@ -39,8 +39,8 @@ if(EMSCRIPTEN)
     target_link_libraries(cpu_wasm cpu_core)
 
     # Emscripten-specific flags
-    set(EM_LINK_FLAGS 
-        "-s WASM=1 -s MODULARIZE=1 -s EXPORT_NAME='CPUEmulator' -s ALLOW_MEMORY_GROWTH=1 -s EXPORTED_RUNTIME_METHODS=['ccall','cwrap','UTF8ToString','writeAsciiToMemory'] -s NO_EXIT_RUNTIME=1 -s EXPORTED_FUNCTIONS=['_debugger_step','_debugger_run','_debugger_stop','_debugger_reset','_debugger_is_running','_debugger_add_breakpoint','_debugger_remove_breakpoint','_debugger_clear_breakpoints','_debugger_get_register_a','_debugger_get_register_x','_debugger_get_register_y','_debugger_get_register_sp','_debugger_get_register_pc','_debugger_get_register_status','_debugger_get_status_flag','_debugger_read_memory','_debugger_write_memory','_debugger_get_instruction_count','_debugger_get_cycle_count','_debugger_set_pc','_debugger_disassemble_around_pc','_debugger_disassemble_range']")
+    set(EM_LINK_FLAGS
+        "-s WASM=1 -s MODULARIZE=1 -s EXPORT_ES6=1 -s EXPORT_NAME='CPUEmulator' -s ALLOW_MEMORY_GROWTH=1 -s EXPORTED_RUNTIME_METHODS=['ccall','cwrap','UTF8ToString','writeAsciiToMemory'] -s NO_EXIT_RUNTIME=1 -s EXPORTED_FUNCTIONS=['_debugger_step','_debugger_run','_debugger_stop','_debugger_reset','_debugger_is_running','_debugger_add_breakpoint','_debugger_remove_breakpoint','_debugger_clear_breakpoints','_debugger_get_register_a','_debugger_get_register_x','_debugger_get_register_y','_debugger_get_register_sp','_debugger_get_register_pc','_debugger_get_register_status','_debugger_get_status_flag','_debugger_read_memory','_debugger_write_memory','_debugger_get_instruction_count','_debugger_get_cycle_count','_debugger_set_pc','_debugger_disassemble_around_pc','_debugger_disassemble_range']")
 
     # Export main as CPU_wasm
     set_target_properties(cpu_wasm PROPERTIES
@@ -49,13 +49,15 @@ if(EMSCRIPTEN)
         LINK_FLAGS "${EM_LINK_FLAGS}"
     )
 
-    # Copy the generated files to the web directory
+    # Copy the generated files to the web ESM bridge directory
     add_custom_command(TARGET cpu_wasm POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E make_directory
+            ${CMAKE_SOURCE_DIR}/web/src/wasm/generated
         COMMAND ${CMAKE_COMMAND} -E copy
             ${CMAKE_BINARY_DIR}/cpu_wasm.js
             ${CMAKE_BINARY_DIR}/cpu_wasm.wasm
-            ${CMAKE_SOURCE_DIR}/web/js/
-        COMMENT "Copying WebAssembly files to web directory"
+            ${CMAKE_SOURCE_DIR}/web/src/wasm/generated/
+        COMMENT "Copying WebAssembly files to web/src/wasm/generated"
     )
 else()
     # Native build configuration for testing
