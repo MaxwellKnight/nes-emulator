@@ -125,6 +125,36 @@ TEST_F(PPUSpriteTest, SpriteZeroHit) {
   EXPECT_EQ(ppu.reg_status() & 0x40, 0x40) << "sprite-0 hit should be set";
 }
 
+// Regression: the background for scanline N must be rendered with scanline N's
+// own vertical scroll (fine-Y), not the next line's. inc_y() runs at dot 256, so
+// rendering had to happen before it — doing it after shifted the whole picture up
+// one scanline and misaligned sprite-0 hit, hanging SMB on the status-bar split.
+TEST_F(PPUSpriteTest, BackgroundUsesOwnScanlineFineY) {
+  // Tile 1: only the TOP row (fine-Y 0) is opaque; rows 1..7 are transparent.
+  for (int row = 0; row < 8; row++) {
+    seed_chr(1 * 16 + row, row == 0 ? 0xFF : 0x00);  // low plane
+    seed_chr(1 * 16 + 8 + row, 0x00);                // high plane
+  }
+  ppu_poke(0x3F00, 0x0F);  // backdrop
+  ppu_poke(0x3F01, 0x21);  // bg color 1
+  for (int i = 0; i < 32; i++) ppu_poke(0x2000 + i, 1);  // nametable row 0 = tile 1
+  ppu_poke(0x23C0, 0x00);
+  ppu.cpu_write(0, 0x00);   // bg pattern table 0
+  ppu.cpu_write(6, 0x00);   // reset v/t -> coarse/fine Y = 0
+  ppu.cpu_write(6, 0x00);
+  ppu.cpu_write(1, 0x0A);   // show bg (d3) incl. leftmost 8px (d1)
+
+  const u32 bgcolor = nes::palette_rgba(0x21);
+  const u32 backdrop = nes::palette_rgba(0x0F);
+
+  // Scanline 0 must show the tile's opaque top row (fine-Y 0).
+  render_line(0);
+  EXPECT_EQ(px(0, 10), bgcolor) << "scanline 0 must render tile row 0 (opaque)";
+  // Scanline 1 reads fine-Y 1, which is transparent -> backdrop.
+  render_line(1);
+  EXPECT_EQ(px(1, 10), backdrop) << "scanline 1 must render tile row 1 (transparent)";
+}
+
 // Behind-background priority: a "behind" sprite is hidden where BG is opaque.
 TEST_F(PPUSpriteTest, BehindBackgroundPriority) {
   seed_solid_tile(1, 1);          // bg tile, color 1

@@ -218,8 +218,11 @@ void PPU::clock() {
     if (_ctrl & 0x80) _nmi_pending = true;
   }
 
-  // Visible scanlines: render the whole line once it has been fetched.
-  if (_scanline < 240 && _dot == 257) {
+  // Visible scanlines: render the whole line using the loopy address BEFORE
+  // inc_y() advances it. Rendering must read this scanline's vertical scroll;
+  // doing it after inc_y() (at dot 256) would render with the next line's fine-Y,
+  // shifting the background up one scanline and breaking sprite-0-hit alignment.
+  if (_scanline < 240 && _dot == 256) {
     render_scanline(_scanline);
   }
 
