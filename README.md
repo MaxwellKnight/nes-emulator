@@ -101,6 +101,20 @@ stable-baselines3. See [`python/README.md`](python/README.md) for generating mov
 the env API, and training; the design notes are in
 [`docs/rl-env-spec.md`](docs/rl-env-spec.md).
 
+You can also watch an agent live. Start the streaming server and click **Spawn Agent**
+in NES Studio; the browser re-simulates the streamed actions in real time:
+
+```bash
+PYTHONPATH=python python3 -m nesenv.live "Super Mario Bros.nes" --port 8000
+```
+
+To run the web app and the agent server together, there is an [`mprocs.yaml`](mprocs.yaml):
+
+```bash
+brew install mprocs            # once
+NES_ROM="Super Mario Bros.nes" mprocs
+```
+
 ## Running it
 
 Easiest path is Docker:

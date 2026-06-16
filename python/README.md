@@ -74,7 +74,28 @@ that the boundary is deterministic.)
 The browser loads the embedded ROM and replays the recorded inputs frame for frame.
 No server, no backend; the WASM core and the recorder are the same code.
 
-## 5. The RL environment
+## 5. Watch an agent live from the UI
+
+Instead of recording a movie, you can stream an agent to the browser in real time.
+Start the live server (it streams one action byte per frame over Server-Sent Events,
+which is plain HTTP, no extra dependencies):
+
+```bash
+cd python
+PYTHONPATH=. python3 -m nesenv.live "Super Mario Bros.nes" --agent scripted --port 8000
+```
+
+Then open NES Studio and click **Spawn Agent** in the top bar. The browser connects to
+the stream, loads the ROM the server sends, and re-simulates the streamed actions on its
+own WASM core, so you watch the agent play live, in sync, at tiny bandwidth.
+
+To watch an agent *learn*, swap the policy in `agent_action` (in `nesenv/live.py`) for a
+training loop's current policy: train in the background, and between updates let the
+agent stream a live episode. The streaming protocol does not change, so the browser side
+stays exactly the same. Getting the agent to actually improve is the slow part (real RL
+training needs the `gym` extras and time); the live view is instant.
+
+## 6. The RL environment
 
 `SuperMarioBrosEnv` is a Gymnasium-style env. `reset()` boots the ROM and advances
 to gameplay; `step(action)` takes a discrete action index and returns

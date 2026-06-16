@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { EmulatorContextValue } from "../emulator/EmulatorProvider";
 import { Toolbar } from "./Toolbar";
@@ -33,6 +33,8 @@ function makeContext(
     setController: vi.fn(),
     playMovie: vi.fn(),
     stopMovie: vi.fn(),
+    connectLiveAgent: vi.fn(),
+    disconnectLiveAgent: vi.fn(),
   };
   return {
     status: "ready",
@@ -46,6 +48,7 @@ function makeContext(
     running: false,
     framebuffer: null,
     movie: { playing: false, frame: 0, total: 0 },
+    liveAgent: { connected: false, frame: 0 },
     dbg: null,
     actions,
     ...overrides,
@@ -68,6 +71,22 @@ describe("Toolbar", () => {
   it("shows the ROM name when provided", () => {
     render(<Toolbar romName="demo.nes" onHelp={vi.fn()} />);
     expect(screen.getByText("demo.nes")).toBeInTheDocument();
+  });
+
+  it("connects to a live agent when Spawn Agent is clicked", () => {
+    const ctx = makeContext();
+    mockContext.value = ctx;
+    render(<Toolbar onHelp={vi.fn()} />);
+    fireEvent.click(screen.getByTestId("spawn-agent"));
+    expect(ctx.actions.connectLiveAgent).toHaveBeenCalled();
+  });
+
+  it("disconnects when an agent is already live", () => {
+    const ctx = makeContext({ liveAgent: { connected: true, frame: 99 } });
+    mockContext.value = ctx;
+    render(<Toolbar onHelp={vi.fn()} />);
+    fireEvent.click(screen.getByTestId("spawn-agent"));
+    expect(ctx.actions.disconnectLiveAgent).toHaveBeenCalled();
   });
 
   it("shows live instruction and cycle stats from the snapshot", () => {

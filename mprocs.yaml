@@ -1,0 +1,21 @@
+# Run everything needed for the live demo at once:  mprocs
+#
+#   web         - NES Studio dev server (http://localhost:5173)
+#   live-agent  - streams a live agent for the "Spawn Agent" button (port 8000)
+#
+# Prerequisites (one time):
+#   cmake -B native_build -DCMAKE_BUILD_TYPE=Release
+#   cmake --build native_build --target nesenv      # builds libnesenv for the agent
+#   docker compose run --rm dev build_wasm.sh        # builds the WASM core for the web app
+#
+# The agent needs a ROM. By default it uses ./Super Mario Bros.nes; point it
+# elsewhere with:  NES_ROM="/path/to/game.nes" mprocs
+#
+# Install mprocs with:  brew install mprocs   (or: cargo install mprocs)
+
+procs:
+  web:
+    shell: "pnpm --dir web dev"
+
+  live-agent:
+    shell: 'PYTHONPATH=python python3 -m nesenv.live "${NES_ROM:-Super Mario Bros.nes}" --agent scripted --port 8000'

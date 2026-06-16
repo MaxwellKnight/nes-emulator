@@ -27,6 +27,7 @@ function makeCtx(overrides: Partial<EmulatorContextValue> = {}): EmulatorContext
     running: false,
     framebuffer: null,
     movie: { playing: false, frame: 0, total: 0 },
+    liveAgent: { connected: false, frame: 0 },
     dbg: null,
     actions: { loadOpcodes } as unknown as EmulatorContextValue["actions"],
     ...overrides,

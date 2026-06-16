@@ -36,3 +36,6 @@ python/dist/
 
 # Recorded movies embed a ROM and are generated, not committed.
 *.nesmovie
+
+# Runtime logs (e.g. mprocs)
+*.log

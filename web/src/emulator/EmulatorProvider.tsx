@@ -18,6 +18,16 @@ import { NesAudio } from "./audio";
 import { parseMovie } from "./movie";
 import { useToast } from "../components/toast/ToastProvider";
 
+// The live-agent server (python -m nesenv.live) streams Server-Sent Events to here.
+const LIVE_AGENT_URL = "http://localhost:8000/stream";
+
+function base64ToBytes(b64: string): Uint8Array {
+  const bin = atob(b64);
+  const out = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i += 1) out[i] = bin.charCodeAt(i);
+  return out;
+}
+
 export interface EmulatorActions {
   step(): void;
   run(): void;
@@ -33,6 +43,8 @@ export interface EmulatorActions {
   setController(state: number, port?: number): void;
   playMovie(data: Uint8Array): void;
   stopMovie(): void;
+  connectLiveAgent(url?: string): void;
+  disconnectLiveAgent(): void;
 }
 
 export interface EmulatorContextValue {
@@ -42,6 +54,7 @@ export interface EmulatorContextValue {
   running: boolean;
   framebuffer: Uint8ClampedArray | null;
   movie: { playing: boolean; frame: number; total: number };
+  liveAgent: { connected: boolean; frame: number };
   dbg: Debugger | null;
   actions: EmulatorActions;
 }
@@ -64,6 +77,9 @@ export function EmulatorProvider(props: {
   );
   const [movie, setMovie] = useState({ playing: false, frame: 0, total: 0 });
   const movieRafRef = useRef<number | null>(null);
+  const [liveAgent, setLiveAgent] = useState({ connected: false, frame: 0 });
+  const liveSourceRef = useRef<EventSource | null>(null);
+  const liveRomRef = useRef<Uint8Array | null>(null);
   // Mirror the breakpoints state in a ref so toggleBreakpoint can read the
   // current set synchronously without doing side-effects inside a setState
   // updater (updaters must stay pure).
@@ -178,15 +194,24 @@ export function EmulatorProvider(props: {
     setMovie((m) => (m.playing ? { ...m, playing: false } : m));
   }, []);
 
+  const disconnectLiveAgent = useCallback(() => {
+    if (liveSourceRef.current) {
+      liveSourceRef.current.close();
+      liveSourceRef.current = null;
+    }
+    setLiveAgent((s) => (s.connected ? { connected: false, frame: 0 } : s));
+  }, []);
+
   const stop = useCallback(() => {
     const bridge = dbgRef.current;
     if (!bridge) return;
     stopMovie();
+    disconnectLiveAgent();
     stopLoop();
     bridge.stop();
     audioRef.current.suspend();
     refresh();
-  }, [refresh, stopLoop, stopMovie]);
+  }, [refresh, stopLoop, stopMovie, disconnectLiveAgent]);
 
   const reset = useCallback(() => {
     const bridge = dbgRef.current;
@@ -252,6 +277,52 @@ export function EmulatorProvider(props: {
       movieRafRef.current = requestAnimationFrame(tick);
     },
     [addToast, stopLoop],
+  );
+
+  // Watch a live agent: connect to the SSE stream and re-simulate the streamed
+  // actions on the local core. Because the core is deterministic, the browser
+  // reproduces exactly what the agent is doing on the server, frame for frame.
+  const connectLiveAgent = useCallback(
+    (url: string = LIVE_AGENT_URL) => {
+      const bridge = dbgRef.current;
+      if (!bridge) return;
+      stopLoop();
+      stopMovie();
+      disconnectLiveAgent();
+      audioRef.current.resume();
+
+      let frames = 0;
+      const es = new EventSource(url);
+      liveSourceRef.current = es;
+
+      es.addEventListener("rom", (ev) => {
+        const rom = base64ToBytes((ev as MessageEvent).data);
+        liveRomRef.current = rom;
+        bridge.loadRom(rom);
+      });
+      es.addEventListener("reset", () => {
+        if (liveRomRef.current) bridge.loadRom(liveRomRef.current); // re-boot
+      });
+      es.addEventListener("step", (ev) => {
+        const mask = parseInt((ev as MessageEvent).data, 10) || 0;
+        bridge.setController(mask);
+        bridge.runFrame();
+        setFramebuffer(new Uint8ClampedArray(bridge.getFramebuffer()));
+        const samples = bridge.audioDrain(4096);
+        if (samples.length) audioRef.current.pump(samples);
+        frames += 1;
+        if (frames % 6 === 0) setLiveAgent({ connected: true, frame: frames });
+      });
+      es.onopen = () => {
+        setLiveAgent({ connected: true, frame: 0 });
+        addToast("Live agent connected", "info");
+      };
+      es.onerror = () => {
+        addToast("Live agent not reachable (is `python -m nesenv.live` running?)", "danger");
+        disconnectLiveAgent();
+      };
+    },
+    [addToast, stopLoop, stopMovie, disconnectLiveAgent],
   );
 
   // BRK (opcode 0x00) handling: the C++ core dispatches `nes-brk-encountered`
@@ -376,6 +447,8 @@ export function EmulatorProvider(props: {
       setController,
       playMovie,
       stopMovie,
+      connectLiveAgent,
+      disconnectLiveAgent,
     }),
     [
       step,
@@ -392,6 +465,8 @@ export function EmulatorProvider(props: {
       setController,
       playMovie,
       stopMovie,
+      connectLiveAgent,
+      disconnectLiveAgent,
     ],
   );
 
@@ -403,10 +478,11 @@ export function EmulatorProvider(props: {
       running,
       framebuffer,
       movie,
+      liveAgent,
       dbg,
       actions,
     }),
-    [status, snapshot, breakpoints, running, framebuffer, movie, dbg, actions],
+    [status, snapshot, breakpoints, running, framebuffer, movie, liveAgent, dbg, actions],
   );
 
   return (

@@ -36,6 +36,7 @@ function makeCtx(pc: number, sp: number): EmulatorContextValue {
     running: false,
     framebuffer: null,
     movie: { playing: false, frame: 0, total: 0 },
+    liveAgent: { connected: false, frame: 0 },
     dbg: null,
     actions: {} as EmulatorContextValue["actions"],
   };

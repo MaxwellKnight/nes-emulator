@@ -45,8 +45,12 @@ function SegButton({
   );
 }
 
-export function Toolbar({ romName, onHelp, onLoadCode }: ToolbarProps): JSX.Element {
-  const { snapshot, running, movie, actions } = useEmulator();
+export function Toolbar({
+  romName,
+  onHelp,
+  onLoadCode,
+}: ToolbarProps): JSX.Element {
+  const { snapshot, running, movie, liveAgent, actions } = useEmulator();
   const { addToast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const movieInputRef = useRef<HTMLInputElement>(null);
@@ -228,6 +232,25 @@ export function Toolbar({ romName, onHelp, onLoadCode }: ToolbarProps): JSX.Elem
         </button>
         <button
           type="button"
+          data-testid="spawn-agent"
+          onClick={() =>
+            liveAgent.connected
+              ? actions.disconnectLiveAgent()
+              : actions.connectLiveAgent()
+          }
+          aria-label="Spawn Agent"
+          title="Watch a live agent"
+          className={[
+            "press rounded-md border px-[9px] py-[4px] text-[10px]",
+            liveAgent.connected
+              ? "border-[var(--grn)] bg-[var(--grn)]/20 text-[var(--tx)]"
+              : "border-[var(--bd-strong)] bg-[var(--b2)] text-[var(--tx)] hover:bg-[var(--b3)]",
+          ].join(" ")}
+        >
+          {liveAgent.connected ? "Live Agent" : "Spawn Agent"}
+        </button>
+        <button
+          type="button"
           data-testid="loadcode-open"
           onClick={onLoadCode}
           aria-label="Load Code"
@@ -261,7 +284,13 @@ export function Toolbar({ romName, onHelp, onLoadCode }: ToolbarProps): JSX.Elem
             title="GitHub"
             className={CONTACT_LINK_CLASS}
           >
-            <svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor" aria-hidden>
+            <svg
+              viewBox="0 0 16 16"
+              width="14"
+              height="14"
+              fill="currentColor"
+              aria-hidden
+            >
               <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z" />
             </svg>
           </a>
@@ -273,7 +302,13 @@ export function Toolbar({ romName, onHelp, onLoadCode }: ToolbarProps): JSX.Elem
             title="LinkedIn"
             className={CONTACT_LINK_CLASS}
           >
-            <svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor" aria-hidden>
+            <svg
+              viewBox="0 0 16 16"
+              width="14"
+              height="14"
+              fill="currentColor"
+              aria-hidden
+            >
               <path d="M13.63 13.63h-2.37V9.9c0-.89-.02-2.03-1.24-2.03-1.24 0-1.43.97-1.43 1.97v3.79H6.22V6h2.28v1.04h.03c.32-.6 1.1-1.24 2.26-1.24 2.41 0 2.86 1.59 2.86 3.65v4.18zM3.56 4.96a1.38 1.38 0 1 1 0-2.76 1.38 1.38 0 0 1 0 2.76zm1.19 8.67H2.36V6h2.39v7.63zM14.82 0H1.18C.53 0 0 .52 0 1.16v13.68C0 15.48.53 16 1.18 16h13.64c.65 0 1.18-.52 1.18-1.16V1.16C16 .52 15.47 0 14.82 0z" />
             </svg>
           </a>
@@ -283,7 +318,13 @@ export function Toolbar({ romName, onHelp, onLoadCode }: ToolbarProps): JSX.Elem
             title="Email"
             className={CONTACT_LINK_CLASS}
           >
-            <svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor" aria-hidden>
+            <svg
+              viewBox="0 0 16 16"
+              width="14"
+              height="14"
+              fill="currentColor"
+              aria-hidden
+            >
               <path d="M1.5 2.5h13c.55 0 1 .45 1 1v9c0 .55-.45 1-1 1h-13c-.55 0-1-.45-1-1v-9c0-.55.45-1 1-1zm.2 1.3 6.3 4.2 6.3-4.2H1.7zm-.2 1.06v7.34h13V4.86l-6.5 4.34L1.5 4.86z" />
             </svg>
           </a>
