@@ -1,9 +1,13 @@
 # Spec: headless library + RL environment
 
-Status: in progress. The C ABI (`include/nes_env.h`), the self-contained shared
-library (`libnesenv`), the `.nesmovie` record/replay format, the `record_demo`
-recorder, and the browser "Watch Movie" player are built and tested. The Python
-ctypes wrapper, the Gymnasium environment, and the training examples are still to do.
+Status: largely built. Done and tested: the C ABI (`include/nes_env.h`), the
+self-contained shared library (`libnesenv`), the `.nesmovie` format, the C++
+`record_demo` recorder, the browser "Watch Movie" player, the Python `ctypes`
+wrapper and package (`python/nesenv`), the `SuperMarioBrosEnv` (observation, action
+set, reward, episode start), the scripted and random examples, and the stdlib
+unittest suite. The Python and C++ recorders produce byte-identical movies. Still
+optional/to do: the Gymnasium adapter is written but unverified here (needs the
+`gymnasium`/`numpy` extras), and there is no committed training run.
 
 ## Goal
 

@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "nesenv"
+version = "0.1.0"
+description = "Deterministic headless NES environment and RL gym built on the C++ core"
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "GPL-3.0-only" }
+dependencies = []
+
+[project.optional-dependencies]
+# The base package is stdlib-only. These extras enable the Gymnasium adapter.
+gym = ["gymnasium>=0.29", "numpy>=1.21"]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["nesenv*"]

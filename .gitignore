@@ -21,5 +21,18 @@ compile_commands.json
 test_detail.json
 test_detail.xml
 
-# Conformance test ROMs are fetched on demand, not committed.
-tests/roms/*.nes
+# ROM images are copyrighted; never commit them. (The small, freely-distributable
+# test-roms/checkerboard.nes is already tracked and unaffected by this rule.)
+*.nes
+
+# Python env package artifacts
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.venv/
+python/build/
+python/dist/
+
+# Recorded movies embed a ROM and are generated, not committed.
+*.nesmovie

@@ -82,19 +82,23 @@ const uint8_t* rgb = nes_framebuffer(e);   // 256x240 RGBA
 ```
 
 Because stepping is deterministic, a whole play session is captured by the ROM plus one
-controller byte per frame. The `record_demo` tool runs a scripted agent and writes a
-self-contained `.nesmovie`:
+controller byte per frame. Record a scripted agent into a self-contained `.nesmovie`,
+either with the C++ tool or the Python one (they produce byte-identical output):
 
 ```bash
 cmake --build native_build --target record_demo
 ./native_build/record_demo "Super Mario Bros.nes" smb.nesmovie
+# or:  cd python && PYTHONPATH=. python3 examples/record_scripted.py "Super Mario Bros.nes" smb.nesmovie
 ```
 
 Load that file with **Watch Movie** in NES Studio and the browser replays it frame for
 frame. The WASM core and the native core are the same code, so they stay in lockstep,
 which is how you watch an agent play in the browser with no backend at all.
 
-The Python Gymnasium environment that wraps this ABI is the next step; the design is in
+On top of the ABI there is a Python package with a Gymnasium-style Super Mario Bros
+environment (observation, action set, reward) and an optional Gymnasium adapter for
+stable-baselines3. See [`python/README.md`](python/README.md) for generating movies,
+the env API, and training; the design notes are in
 [`docs/rl-env-spec.md`](docs/rl-env-spec.md).
 
 ## Running it
