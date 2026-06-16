@@ -29,6 +29,8 @@ function makeCtx(overrides: Partial<EmulatorContextValue> = {}): EmulatorContext
     loadRom: vi.fn(() => 0),
     loadOpcodes: vi.fn(),
     setController: vi.fn(),
+    playMovie: vi.fn(),
+    stopMovie: vi.fn(),
   };
   return {
     status: "ready",
@@ -36,6 +38,7 @@ function makeCtx(overrides: Partial<EmulatorContextValue> = {}): EmulatorContext
     breakpoints: [],
     running: false,
     framebuffer: null,
+    movie: { playing: false, frame: 0, total: 0 },
     dbg: null,
     actions,
     ...overrides,

@@ -15,6 +15,7 @@ import { parseOpcodes } from "../wasm/opcodes";
 import type { EmulatorSnapshot, EmulatorStatus } from "../wasm/types";
 import { useFrameLoop } from "./useFrameLoop";
 import { NesAudio } from "./audio";
+import { parseMovie } from "./movie";
 import { useToast } from "../components/toast/ToastProvider";
 
 export interface EmulatorActions {
@@ -30,6 +31,8 @@ export interface EmulatorActions {
   loadRom(data: Uint8Array): number;
   loadOpcodes(text: string): void;
   setController(state: number, port?: number): void;
+  playMovie(data: Uint8Array): void;
+  stopMovie(): void;
 }
 
 export interface EmulatorContextValue {
@@ -38,6 +41,7 @@ export interface EmulatorContextValue {
   breakpoints: number[];
   running: boolean;
   framebuffer: Uint8ClampedArray | null;
+  movie: { playing: boolean; frame: number; total: number };
   dbg: Debugger | null;
   actions: EmulatorActions;
 }
@@ -58,6 +62,8 @@ export function EmulatorProvider(props: {
   const [framebuffer, setFramebuffer] = useState<Uint8ClampedArray | null>(
     null,
   );
+  const [movie, setMovie] = useState({ playing: false, frame: 0, total: 0 });
+  const movieRafRef = useRef<number | null>(null);
   // Mirror the breakpoints state in a ref so toggleBreakpoint can read the
   // current set synchronously without doing side-effects inside a setState
   // updater (updaters must stay pure).
@@ -164,22 +170,89 @@ export function EmulatorProvider(props: {
     startLoop();
   }, [addToast, startLoop]);
 
+  const stopMovie = useCallback(() => {
+    if (movieRafRef.current !== null) {
+      cancelAnimationFrame(movieRafRef.current);
+      movieRafRef.current = null;
+    }
+    setMovie((m) => (m.playing ? { ...m, playing: false } : m));
+  }, []);
+
   const stop = useCallback(() => {
     const bridge = dbgRef.current;
     if (!bridge) return;
+    stopMovie();
     stopLoop();
     bridge.stop();
     audioRef.current.suspend();
     refresh();
-  }, [refresh, stopLoop]);
+  }, [refresh, stopLoop, stopMovie]);
 
   const reset = useCallback(() => {
     const bridge = dbgRef.current;
     if (!bridge) return;
+    stopMovie();
     stopLoop();
     bridge.reset();
     refresh();
-  }, [refresh, stopLoop]);
+  }, [refresh, stopLoop, stopMovie]);
+
+  // Replay a self-contained .nesmovie (ROM + one controller byte per frame).
+  // Because the core is deterministic, this reproduces exactly what the agent
+  // (or any recorder) did when the movie was captured.
+  const playMovie = useCallback(
+    (bytes: Uint8Array) => {
+      const bridge = dbgRef.current;
+      if (!bridge) return;
+      stopLoop();
+      if (movieRafRef.current !== null) {
+        cancelAnimationFrame(movieRafRef.current);
+        movieRafRef.current = null;
+      }
+      let parsed;
+      try {
+        parsed = parseMovie(bytes);
+      } catch (e) {
+        addToast(`Invalid movie: ${(e as Error).message}`, "danger");
+        return;
+      }
+      if (bridge.loadRom(parsed.rom) !== 0) {
+        addToast("Movie ROM was rejected", "danger");
+        return;
+      }
+      audioRef.current.resume(); // user-gesture-initiated; unlocks WebAudio
+      const inputs = parsed.inputs;
+      setMovie({ playing: true, frame: 0, total: inputs.length });
+      addToast(`Playing movie — ${inputs.length} frames`, "info");
+
+      let i = 0;
+      const tick = () => {
+        const b = dbgRef.current;
+        if (!b) {
+          movieRafRef.current = null;
+          setMovie((m) => ({ ...m, playing: false }));
+          return;
+        }
+        if (i >= inputs.length) {
+          movieRafRef.current = null;
+          setMovie((m) => ({ ...m, playing: false }));
+          setSnapshot(b.getSnapshot());
+          addToast("Movie finished", "info");
+          return;
+        }
+        b.setController(inputs[i]);
+        b.runFrame();
+        setFramebuffer(new Uint8ClampedArray(b.getFramebuffer()));
+        const samples = b.audioDrain(4096);
+        if (samples.length) audioRef.current.pump(samples);
+        i += 1;
+        if (i % 6 === 0) setMovie((m) => ({ ...m, frame: i }));
+        movieRafRef.current = requestAnimationFrame(tick);
+      };
+      movieRafRef.current = requestAnimationFrame(tick);
+    },
+    [addToast, stopLoop],
+  );
 
   // BRK (opcode 0x00) handling: the C++ core dispatches `nes-brk-encountered`
   // when a BRK is stepped. Auto-stop the loop and surface a toast. (§6, preserve.)
@@ -301,6 +374,8 @@ export function EmulatorProvider(props: {
       loadRom,
       loadOpcodes,
       setController,
+      playMovie,
+      stopMovie,
     }),
     [
       step,
@@ -315,6 +390,8 @@ export function EmulatorProvider(props: {
       loadRom,
       loadOpcodes,
       setController,
+      playMovie,
+      stopMovie,
     ],
   );
 
@@ -325,10 +402,11 @@ export function EmulatorProvider(props: {
       breakpoints,
       running,
       framebuffer,
+      movie,
       dbg,
       actions,
     }),
-    [status, snapshot, breakpoints, running, framebuffer, dbg, actions],
+    [status, snapshot, breakpoints, running, framebuffer, movie, dbg, actions],
   );
 
   return (

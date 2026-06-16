@@ -67,6 +67,36 @@ cd native_build && ctest -R conformance  # run the scoreboard
 Hit **Load ROM**, pick a `.nes` file, then **Play** for full-screen. Controls: arrows
 for the D-pad, **X** is A (jump), **Z** is B, **Enter** is Start, **Shift** is Select.
 
+## Headless library and watching an agent play
+
+The same core also builds as a small C-ABI shared library (`libnesenv`) so you can drive
+an NES from outside the browser, for example to script or train an agent. One handle is
+one independent machine, handles share no state, and stepping is deterministic, so the
+same inputs always produce the same frames.
+
+```c
+NesEnv* e = nes_create();
+nes_load(e, rom, rom_len);
+nes_step(e, RIGHT | A);                    // advance one frame with buttons held
+const uint8_t* rgb = nes_framebuffer(e);   // 256x240 RGBA
+```
+
+Because stepping is deterministic, a whole play session is captured by the ROM plus one
+controller byte per frame. The `record_demo` tool runs a scripted agent and writes a
+self-contained `.nesmovie`:
+
+```bash
+cmake --build native_build --target record_demo
+./native_build/record_demo "Super Mario Bros.nes" smb.nesmovie
+```
+
+Load that file with **Watch Movie** in NES Studio and the browser replays it frame for
+frame. The WASM core and the native core are the same code, so they stay in lockstep,
+which is how you watch an agent play in the browser with no backend at all.
+
+The Python Gymnasium environment that wraps this ABI is the next step; the design is in
+[`docs/rl-env-spec.md`](docs/rl-env-spec.md).
+
 ## Running it
 
 Easiest path is Docker:

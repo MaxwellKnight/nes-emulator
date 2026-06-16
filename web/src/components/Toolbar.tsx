@@ -46,9 +46,10 @@ function SegButton({
 }
 
 export function Toolbar({ romName, onHelp, onLoadCode }: ToolbarProps): JSX.Element {
-  const { snapshot, running, actions } = useEmulator();
+  const { snapshot, running, movie, actions } = useEmulator();
   const { addToast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const movieInputRef = useRef<HTMLInputElement>(null);
   const [loadedRomName, setLoadedRomName] = useState<string | null>(null);
 
   const instructionCount = snapshot?.stats.instructionCount ?? 0;
@@ -57,6 +58,22 @@ export function Toolbar({ romName, onHelp, onLoadCode }: ToolbarProps): JSX.Elem
 
   function openFilePicker(): void {
     fileInputRef.current?.click();
+  }
+
+  function openMoviePicker(): void {
+    movieInputRef.current?.click();
+  }
+
+  function onMovieChange(event: React.ChangeEvent<HTMLInputElement>): void {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const bytes = new Uint8Array(reader.result as ArrayBuffer);
+      actions.playMovie(bytes);
+    };
+    reader.readAsArrayBuffer(file);
+    event.target.value = "";
   }
 
   function onFileChange(event: React.ChangeEvent<HTMLInputElement>): void {
@@ -180,6 +197,14 @@ export function Toolbar({ romName, onHelp, onLoadCode }: ToolbarProps): JSX.Elem
           className="hidden"
           onChange={onFileChange}
         />
+        <input
+          ref={movieInputRef}
+          data-testid="movie-file-input"
+          type="file"
+          accept=".nesmovie"
+          className="hidden"
+          onChange={onMovieChange}
+        />
         <button
           type="button"
           onClick={openFilePicker}
@@ -188,6 +213,18 @@ export function Toolbar({ romName, onHelp, onLoadCode }: ToolbarProps): JSX.Elem
           className="press rounded-md border border-[var(--bd-strong)] bg-[var(--b2)] px-[9px] py-[4px] text-[10px] text-[var(--tx)] hover:bg-[var(--b3)]"
         >
           Load ROM
+        </button>
+        <button
+          type="button"
+          data-testid="movie-open"
+          onClick={openMoviePicker}
+          aria-label="Watch Movie"
+          title="Replay a recorded .nesmovie (e.g. an agent playing)"
+          className="press rounded-md border border-[var(--bd-strong)] bg-[var(--b2)] px-[9px] py-[4px] text-[10px] text-[var(--tx)] hover:bg-[var(--b3)]"
+        >
+          {movie.playing
+            ? `Movie ${Math.floor((100 * movie.frame) / Math.max(1, movie.total))}%`
+            : "Watch Movie"}
         </button>
         <button
           type="button"
