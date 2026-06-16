@@ -69,6 +69,17 @@ else()
     # Native build configuration for testing
     message(STATUS "Configuring for native build")
 
+    # Headless environment: a C-ABI shared library (loadable from Python via
+    # ctypes) plus a recorder tool that writes .nesmovie files.
+    option(BUILD_ENV "Build the headless env library and recorder" ON)
+    if(BUILD_ENV)
+        set_property(TARGET cpu_core PROPERTY POSITION_INDEPENDENT_CODE ON)
+        add_library(nesenv SHARED src/nes_env.cpp)
+        target_link_libraries(nesenv cpu_core)
+        add_executable(record_demo tools/record_demo.cpp src/nes_env.cpp)
+        target_link_libraries(record_demo cpu_core)
+    endif()
+
     # Add test support (optional)
     option(BUILD_TESTS "Build test executables" ON)
 
@@ -181,6 +192,10 @@ else()
         add_cpu_test(mapper_test tests/mapper_test.cpp)
         add_cpu_test(apu_test tests/apu_test.cpp)
         add_cpu_test(cpu_test_illegal tests/cpu_test_illegal.cpp)
+
+        # Headless C-ABI env test (compiles the ABI translation unit in directly).
+        add_cpu_test(nes_env_test tests/nes_env_test.cpp)
+        target_sources(nes_env_test PRIVATE src/nes_env.cpp)
 
         # Conformance suite against canonical NES test ROMs (fetched on demand
         # by tests/roms/fetch_test_roms.sh; cases SKIP when a ROM is absent).
