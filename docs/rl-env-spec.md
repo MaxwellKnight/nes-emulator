@@ -6,8 +6,12 @@ self-contained shared library (`libnesenv`), the `.nesmovie` format, the C++
 wrapper and package (`python/nesenv`), the `SuperMarioBrosEnv` (observation, action
 set, reward, episode start), the scripted and random examples, and the stdlib
 unittest suite. The Python and C++ recorders produce byte-identical movies. Still
-optional/to do: the Gymnasium adapter is written but unverified here (needs the
-`gymnasium`/`numpy` extras), and there is no committed training run.
+optional/to do: a long, tuned training run to actually master a level. The
+Gymnasium adapter now passes `gymnasium`'s `check_env`, and a PPO training loop
+(`examples/train_ppo.py`, stable-baselines3) runs end to end on Python 3.11,
+snapshotting the policy to a `.nesmovie` every N steps so it is watchable. The
+live-agent stream (`nesenv.live`) and the browser "Spawn Agent" button let you
+watch an agent play in real time.
 
 ## Goal
 

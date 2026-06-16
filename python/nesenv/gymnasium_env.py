@@ -25,14 +25,18 @@ class SmbGymEnv(gym.Env):
 
     metadata = {"render_modes": ["rgb_array"]}
 
-    def __init__(self, rom: bytes, frameskip: int = 4, obs: str = "ram") -> None:
-        self._env = SuperMarioBrosEnv(rom, frameskip=frameskip, obs=obs)
+    def __init__(self, rom: bytes, frameskip: int = 4, obs: str = "ram", record: bool = False) -> None:
+        self._env = SuperMarioBrosEnv(rom, frameskip=frameskip, obs=obs, record=record)
         self._obs_kind = obs
         self.action_space = spaces.Discrete(self._env.num_actions)
         if obs == "ram":
             self.observation_space = spaces.Box(0, 255, (2048,), dtype=np.uint8)
         else:
             self.observation_space = spaces.Box(0, 255, (240, 256, 4), dtype=np.uint8)
+
+    def save_movie(self, path) -> None:
+        """Save everything since the last reset as a .nesmovie (needs record=True)."""
+        self._env.save_movie(path)
 
     def _to_np(self, raw: bytes) -> np.ndarray:
         arr = np.frombuffer(raw, dtype=np.uint8)

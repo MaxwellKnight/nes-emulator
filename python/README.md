@@ -112,10 +112,29 @@ obs, reward, terminated, truncated, info = env.step(1)   # action 1 = walk right
 env.save_movie("episode.nesmovie")                       # watch it in the browser
 ```
 
-### Training with stable-baselines3
+### Training with PPO
 
-The optional adapter exposes a real `gymnasium.Env`. With the extras installed
-(`pip install -e ".[gym]"`):
+`examples/train_ppo.py` trains a stable-baselines3 PPO agent on vectorised envs and,
+every so often, saves a `.nesmovie` of the current policy so you can watch it improve
+in NES Studio. Use a Python with torch wheels (3.11 works; 3.14 does not yet):
+
+```bash
+python3.11 -m venv .venv && . .venv/bin/activate
+pip install -e ".[train]"
+
+# smoke run (a couple of minutes; will NOT be good yet)
+python examples/train_ppo.py "Super Mario Bros.nes" --timesteps 8000 --n-envs 4
+
+# longer, with parallel processes for throughput (handles share no state)
+python examples/train_ppo.py "Super Mario Bros.nes" --timesteps 2000000 --n-envs 8 --subproc
+```
+
+Watch progress by loading `ppo_out/policy_*.nesmovie` with **Watch Movie**. Be
+realistic: Super Mario Bros is a hard RL benchmark, so a genuinely good agent is hours
+of training plus reward tuning, not minutes. The reward, action set, and episode start
+live in `nesenv/smb.py` if you want to tune them.
+
+The minimal building block, if you want to drive PPO yourself:
 
 ```python
 from stable_baselines3 import PPO
@@ -125,8 +144,6 @@ env = SmbGymEnv(rom, frameskip=4, obs="ram")
 model = PPO("MlpPolicy", env, verbose=1)
 model.learn(total_timesteps=1_000_000)
 ```
-
-Run many independent envs in parallel for throughput; handles share no state.
 
 ## Tests
 

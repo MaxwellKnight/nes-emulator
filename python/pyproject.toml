@@ -12,8 +12,10 @@ license = { text = "GPL-3.0-only" }
 dependencies = []
 
 [project.optional-dependencies]
-# The base package is stdlib-only. These extras enable the Gymnasium adapter.
+# The base package is stdlib-only. These extras enable the Gymnasium adapter and
+# PPO training (use a Python with torch wheels, e.g. 3.11).
 gym = ["gymnasium>=0.29", "numpy>=1.21"]
+train = ["gymnasium>=0.29", "numpy>=1.21", "stable-baselines3>=2.0"]
 
 [tool.setuptools.packages.find]
 where = ["."]
