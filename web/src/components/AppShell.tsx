@@ -16,15 +16,16 @@ import { Toaster } from "./toast/Toaster";
 import { Button } from "./ui/Button";
 
 export function AppShell(): JSX.Element {
-  const { status, framebuffer, dbg, actions } = useEmulator();
+  const { status, framebuffer, dbg, actions, running } = useEmulator();
   const [helpOpen, setHelpOpen] = useState(false);
   const [loadCodeOpen, setLoadCodeOpen] = useState(false);
   const [ppuOpen, setPpuOpen] = useState(false);
   const [play, setPlay] = useState(false);
 
-  // Play mode: capture the keyboard for player 1 and run the core continuously;
-  // leaving it halts the run loop.
-  useController(actions.setController, play);
+  // Capture the keyboard for player 1 whenever the core is running — in the
+  // cockpit (Toolbar "Run") as well as in the full-screen Play overlay. Without
+  // this, a game launched from the cockpit could not be controlled at all.
+  useController(actions.setController, running || play);
   useEffect(() => {
     if (play) actions.run();
     else actions.stop();

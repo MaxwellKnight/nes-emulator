@@ -22,10 +22,25 @@ export const CONTROL_HINTS: Array<{ keys: string; label: string }> = [
   { keys: "Shift", label: "Select" },
 ];
 
+// Don't steal controller keys (Enter / arrows / X-Z) while the user is typing
+// into a debugger field — the cockpit runs the game alongside editable inputs.
+function isEditableTarget(target: EventTarget | null): boolean {
+  const el = target as HTMLElement | null;
+  if (!el || !el.tagName) return false;
+  const tag = el.tagName.toUpperCase();
+  return (
+    tag === "INPUT" ||
+    tag === "TEXTAREA" ||
+    tag === "SELECT" ||
+    el.isContentEditable === true
+  );
+}
+
 /**
  * While `enabled`, map the keyboard to player 1's controller, pushing the live
  * button bitmask into the core on every key edge. Game keys are captured
- * (preventDefault) so arrows don't scroll the page during play.
+ * (preventDefault) so arrows don't scroll the page during play — except while a
+ * debugger text field is focused, where the keystroke is left to the input.
  */
 export function useController(
   setController: (state: number, port?: number) => void,
@@ -42,6 +57,7 @@ export function useController(
     const onDown = (e: KeyboardEvent) => {
       const bit = KEYMAP[e.code];
       if (bit === undefined || e.repeat) return;
+      if (isEditableTarget(e.target)) return;
       e.preventDefault();
       maskRef.current |= bit;
       setController(maskRef.current);
@@ -49,6 +65,7 @@ export function useController(
     const onUp = (e: KeyboardEvent) => {
       const bit = KEYMAP[e.code];
       if (bit === undefined) return;
+      if (isEditableTarget(e.target)) return;
       e.preventDefault();
       maskRef.current &= ~bit;
       setController(maskRef.current);
