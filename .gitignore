@@ -20,3 +20,6 @@ compile_commands.json
 .env
 test_detail.json
 test_detail.xml
+
+# Conformance test ROMs are fetched on demand, not committed.
+tests/roms/*.nes

@@ -180,5 +180,12 @@ else()
         add_cpu_test(controller_test tests/controller_test.cpp)
         add_cpu_test(mapper_test tests/mapper_test.cpp)
         add_cpu_test(apu_test tests/apu_test.cpp)
+        add_cpu_test(cpu_test_illegal tests/cpu_test_illegal.cpp)
+
+        # Conformance suite against canonical NES test ROMs (fetched on demand
+        # by tests/roms/fetch_test_roms.sh; cases SKIP when a ROM is absent).
+        add_cpu_test(conformance_test tests/conformance_test.cpp)
+        target_compile_definitions(conformance_test PRIVATE
+            NES_TEST_ROM_DIR="${CMAKE_SOURCE_DIR}/tests/roms")
     endif()
 endif()

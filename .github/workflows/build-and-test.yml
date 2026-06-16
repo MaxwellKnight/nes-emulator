@@ -59,6 +59,9 @@ jobs:
               --config ${{ matrix.build-type }} \
               --parallel $(nproc)
 
+    - name: Fetch conformance test ROMs
+      run: bash tests/roms/fetch_test_roms.sh
+
     - name: Run tests
       working-directory: ${{ github.workspace }}/build-${{ matrix.build-type }}
       run: |
