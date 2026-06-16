@@ -1,107 +1,119 @@
-# 6502 Online Debugger
+# NES Emulator + 6502 Studio
 
-An interactive 6502 microprocessor emulator and debugger for the Nintendo Entertainment System (NES), providing educational insights into retro computing. Available at [codeknight.dev](https://codeknight.dev/projects/6502-debugger).
+A cycle-aware **Nintendo Entertainment System emulator** written in C++17, compiled to
+WebAssembly, and wrapped in **NES Studio** — a browser-based debugger that lets you
+single-step a real 6502, watch the PPU render, and play commercial games in the same
+window. The CPU passes the canonical [`nestest`](https://www.qmtpro.com/~nes/misc/nestest.txt)
+and [blargg `instr_test`](https://github.com/christopherpow/nes-test-roms) suites.
 
-![6502 Debugger Screenshot](imgs/main-screenshot.png)
+![NES Studio screenshot](imgs/main-screenshot.png)
 
-## Features
+## Highlights
 
-- **Full 6502 CPU Emulation**: Accurately emulates all official 6502 opcodes and addressing modes
-- **Interactive Debugging**: Step-by-step execution with register and memory inspection
-- **Memory Visualization**: Real-time view of memory contents and changes
-- **Cross-platform**: Runs in any modern browser thanks to WebAssembly
+- **Full 6502 core** — all 151 official opcodes *and* the documented unofficial
+  opcodes, validated cycle-for-cycle against the `nestest` golden log (5003/5003
+  instructions match on PC, registers, **and** cycle count).
+- **PPU** — background + sprite rendering, OAM/`$4014` DMA, 8×8 & 8×16 sprites,
+  sprite-0 hit, loopy scrolling, and the four mirroring modes. Renders real games
+  (Super Mario Bros. boots into playable 1-1).
+- **APU** — two pulse channels, triangle, and noise through a non-linear mixer to WebAudio.
+- **Mappers** — NROM (0), MMC1 (1), UxROM (2), CNROM (3), MMC3 (4) with scanline IRQs.
+- **NES Studio debugger** — step/run/breakpoints, live disassembly, memory editor,
+  CPU + PPU state, pattern/nametable/OAM viewers, and a full-screen Play mode.
+- **Verified** — 32 native (gtest) + 211 web (Vitest) tests, plus a [conformance
+  suite](#conformance) that runs the industry-standard test ROMs in CI.
 
-## Getting Started
+## Conformance
 
-The debugger is accessible online at [codeknight.dev](https://codeknight.dev/projects/6502-debugger), but you can also run it locally or contribute to its development.
+The suite in [`tests/conformance_test.cpp`](tests/conformance_test.cpp) runs the
+canonical NES test ROMs through the real core and checks each ROM's self-reported
+result. ROMs are fetched on demand (`tests/roms/fetch_test_roms.sh`) and are not committed.
 
-### Prerequisites
+| Test ROM | Author | Area | Status |
+|----------|--------|------|:------:|
+| `nestest` | kevtris | All official + illegal CPU opcodes | ✅ pass |
+| `instr_test` 01-basics | blargg | Basic instruction behaviour | ✅ pass |
+| `instr_test` 02-implied | blargg | Implied + unofficial opcodes | ✅ pass |
+| `instr_test` official_only (16 ROMs) | blargg | Every official instruction | ✅ pass |
+| `instr_timing` | blargg | Instruction cycle timing | ✅ pass |
+| `ppu_vbl_nmi` | blargg | PPU VBlank/NMI **dot** timing | ⏳ roadmap |
 
-- Docker and Docker Compose (for containerized development)
-- Modern web browser with WebAssembly support
+The PPU renders per-scanline (accurate enough for commercial games and sprite-0
+splits) rather than dot-by-dot, so the cycle-exact PPU timing ROMs are the current
+accuracy frontier — see [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md). The harness
+skips (rather than fails) ROMs that are absent or are known accuracy gaps, so the
+suite is an honest scoreboard.
 
-## Local Setup
-
-### Quick Start
 ```bash
-# Clone the repository
+./tests/roms/fetch_test_roms.sh          # download the ROMs (once)
+cd native_build && ctest -R conformance  # run the scoreboard
+```
+
+## Game compatibility
+
+| Game | Mapper | Status |
+|------|:------:|--------|
+| Super Mario Bros. | NROM (0) | Boots to playable 1-1; movement, jump, scroll, status-bar split |
+| Super Mario Bros. 3 | MMC3 (4) | Boots, attract demo runs (scanline IRQ split) |
+
+Load any `.nes` image with **Load ROM**; press **▶ Play** for full-screen play.
+Controls: arrows = D-pad, **X** = A (jump), **Z** = B, **Enter** = Start, **Shift** = Select.
+
+## Quick start
+
+```bash
 git clone https://github.com/MaxwellKnight/nes-emulator.git
 cd nes-emulator
 
-# Start development environment with web server
-docker compose --profile dev up web-dev
-
-# Build everything (native + WebAssembly)
-docker compose run --rm dev
-
-# Run tests
-docker compose run --rm test
-
-# Get an interactive shell
-docker compose run --rm shell
+docker compose --profile dev up web-dev    # dev server at http://localhost:5173
+docker compose run --rm dev build_wasm.sh  # build the WASM core into web/src/wasm/generated/
+docker compose run --rm test               # build native + run the gtest suite
 ```
-Access the application at http://localhost:5173 during development or through the configured domain in production.
 
-### Front-end development (without Docker)
+### Front-end (without Docker)
 
-The web debugger lives in `web/` and is managed with **pnpm** (Node 20+):
+The web app lives in `web/` (pnpm, Node 20+):
 
 ```bash
 cd web
-pnpm install        # install dependencies
-pnpm dev            # start the Vite dev server on http://localhost:5173
-pnpm test           # run the Vitest unit + component suites
-pnpm typecheck      # run tsc --noEmit
-pnpm build          # produce the production bundle in web/dist
+pnpm install
+pnpm dev         # Vite dev server
+pnpm test        # Vitest unit + component suites
+pnpm typecheck   # tsc --noEmit
+pnpm build       # production bundle in web/dist
 ```
 
-The compiled WebAssembly artifacts (`cpu_wasm.js` / `cpu_wasm.wasm`) are emitted into `web/src/wasm/generated/` by the CMake/Emscripten build and are gitignored; build the WASM target (e.g. `docker compose run --rm dev`) before running the front-end against the real core.
+The compiled `cpu_wasm.js` / `cpu_wasm.wasm` are emitted into `web/src/wasm/generated/`
+by the Emscripten build and are gitignored — build the WASM target before running the
+front-end against the real core.
 
-### Local Development (without Docker)
+### Native build + tests (without Docker)
 
-For those who prefer developing without containers:
+Requires a C++17 compiler, CMake ≥ 3.14, and GoogleTest.
 
-- **Requirements**: 
-  - C++17 compatible compiler
-  - CMake 3.14 or newer
-  - Google Test framework
-  - Emscripten SDK (for WebAssembly compilation)
-
-- **Building**:
-  ```bash
-  mkdir build && cd build
-  cmake ..
-  make
-  ```
-
-## Usage Guide
-
-### Basic Operation
-
-1. Navigate to [codeknight.dev](https://codeknight.dev/)
-2. Use the "Load ROM" to upload a binary or paste 6502 compiled binary code 
-    and click "Load Opcods"(online assembler [masswerk.at](https://www.masswerk.at/6502/assembler.html))
-3. Use the debugger controls to:
-   - Step through code one instruction at a time
-   - Run code until a breakpoint
-   - Reset the emulator state
-
-### Memory and Register Inspection
-
-- The register panel shows current values of A, X, Y, SP, and status flags
-- Memory can be viewed and edited in the memory panel
-- Step, run, reset, set breakpoints, and edit memory live from the debugger panels
+```bash
+cmake -B native_build -DCMAKE_BUILD_TYPE=Debug
+cmake --build native_build -j
+./tests/roms/fetch_test_roms.sh      # optional: enables the conformance suite
+cd native_build && ctest --output-on-failure
+```
 
 ## Architecture
 
-The emulator is built with a focus on accuracy and educational value:
+See **[`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)** for the component breakdown, the
+CPU/PPU timing model and its trade-offs, and a debugging case study (how a one-dot
+rendering offset hung Super Mario Bros. on its sprite-0 split, and how the conformance
+mindset caught it).
 
-- Core 6502 CPU emulation written in C++
-- WebAssembly compilation for browser execution (Emscripten, ESM glue)
-- Typed WASM bridge layer in TypeScript (`web/src/wasm/`) that wraps the exported debugger functions
-- Front-end built with **Vite + React 18 + TypeScript**, styled with **Tailwind CSS v4** and CSS-variable design tokens (the "Studio" design system)
-- State managed via a React Context provider (`EmulatorProvider`) with hooks for the run loop, memory views, and disassembly
+At a glance:
+
+- **Core** (`src/`, `include/`) — `Bus` ties together `CPU`, `PPU`, `APU`, and the
+  `Cartridge`/mapper; clocked 1 CPU : 3 PPU dots per step.
+- **WASM bridge** (`web/src/wasm/`) — a typed TypeScript layer over the Emscripten
+  exports (`load_rom`, `run_frame`, `set_controller`, framebuffer/OAM pointers, …).
+- **NES Studio** (`web/src/`) — Vite + React 18 + TypeScript + Tailwind v4, state in an
+  `EmulatorProvider` context with hooks for the run loop, controller, and debug views.
 
 ## License
 
-This project is licensed under the GNU GPL v3 - see the [LICENSE](LICENSE) file for details.
+GNU GPL v3 — see [LICENSE](LICENSE).
