@@ -99,7 +99,10 @@ jobs:
       uses: mymindstorm/setup-emsdk@v12
       with:
         version: latest
-        actions-cache-folder: 'emsdk-cache'
+        # No actions-cache-folder: the cached path makes setup-emsdk call
+        # actions/cache reserveCache, which fails repo-wide with "Unable to
+        # reserve cache with key latest-linux-x64-master". Downloading emsdk
+        # fresh each run (~40s) is slower but reliable.
 
     - name: Verify Emscripten installation
       run: |
