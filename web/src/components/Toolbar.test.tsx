@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { EmulatorContextValue } from "../emulator/EmulatorProvider";
 import { Toolbar } from "./Toolbar";
@@ -73,20 +73,47 @@ describe("Toolbar", () => {
     expect(screen.getByText("demo.nes")).toBeInTheDocument();
   });
 
-  it("connects to a live agent when Spawn Agent is clicked", () => {
-    const ctx = makeContext();
-    mockContext.value = ctx;
+  it("does not render the removed Watch Movie or Spawn Agent buttons", () => {
     render(<Toolbar onHelp={vi.fn()} />);
-    fireEvent.click(screen.getByTestId("spawn-agent"));
-    expect(ctx.actions.connectLiveAgent).toHaveBeenCalled();
+    expect(screen.queryByTestId("movie-open")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("spawn-agent")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("movie-file-input")).not.toBeInTheDocument();
   });
 
-  it("disconnects when an agent is already live", () => {
-    const ctx = makeContext({ liveAgent: { connected: true, frame: 99 } });
-    mockContext.value = ctx;
+  it("opens the Games menu and lists the bundled games", async () => {
     render(<Toolbar onHelp={vi.fn()} />);
-    fireEvent.click(screen.getByTestId("spawn-agent"));
-    expect(ctx.actions.disconnectLiveAgent).toHaveBeenCalled();
+    expect(screen.queryByTestId("games-menu")).not.toBeInTheDocument();
+    await userEvent.click(screen.getByTestId("games-open"));
+    expect(screen.getByTestId("games-menu")).toBeInTheDocument();
+    expect(screen.getByTestId("game-lawn-mower")).toBeInTheDocument();
+  });
+
+  it("fetches and loads a bundled game when picked from the menu", async () => {
+    const ctx = makeContext();
+    vi.mocked(ctx.actions.loadRom).mockReturnValue(0);
+    mockContext.value = ctx;
+    const rom = new Uint8Array([0x4e, 0x45, 0x53, 0x1a]);
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      arrayBuffer: async () => rom.buffer,
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    render(<Toolbar onHelp={vi.fn()} />);
+    await userEvent.click(screen.getByTestId("games-open"));
+    await userEvent.click(screen.getByTestId("game-lawn-mower"));
+    await vi.waitFor(() => {
+      expect(ctx.actions.loadRom).toHaveBeenCalledTimes(1);
+    });
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining("roms/lawn-mower.nes"),
+    );
+    await vi.waitFor(() => {
+      expect(addToast).toHaveBeenCalledWith(
+        expect.stringContaining("Lawn Mower"),
+        "success",
+      );
+    });
+    vi.unstubAllGlobals();
   });
 
   it("shows live instruction and cycle stats from the snapshot", () => {

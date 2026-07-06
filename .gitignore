@@ -24,6 +24,9 @@ test_detail.xml
 # ROM images are copyrighted; never commit them. (The small, freely-distributable
 # test-roms/checkerboard.nes is already tracked and unaffected by this rule.)
 *.nes
+# Exception: the bundled homebrew games in web/public/roms are freely licensed
+# (CC0 / CC BY) and shipped with the app. See web/public/roms/LICENSES.md.
+!web/public/roms/*.nes
 
 # Python env package artifacts
 __pycache__/

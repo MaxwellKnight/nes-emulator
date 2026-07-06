@@ -1,7 +1,8 @@
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useEmulator } from "../emulator/EmulatorProvider";
 import { useToast } from "./toast/ToastProvider";
 import { ThemeToggle } from "./ui/ThemeToggle";
+import { DEFAULT_GAME, GAMES, romUrl, type Game } from "../games/catalog";
 
 export interface ToolbarProps {
   romName?: string;
@@ -50,39 +51,58 @@ export function Toolbar({
   onHelp,
   onLoadCode,
 }: ToolbarProps): JSX.Element {
-  const { snapshot, running, movie, liveAgent, actions } = useEmulator();
+  const { snapshot, running, actions } = useEmulator();
   const { addToast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const movieInputRef = useRef<HTMLInputElement>(null);
+  const gamesMenuRef = useRef<HTMLDivElement>(null);
   const [loadedRomName, setLoadedRomName] = useState<string | null>(null);
+  const [gamesOpen, setGamesOpen] = useState(false);
 
   const instructionCount = snapshot?.stats.instructionCount ?? 0;
   const cycleCount = snapshot?.stats.cycleCount ?? 0;
-  const displayedRomName = loadedRomName ?? romName;
+  // Falls back to the default game because EmulatorProvider auto-loads it on
+  // ready (see catalog.DEFAULT_GAME); Load ROM / the Games menu overwrite it.
+  const displayedRomName = loadedRomName ?? romName ?? DEFAULT_GAME.title;
 
-  // The live agent needs a local backend (python -m nesenv.live), so only offer it
-  // in dev or when a backend URL is explicitly configured for a deployment.
-  const showSpawnAgent =
-    import.meta.env.DEV || Boolean(import.meta.env.VITE_LIVE_AGENT_URL);
+  // Close the Games menu on an outside click or Escape.
+  useEffect(() => {
+    if (!gamesOpen) return;
+    function onDocClick(e: MouseEvent): void {
+      if (!gamesMenuRef.current?.contains(e.target as Node)) setGamesOpen(false);
+    }
+    function onKey(e: KeyboardEvent): void {
+      if (e.key === "Escape") setGamesOpen(false);
+    }
+    document.addEventListener("mousedown", onDocClick);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDocClick);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [gamesOpen]);
 
   function openFilePicker(): void {
     fileInputRef.current?.click();
   }
 
-  function openMoviePicker(): void {
-    movieInputRef.current?.click();
-  }
-
-  function onMovieChange(event: React.ChangeEvent<HTMLInputElement>): void {
-    const file = event.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      const bytes = new Uint8Array(reader.result as ArrayBuffer);
-      actions.playMovie(bytes);
-    };
-    reader.readAsArrayBuffer(file);
-    event.target.value = "";
+  async function loadGame(game: Game): Promise<void> {
+    setGamesOpen(false);
+    try {
+      const res = await fetch(romUrl(game));
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const bytes = new Uint8Array(await res.arrayBuffer());
+      const status = actions.loadRom(bytes);
+      if (status === 0) {
+        setLoadedRomName(game.title);
+        addToast(`${game.title} loaded — press ▶ Run to play`, "success");
+      } else if (status === 2) {
+        addToast("Unsupported mapper", "danger");
+      } else {
+        addToast("Invalid ROM file", "danger");
+      }
+    } catch {
+      addToast(`Could not load ${game.title}`, "danger");
+    }
   }
 
   function onFileChange(event: React.ChangeEvent<HTMLInputElement>): void {
@@ -130,9 +150,24 @@ export function Toolbar({
         6502 Debugger
       </span>
       {displayedRomName ? (
-        <span className="font-mono text-[11px] text-[var(--tx-mut)]">
-          {displayedRomName}
-        </span>
+        <div
+          data-testid="now-playing"
+          title={running ? "Currently playing" : "Loaded — press Run to play"}
+          className="ml-1 flex items-center gap-[6px] rounded-full border border-[var(--bd-strong)] bg-[var(--b2)] py-[3px] pl-[8px] pr-[10px]"
+        >
+          <span aria-hidden className="text-[11px] leading-none">
+            🎮
+          </span>
+          <span className="text-[8.5px] font-semibold uppercase leading-none tracking-[0.7px] text-[var(--tx-dim)]">
+            {running ? "Playing" : "Ready"}
+          </span>
+          <span
+            data-testid="now-playing-title"
+            className="font-mono text-[11px] font-medium leading-none text-[var(--tx)]"
+          >
+            {displayedRomName}
+          </span>
+        </div>
       ) : null}
 
       {/* segmented transport control */}
@@ -206,14 +241,57 @@ export function Toolbar({
           className="hidden"
           onChange={onFileChange}
         />
-        <input
-          ref={movieInputRef}
-          data-testid="movie-file-input"
-          type="file"
-          accept=".nesmovie"
-          className="hidden"
-          onChange={onMovieChange}
-        />
+        {/* Games library: bundled, freely-licensed homebrew (see catalog.ts) */}
+        <div ref={gamesMenuRef} className="relative">
+          <button
+            type="button"
+            data-testid="games-open"
+            onClick={() => setGamesOpen((o) => !o)}
+            aria-haspopup="menu"
+            aria-expanded={gamesOpen}
+            aria-label="Games"
+            title="Load a bundled free game"
+            className="press flex items-center gap-[5px] rounded-md border border-[var(--bd-strong)] bg-[var(--b2)] px-[9px] py-[4px] text-[10px] text-[var(--tx)] hover:bg-[var(--b3)]"
+          >
+            <span aria-hidden>🎮</span> Games
+            <span aria-hidden className="text-[8px] opacity-60">
+              ▼
+            </span>
+          </button>
+          {gamesOpen ? (
+            <div
+              role="menu"
+              data-testid="games-menu"
+              className="absolute right-0 z-50 mt-[6px] w-[220px] overflow-hidden rounded-lg border border-[var(--bd-strong)] bg-[var(--b1)] shadow-lg"
+            >
+              <div className="border-b border-[var(--bd)] px-[11px] py-[7px] text-[8.5px] font-semibold uppercase tracking-[0.7px] text-[var(--tx-dim)]">
+                Free homebrew games
+              </div>
+              {GAMES.map((game) => (
+                <button
+                  key={game.id}
+                  type="button"
+                  role="menuitem"
+                  data-testid={`game-${game.id}`}
+                  onClick={() => void loadGame(game)}
+                  className="flex w-full items-center justify-between gap-2 px-[11px] py-[7px] text-left hover:bg-[var(--b3)]"
+                >
+                  <span className="flex flex-col">
+                    <span className="text-[11px] font-medium text-[var(--tx)]">
+                      {game.title}
+                    </span>
+                    <span className="text-[9px] text-[var(--tx-mut)]">
+                      {game.author}
+                    </span>
+                  </span>
+                  <span className="shrink-0 rounded-full border border-[var(--bd)] px-[6px] py-[1px] font-mono text-[8.5px] text-[var(--tx-dim)]">
+                    {game.license}
+                  </span>
+                </button>
+              ))}
+            </div>
+          ) : null}
+        </div>
         <button
           type="button"
           onClick={openFilePicker}
@@ -223,39 +301,6 @@ export function Toolbar({
         >
           Load ROM
         </button>
-        <button
-          type="button"
-          data-testid="movie-open"
-          onClick={openMoviePicker}
-          aria-label="Watch Movie"
-          title="Replay a recorded .nesmovie (e.g. an agent playing)"
-          className="press rounded-md border border-[var(--bd-strong)] bg-[var(--b2)] px-[9px] py-[4px] text-[10px] text-[var(--tx)] hover:bg-[var(--b3)]"
-        >
-          {movie.playing
-            ? `Movie ${Math.floor((100 * movie.frame) / Math.max(1, movie.total))}%`
-            : "Watch Movie"}
-        </button>
-        {showSpawnAgent ? (
-          <button
-            type="button"
-            data-testid="spawn-agent"
-            onClick={() =>
-              liveAgent.connected
-                ? actions.disconnectLiveAgent()
-                : actions.connectLiveAgent()
-            }
-            aria-label="Spawn Agent"
-            title="Watch a live agent"
-            className={[
-              "press rounded-md border px-[9px] py-[4px] text-[10px]",
-              liveAgent.connected
-                ? "border-[var(--grn)] bg-[var(--grn)]/20 text-[var(--tx)]"
-                : "border-[var(--bd-strong)] bg-[var(--b2)] text-[var(--tx)] hover:bg-[var(--b3)]",
-            ].join(" ")}
-          >
-            {liveAgent.connected ? "Live Agent" : "Spawn Agent"}
-          </button>
-        ) : null}
         <button
           type="button"
           data-testid="loadcode-open"

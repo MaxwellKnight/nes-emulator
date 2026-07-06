@@ -16,6 +16,7 @@ import type { EmulatorSnapshot, EmulatorStatus } from "../wasm/types";
 import { useFrameLoop } from "./useFrameLoop";
 import { NesAudio } from "./audio";
 import { parseMovie } from "./movie";
+import { DEFAULT_GAME, romUrl } from "../games/catalog";
 import { useToast } from "../components/toast/ToastProvider";
 
 // The live-agent server (python -m nesenv.live) streams Server-Sent Events to here.
@@ -157,6 +158,30 @@ export function EmulatorProvider(props: {
           /* no framebuffer export (stale build) — leave canvas blank */
         }
         setStatus("ready");
+        // Boot into a bundled, freely-licensed game so a fresh visitor lands on
+        // something playable instead of a blank debugger. Best-effort: a failed
+        // fetch (offline, missing asset, no fetch in the env) leaves it idle.
+        if (typeof fetch !== "function") return;
+        fetch(romUrl(DEFAULT_GAME))
+          .then((res) => (res.ok ? res.arrayBuffer() : null))
+          .then((buf) => {
+            if (cancelled || !buf) return;
+            if (bridge.loadRom(new Uint8Array(buf)) === 0) {
+              setSnapshot(bridge.getSnapshot());
+              try {
+                setFramebuffer(new Uint8ClampedArray(bridge.getFramebuffer()));
+              } catch {
+                /* stale build without framebuffer export */
+              }
+              addToast(
+                `${DEFAULT_GAME.title} loaded — press ▶ Run to play`,
+                "success",
+              );
+            }
+          })
+          .catch(() => {
+            /* offline or asset missing — stay idle */
+          });
       })
       .catch(() => {
         if (cancelled) return;

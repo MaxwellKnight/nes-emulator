@@ -1,6 +1,7 @@
 // web/src/components/HelpModal.tsx
 import { Modal } from "./ui/Modal";
 import { Button } from "./ui/Button";
+import { GAMES } from "../games/catalog";
 
 interface HelpSection {
   title: string;
@@ -28,6 +29,10 @@ const SECTIONS: HelpSection[] = [
     title: "Memory Navigation",
     body: "Switch pages with the selector (Zero Page, Stack, RAM, Vectors) or jump to an address (page-aligned to $XX00). The PC cell is highlighted red; on the Stack page the SP cell is green. Click any cell to edit its value in hex, decimal or view its binary.",
   },
+  {
+    title: "Playing Games",
+    body: "A free homebrew game (Lawn Mower) loads automatically — just press Run to play, then use the arrow keys and A/S buttons. Pick a different game from the Games menu, or load your own .nes ROM with Load ROM.",
+  },
 ];
 
 export interface HelpModalProps {
@@ -47,6 +52,37 @@ export function HelpModal({ open, onClose }: HelpModalProps): JSX.Element {
             <p className="text-[12px] leading-relaxed text-[var(--text-muted)]">{section.body}</p>
           </section>
         ))}
+        <section>
+          <h3 className="mb-1 text-[13px] font-semibold text-[var(--heading)]">
+            Bundled Game Credits
+          </h3>
+          <p className="mb-2 text-[12px] leading-relaxed text-[var(--text-muted)]">
+            The bundled games are freely-licensed homebrew, redistributed under
+            their own licenses. Thanks to their authors:
+          </p>
+          <ul className="flex flex-col gap-1">
+            {GAMES.map((game) => (
+              <li
+                key={game.id}
+                className="text-[12px] leading-relaxed text-[var(--text-muted)]"
+              >
+                <span className="font-medium text-[var(--heading)]">
+                  {game.title}
+                </span>{" "}
+                — {game.author} (
+                <a
+                  href={game.licenseUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="underline hover:text-[var(--heading)]"
+                >
+                  {game.license}
+                </a>
+                )
+              </li>
+            ))}
+          </ul>
+        </section>
       </div>
       <div className="mt-4 flex justify-end">
         <Button data-testid="help-close" onClick={onClose}>
