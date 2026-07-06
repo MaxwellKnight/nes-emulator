@@ -7,6 +7,15 @@ on:
     branches: [ dev, main ]
   workflow_dispatch:  # Allow manual triggers
 
+# A push to a branch that also has an open PR fires both `push` and
+# `pull_request`, launching two identical runs. Their WebAssembly Build jobs
+# then race to create the same emsdk cache ("Unable to reserve cache with key
+# ..."). Grouping by commit SHA (equal for both events) with cancel-in-progress
+# collapses them into a single run, so nothing collides on the cache.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.head.sha || github.sha }}
+  cancel-in-progress: true
+
 jobs:
   build-and-test:
     name: Build and Test
