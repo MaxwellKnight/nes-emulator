@@ -1,0 +1,241 @@
+// web/src/wasm/bridge.test.ts
+import { describe, it, expect, vi } from "vitest";
+import { createBridge } from "./bridge";
+import { createMockModule } from "./testing/mockModule";
+import { FLAG_BITS } from "./types";
+
+describe("createBridge", () => {
+  it("wraps setPC with a numeric arg and actually updates PC", () => {
+    const mod = createMockModule();
+    const cwrapSpy = vi.spyOn(mod, "cwrap");
+    const dbg = createBridge(mod);
+
+    dbg.setPC(0x0c00);
+
+    expect(cwrapSpy).toHaveBeenCalledWith("debugger_set_pc", null, [
+      "number",
+    ]);
+    expect(mod._state.registers.pc).toBe(0x0c00);
+    expect(dbg.getRegisters().pc).toBe(0x0c00);
+  });
+
+  it("maps getRegisters from the individual register getters", () => {
+    const mod = createMockModule();
+    mod._state.registers = {
+      a: 0x11,
+      x: 0x22,
+      y: 0x33,
+      sp: 0xfd,
+      pc: 0x0c00,
+      status: 0x81,
+    };
+    const dbg = createBridge(mod);
+
+    expect(dbg.getRegisters()).toEqual({
+      a: 0x11,
+      x: 0x22,
+      y: 0x33,
+      sp: 0xfd,
+      pc: 0x0c00,
+      status: 0x81,
+    });
+  });
+
+  it("maps getFlags via FLAG_BITS bit indices", () => {
+    const mod = createMockModule();
+    // status 0x81 = 1000_0001 => N set (bit 7) and C set (bit 0); rest clear
+    mod._state.registers.status = 0x81;
+    const dbg = createBridge(mod);
+
+    const flags = dbg.getFlags();
+    expect(flags.n).toBe(true);
+    expect(flags.c).toBe(true);
+    expect(flags.v).toBe(false);
+    expect(flags.u).toBe(false);
+    expect(flags.b).toBe(false);
+    expect(flags.d).toBe(false);
+    expect(flags.i).toBe(false);
+    expect(flags.z).toBe(false);
+    // sanity: the bridge consulted bit 7 for n and bit 0 for c
+    expect(FLAG_BITS.n).toBe(7);
+    expect(FLAG_BITS.c).toBe(0);
+  });
+
+  it("maps getStats and getSnapshot", () => {
+    const mod = createMockModule();
+    mod._state.instructionCount = 7;
+    mod._state.cycleCount = 21;
+    mod._state.running = true;
+    const dbg = createBridge(mod);
+
+    expect(dbg.getStats()).toEqual({ instructionCount: 7, cycleCount: 21 });
+
+    const snap = dbg.getSnapshot();
+    expect(snap.stats).toEqual({ instructionCount: 7, cycleCount: 21 });
+    expect(snap.running).toBe(true);
+    expect(snap.registers).toEqual(dbg.getRegisters());
+    expect(snap.flags).toEqual(dbg.getFlags());
+  });
+
+  it("reads and writes memory and reads ranges", () => {
+    const mod = createMockModule();
+    const dbg = createBridge(mod);
+
+    dbg.writeMemory(0x0200, 0x42);
+    expect(dbg.readMemory(0x0200)).toBe(0x42);
+
+    dbg.writeMemory(0x0201, 0x43);
+    expect(dbg.readMemoryRange(0x0200, 0x0201)).toEqual([0x42, 0x43]);
+  });
+
+  it("adds, removes, and clears breakpoints", () => {
+    const mod = createMockModule();
+    const dbg = createBridge(mod);
+
+    dbg.addBreakpoint(0x0c00);
+    dbg.addBreakpoint(0x0c10);
+    expect(mod._state.breakpoints.has(0x0c00)).toBe(true);
+    expect(mod._state.breakpoints.has(0x0c10)).toBe(true);
+
+    dbg.removeBreakpoint(0x0c00);
+    expect(mod._state.breakpoints.has(0x0c00)).toBe(false);
+
+    dbg.clearBreakpoints();
+    expect(mod._state.breakpoints.size).toBe(0);
+  });
+
+  it("reports running state and run/stop transitions", () => {
+    const mod = createMockModule();
+    const dbg = createBridge(mod);
+
+    expect(dbg.isRunning()).toBe(false);
+    dbg.run();
+    expect(dbg.isRunning()).toBe(true);
+    dbg.stop();
+    expect(dbg.isRunning()).toBe(false);
+  });
+
+  it("parses disassembleAroundPC and disassembleRange via parseDisassembly", () => {
+    const mod = createMockModule({
+      disassembly: "3072|162|LDX|5|LDX #$05|2|2#3074|169|LDA|10|LDA #$0A|2|2",
+    });
+    const dbg = createBridge(mod);
+
+    const around = dbg.disassembleAroundPC(5, 30);
+    expect(around).toHaveLength(2);
+    expect(around[0].mnemonic).toBe("LDX");
+    expect(around[1].mnemonic).toBe("LDA");
+
+    const range = dbg.disassembleRange(0x0c00, 0x0c10);
+    expect(range).toHaveLength(2);
+    expect(range[0].opcode).toBe(162);
+  });
+
+  it("loadROM writes bytes from 0x0C00, sets the reset vector, and sets PC to 0x0C00", () => {
+    const mod = createMockModule();
+    const dbg = createBridge(mod);
+
+    dbg.loadROM([0xa2, 0x05, 0xa9, 0x0a]);
+
+    expect(mod._state.memory[0x0c00]).toBe(0xa2);
+    expect(mod._state.memory[0x0c01]).toBe(0x05);
+    expect(mod._state.memory[0x0c02]).toBe(0xa9);
+    expect(mod._state.memory[0x0c03]).toBe(0x0a);
+    // little-endian reset vector: low byte at $FFFC, high byte at $FFFD
+    expect(mod._state.memory[0xfffc]).toBe(0x00);
+    expect(mod._state.memory[0xfffd]).toBe(0x0c);
+    // PC positioned at the start address
+    expect(mod._state.registers.pc).toBe(0x0c00);
+  });
+
+  it("loadROM honors a custom start address and writes both reset-vector bytes", () => {
+    const mod = createMockModule();
+    const dbg = createBridge(mod);
+
+    // 0x80C5 has a non-zero low byte, exercising the $FFFC write.
+    dbg.loadROM([0xea], 0x80c5);
+
+    expect(mod._state.memory[0x80c5]).toBe(0xea);
+    // little-endian reset vector
+    expect(mod._state.memory[0xfffc]).toBe(0xc5);
+    expect(mod._state.memory[0xfffd]).toBe(0x80);
+    expect(mod._state.registers.pc).toBe(0x80c5);
+  });
+
+  it("loadRom copies bytes into the heap and returns the status code", () => {
+    const mod = createMockModule({ romStatus: 0 });
+    const dbg = createBridge(mod);
+
+    const bytes = new Uint8Array([0x4e, 0x45, 0x53, 0x1a, 0x01, 0x01]);
+    const status = dbg.loadRom(bytes);
+
+    expect(status).toBe(0);
+    expect(mod._state.loadedRom).not.toBeNull();
+    expect(Array.from(mod._state.loadedRom as Uint8Array)).toEqual(
+      Array.from(bytes),
+    );
+  });
+
+  it("loadRom surfaces a nonzero status (e.g. unsupported mapper)", () => {
+    const mod = createMockModule({ romStatus: 2 });
+    const dbg = createBridge(mod);
+    expect(dbg.loadRom(new Uint8Array([0x00]))).toBe(2);
+  });
+
+  it("getFramebuffer returns a 256*240*4 view backed by the heap", () => {
+    const mod = createMockModule();
+    // Paint a recognizable pixel so we can prove the view reflects heap bytes.
+    mod._state.framebuffer[0] = 0xde;
+    mod._state.framebuffer[1] = 0xad;
+    mod._state.framebuffer[2] = 0xbe;
+    mod._state.framebuffer[3] = 0xef;
+    const dbg = createBridge(mod);
+
+    const fb = dbg.getFramebuffer();
+    expect(fb).toBeInstanceOf(Uint8ClampedArray);
+    expect(fb.length).toBe(256 * 240 * 4);
+    expect([fb[0], fb[1], fb[2], fb[3]]).toEqual([0xde, 0xad, 0xbe, 0xef]);
+  });
+
+  it("runFrame returns the reason code and frameCount advances", () => {
+    const mod = createMockModule({ frameReason: 1 });
+    const dbg = createBridge(mod);
+    expect(dbg.frameCount()).toBe(0);
+    const reason = dbg.runFrame();
+    expect(reason).toBe(1);
+    expect(dbg.frameCount()).toBe(1);
+  });
+
+  it("renderPatternTable copies out a 128*128*4 buffer", () => {
+    const mod = createMockModule();
+    mod._state.patternTable[10] = 0x7e;
+    const dbg = createBridge(mod);
+    const out = dbg.renderPatternTable(0, 3);
+    expect(out).toBeInstanceOf(Uint8ClampedArray);
+    expect(out.length).toBe(128 * 128 * 4);
+    expect(out[10]).toBe(0x7e);
+  });
+
+  it("getNametable and getPaletteRam return the debug RAM views", () => {
+    const mod = createMockModule();
+    mod._state.nametable[5] = 0x21;
+    mod._state.paletteRam[3] = 0x30;
+    const dbg = createBridge(mod);
+    expect(dbg.getNametable().length).toBe(2048);
+    expect(dbg.getNametable()[5]).toBe(0x21);
+    expect(dbg.getPaletteRam().length).toBe(32);
+    expect(dbg.getPaletteRam()[3]).toBe(0x30);
+  });
+
+  it("ppuState maps the four PPU getters", () => {
+    const mod = createMockModule();
+    mod._state.ppu = { ctrl: 0x90, mask: 0x1e, status: 0x80, scanline: 120 };
+    const dbg = createBridge(mod);
+    expect(dbg.ppuState()).toEqual({
+      ctrl: 0x90,
+      mask: 0x1e,
+      status: 0x80,
+      scanline: 120,
+    });
+  });
+});

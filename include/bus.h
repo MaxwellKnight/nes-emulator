@@ -1,30 +1,42 @@
 #pragma once
 #include <array>
 #include <cstddef>
+#include <memory>
+#include "apu.h"
+#include "controller.h"
 #include "cpu.h"
+#include "ppu.h"
 #include "types.h"
 
 namespace nes {
-class Bus : public Addressable {
+class Bus {
  public:
   Bus();
   ~Bus() = default;
-  void cpu_write(u16 address, u8 data) override;
-  u8 cpu_read(u16 address) const override;
-  bool handles_address(u16 address) const override;
+
+ public:
+  void cpu_write(u16 address, u8 data);
+  u8 cpu_read(u16 address) const;
 
  public:
   void clock();
   void reset();
   CPU& get_cpu();
+  PPU& get_ppu();
+  APU& get_apu();
+  void insert_cartridge(const std::shared_ptr<Cartridge>& cartridge);
+  // Latch controller button state. port 0 = player 1 ($4016), 1 = player 2.
+  void set_controller(int port, u8 buttons);
 
  private:
   static constexpr size_t _CPU_RAM_SIZE = 2 * 1024;  // 2KB
-  static constexpr size_t _RESET_VECTOR_SIZE = 4;
   u32 _sys_clock = 0;
+  int _dma_stall = 0;  // CPU cycles remaining stalled by an OAM ($4014) DMA
   CPU _cpu;
-
+  PPU _ppu;
+  APU _apu;
+  std::shared_ptr<Cartridge> _cartridge;
   std::array<u8, _CPU_RAM_SIZE> _ram{0};
-  std::array<u8, _RESET_VECTOR_SIZE> _reset_vector{0};
+  mutable Controller _pad[2];  // mutable: serial reads shift on a const read path
 };
 }  // namespace nes

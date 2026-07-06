@@ -225,6 +225,83 @@ CPU::CPU(Bus &bus)
 
   // No operation
   set_op(Opcode::NOP_IMP, {.implied_op = &CPU::op_nop, .mode = nullptr, .cycles = 2, .name = "NOP", .is_implied = true});
+
+  // ---- Unofficial / illegal opcodes -----------------------------------------
+  // Stable, well-documented opcodes that real games and blargg's instr_test use.
+  auto opa = [&](u8 code, AddressedOperation fn, ModeHandler mode, u8 cyc,
+                 const char* name, bool extra = false) {
+    set_op(static_cast<Opcode>(code),
+           {.addressed_op = fn, .mode = mode, .cycles = cyc, .name = name, .is_extra_cycle = extra});
+  };
+  auto opi = [&](u8 code) {
+    set_op(static_cast<Opcode>(code),
+           {.implied_op = &CPU::op_nop, .mode = nullptr, .cycles = 2, .name = "*NOP", .is_implied = true});
+  };
+
+  // Unofficial NOPs (implied / immediate / zero-page / absolute, incl. indexed).
+  for (u8 c : {0x1A, 0x3A, 0x5A, 0x7A, 0xDA, 0xFA}) opi(c);
+  for (u8 c : {0x80, 0x82, 0x89, 0xC2, 0xE2}) opa(c, &CPU::op_nop_addr, &CPU::immediate, 2, "*NOP");
+  for (u8 c : {0x04, 0x44, 0x64}) opa(c, &CPU::op_nop_addr, &CPU::zero_page, 3, "*NOP");
+  for (u8 c : {0x14, 0x34, 0x54, 0x74, 0xD4, 0xF4}) opa(c, &CPU::op_nop_addr, &CPU::zero_page_x, 4, "*NOP");
+  opa(0x0C, &CPU::op_nop_addr, &CPU::absolute, 4, "*NOP");
+  for (u8 c : {0x1C, 0x3C, 0x5C, 0x7C, 0xDC, 0xFC}) opa(c, &CPU::op_nop_addr, &CPU::absolute_x, 4, "*NOP", true);
+
+  // LAX (LDA+LDX) and SAX (store A&X).
+  opa(0xA3, &CPU::op_lax, &CPU::indirect_x, 6, "*LAX");
+  opa(0xA7, &CPU::op_lax, &CPU::zero_page, 3, "*LAX");
+  opa(0xAF, &CPU::op_lax, &CPU::absolute, 4, "*LAX");
+  opa(0xB3, &CPU::op_lax, &CPU::indirect_y, 5, "*LAX", true);
+  opa(0xB7, &CPU::op_lax, &CPU::zero_page_y, 4, "*LAX");
+  opa(0xBF, &CPU::op_lax, &CPU::absolute_y, 4, "*LAX", true);
+  opa(0x83, &CPU::op_sax, &CPU::indirect_x, 6, "*SAX");
+  opa(0x87, &CPU::op_sax, &CPU::zero_page, 3, "*SAX");
+  opa(0x8F, &CPU::op_sax, &CPU::absolute, 4, "*SAX");
+  opa(0x97, &CPU::op_sax, &CPU::zero_page_y, 4, "*SAX");
+
+  // SBC #imm alias.
+  opa(0xEB, &CPU::op_sbc, &CPU::immediate, 2, "*SBC");
+
+  // Read-modify-write combos: {izx,zp,abs,izy,zpx,aby,abx} with fixed cycles.
+  struct RmwModes { u8 izx, zp, abs, izy, zpx, aby, abx; };
+  auto rmw = [&](AddressedOperation fn, const char* name, RmwModes m) {
+    opa(m.izx, fn, &CPU::indirect_x, 8, name);
+    opa(m.zp,  fn, &CPU::zero_page,  5, name);
+    opa(m.abs, fn, &CPU::absolute,   6, name);
+    opa(m.izy, fn, &CPU::indirect_y, 8, name);
+    opa(m.zpx, fn, &CPU::zero_page_x,6, name);
+    opa(m.aby, fn, &CPU::absolute_y, 7, name);
+    opa(m.abx, fn, &CPU::absolute_x, 7, name);
+  };
+  rmw(&CPU::op_slo, "*SLO", {0x03, 0x07, 0x0F, 0x13, 0x17, 0x1B, 0x1F});
+  rmw(&CPU::op_rla, "*RLA", {0x23, 0x27, 0x2F, 0x33, 0x37, 0x3B, 0x3F});
+  rmw(&CPU::op_sre, "*SRE", {0x43, 0x47, 0x4F, 0x53, 0x57, 0x5B, 0x5F});
+  rmw(&CPU::op_rra, "*RRA", {0x63, 0x67, 0x6F, 0x73, 0x77, 0x7B, 0x7F});
+  rmw(&CPU::op_dcp, "*DCP", {0xC3, 0xC7, 0xCF, 0xD3, 0xD7, 0xDB, 0xDF});
+  rmw(&CPU::op_isc, "*ISC", {0xE3, 0xE7, 0xEF, 0xF3, 0xF7, 0xFB, 0xFF});
+
+  // Immediate-mode ALU oddities.
+  opa(0x0B, &CPU::op_anc, &CPU::immediate, 2, "*ANC");
+  opa(0x2B, &CPU::op_anc, &CPU::immediate, 2, "*ANC");
+  opa(0x4B, &CPU::op_alr, &CPU::immediate, 2, "*ALR");
+  opa(0x6B, &CPU::op_arr, &CPU::immediate, 2, "*ARR");
+  opa(0xCB, &CPU::op_axs, &CPU::immediate, 2, "*AXS");
+
+  // Highly unstable opcodes (their result depends on analog hardware effects).
+  // We don't model their magic constants, but we register them with the correct
+  // addressing mode + cycle count so the program counter stays aligned and the
+  // emulator never aborts on an undefined opcode. 0xAB behaves closely enough to
+  // LAX #imm to use it directly.
+  opa(0xAB, &CPU::op_lax, &CPU::immediate, 2, "*LAX");
+  opa(0x8B, &CPU::op_nop_addr, &CPU::immediate, 2, "*XAA");
+  opa(0x93, &CPU::op_nop_addr, &CPU::indirect_y, 6, "*AHX");
+  opa(0x9F, &CPU::op_nop_addr, &CPU::absolute_y, 5, "*AHX");
+  opa(0x9E, &CPU::op_nop_addr, &CPU::absolute_y, 5, "*SHX");
+  opa(0x9C, &CPU::op_nop_addr, &CPU::absolute_x, 5, "*SHY");
+  opa(0x9B, &CPU::op_nop_addr, &CPU::absolute_y, 5, "*TAS");
+  opa(0xBB, &CPU::op_las, &CPU::absolute_y, 4, "*LAS", true);
+  // KIL/JAM opcodes halt a real CPU; we treat them as a 2-cycle NOP so a stray
+  // jump into data degrades gracefully instead of aborting emulation.
+  for (u8 c : {0x02, 0x12, 0x22, 0x32, 0x42, 0x52, 0x62, 0x72, 0x92, 0xB2, 0xD2, 0xF2}) opi(c);
 }
 
 void CPU::clock() {
@@ -583,6 +660,132 @@ void CPU::op_dec(const u16 addr) {
   update_zero_and_negative_flags(value - 1);
 }
 
+// --- Unofficial / illegal opcodes ------------------------------------------
+// Multi-byte NOP: the addressing mode already fetched (and discarded) the
+// operand; the instruction itself has no effect.
+void CPU::op_nop_addr(const u16 addr) { (void)addr; }
+
+// LAX = LDA + LDX: load the same value into both A and X.
+void CPU::op_lax(const u16 addr) {
+  u8 v = read_byte(addr);
+  _A = v;
+  _X = v;
+  update_zero_and_negative_flags(_A);
+}
+
+// SAX = store (A & X). Affects no flags.
+void CPU::op_sax(const u16 addr) { write_byte(addr, _A & _X); }
+
+// DCP = DEC memory, then CMP A against the result.
+void CPU::op_dcp(const u16 addr) {
+  u8 v = read_byte(addr) - 1;
+  write_byte(addr, v);
+  set_flag(Flag::CARRY, _A >= v);
+  update_zero_and_negative_flags((u8)(_A - v));
+}
+
+// ISC (a.k.a. ISB) = INC memory, then SBC the result from A.
+void CPU::op_isc(const u16 addr) {
+  u8 v = read_byte(addr) + 1;
+  write_byte(addr, v);
+  u16 value = (u16)v;
+  u16 sub = (u16)_A - value - (1 - (u16)get_flag(Flag::CARRY));
+  set_flag(Flag::CARRY, !(sub & 0x100));
+  set_flag(Flag::OVERFLOW_, ((_A ^ value) & 0x80) && ((_A ^ sub) & 0x80));
+  _A = (u8)sub;
+  update_zero_and_negative_flags(_A);
+}
+
+// SLO = ASL memory, then ORA the result into A.
+void CPU::op_slo(const u16 addr) {
+  u8 v = read_byte(addr);
+  set_flag(Flag::CARRY, (v & 0x80) != 0);
+  v <<= 1;
+  write_byte(addr, v);
+  _A |= v;
+  update_zero_and_negative_flags(_A);
+}
+
+// RLA = ROL memory, then AND the result into A.
+void CPU::op_rla(const u16 addr) {
+  u8 v = read_byte(addr);
+  bool carry = (v & 0x80) != 0;
+  v <<= 1;
+  if (get_flag(Flag::CARRY)) v |= 0x01;
+  set_flag(Flag::CARRY, carry);
+  write_byte(addr, v);
+  _A &= v;
+  update_zero_and_negative_flags(_A);
+}
+
+// SRE = LSR memory, then EOR the result into A.
+void CPU::op_sre(const u16 addr) {
+  u8 v = read_byte(addr);
+  set_flag(Flag::CARRY, (v & 0x01) != 0);
+  v >>= 1;
+  write_byte(addr, v);
+  _A ^= v;
+  update_zero_and_negative_flags(_A);
+}
+
+// RRA = ROR memory, then ADC the result into A.
+void CPU::op_rra(const u16 addr) {
+  u8 v = read_byte(addr);
+  bool carry = (v & 0x01) != 0;
+  v >>= 1;
+  if (get_flag(Flag::CARRY)) v |= 0x80;
+  set_flag(Flag::CARRY, carry);
+  write_byte(addr, v);
+  u16 value = (u16)v;
+  u16 sum = (u16)_A + value + (u16)get_flag(Flag::CARRY);
+  set_flag(Flag::CARRY, sum > 0xFF);
+  set_flag(Flag::OVERFLOW_, ((_A ^ sum) & (value ^ sum) & 0x80) != 0);
+  _A = (u8)sum;
+  update_zero_and_negative_flags(_A);
+}
+
+// ANC = AND immediate, then copy bit 7 of the result into carry.
+void CPU::op_anc(const u16 addr) {
+  _A &= read_byte(addr);
+  update_zero_and_negative_flags(_A);
+  set_flag(Flag::CARRY, (_A & 0x80) != 0);
+}
+
+// ALR = AND immediate, then LSR the accumulator.
+void CPU::op_alr(const u16 addr) {
+  _A &= read_byte(addr);
+  set_flag(Flag::CARRY, (_A & 0x01) != 0);
+  _A >>= 1;
+  update_zero_and_negative_flags(_A);
+}
+
+// ARR = AND immediate, then ROR A, with its own quirky carry/overflow rules.
+void CPU::op_arr(const u16 addr) {
+  _A &= read_byte(addr);
+  _A = (u8)((_A >> 1) | (get_flag(Flag::CARRY) ? 0x80 : 0x00));
+  update_zero_and_negative_flags(_A);
+  set_flag(Flag::CARRY, (_A & 0x40) != 0);
+  set_flag(Flag::OVERFLOW_, (((_A >> 6) ^ (_A >> 5)) & 0x01) != 0);
+}
+
+// AXS (SBX) = X <- (A & X) - immediate, setting carry like a compare.
+void CPU::op_axs(const u16 addr) {
+  u8 imm = read_byte(addr);
+  u16 tmp = (u16)(_A & _X) - (u16)imm;
+  set_flag(Flag::CARRY, (_A & _X) >= imm);
+  _X = (u8)tmp;
+  update_zero_and_negative_flags(_X);
+}
+
+// LAS = A, X, SP <- (memory & SP).
+void CPU::op_las(const u16 addr) {
+  u8 v = read_byte(addr) & _SP;
+  _A = v;
+  _X = v;
+  _SP = v;
+  update_zero_and_negative_flags(v);
+}
+
 // Branching operations
 // BCC - Branch on Carry Clear
 void CPU::op_bcc(const u16 offset) {
@@ -860,7 +1063,10 @@ void CPU::op_rti() {
   u8 pc_high = read_byte(0x0100 + ++_SP);
 
   _status = status;
+  // The 6502 status register has no physical B flag and bit 5 always reads 1, so
+  // a pulled status restores with BREAK clear and UNUSED set (matches nestest).
   _status &= ~(u8)Flag::BREAK;
+  _status |= (u8)Flag::UNUSED;
   _PC = (u16)pc_low | (u16)pc_high << 8;
 }
 
@@ -870,6 +1076,55 @@ void CPU::op_rts() {
   u8 pc_high = read_byte(0x0100 + ++_SP);
   _PC = (u16)pc_low | (u16)pc_high << 8;
   _PC += 1;  // Increment th PC by 1 so it points to the instruction after JSR
+}
+
+void CPU::trigger_nmi() {
+  // Push PCH (high byte) then PCL (low byte), matching the BRK push order.
+  write_byte(0x0100 + _SP, (_PC >> 8) & 0xFF);
+  _SP--;
+  write_byte(0x0100 + _SP, _PC & 0xFF);
+  _SP--;
+
+  // Push status with UNUSED set and BREAK clear (hardware behavior for
+  // an interrupt entry, as opposed to BRK which sets BREAK).
+  u8 status_to_push = (_status | (u8)Flag::UNUSED) & ~(u8)Flag::BREAK;
+  write_byte(0x0100 + _SP, status_to_push);
+  _SP--;
+
+  // Disable further interrupts.
+  set_flag(Flag::INTERRUPT_DISABLE, true);
+
+  // Load PC from the NMI vector $FFFA (low) / $FFFB (high).
+  u16 low_byte = read_byte(0xFFFA);
+  u16 high_byte = read_byte(0xFFFB);
+  _PC = (high_byte << 8) | low_byte;
+
+  // The NMI sequence takes 7 cycles.
+  _cycles = 7;
+}
+
+bool CPU::trigger_irq() {
+  // Maskable: ignored while the interrupt-disable flag is set.
+  if (get_flag(Flag::INTERRUPT_DISABLE)) return false;
+
+  write_byte(0x0100 + _SP, (_PC >> 8) & 0xFF);
+  _SP--;
+  write_byte(0x0100 + _SP, _PC & 0xFF);
+  _SP--;
+
+  u8 status_to_push = (_status | (u8)Flag::UNUSED) & ~(u8)Flag::BREAK;
+  write_byte(0x0100 + _SP, status_to_push);
+  _SP--;
+
+  set_flag(Flag::INTERRUPT_DISABLE, true);
+
+  // Load PC from the IRQ/BRK vector $FFFE (low) / $FFFF (high).
+  u16 low_byte = read_byte(0xFFFE);
+  u16 high_byte = read_byte(0xFFFF);
+  _PC = (high_byte << 8) | low_byte;
+
+  _cycles = 7;
+  return true;
 }
 
 // Flag operations

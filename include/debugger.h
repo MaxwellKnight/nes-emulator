@@ -34,8 +34,14 @@ class Debugger {
   // Execution control
   void step();
   void run();
+  int run_frame();
   void stop();
   void reset();
+  // Power-on/cartridge boot: reset, then load PC from the reset vector at
+  // $FFFC/$FFFD (real 6502 behavior) so a freshly inserted ROM starts at its
+  // entry point. Plain reset() leaves PC at $FFFC (the Phase-0 test convention
+  // executes code there); only the cartridge boot path follows the vector.
+  void reset_to_vector();
   bool is_running() const;
 
   // Breakpoint methods

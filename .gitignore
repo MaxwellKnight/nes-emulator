@@ -1,12 +1,44 @@
+.superpowers/
+docs/superpowers/
 bin/
 build/
 native_build/
 wasm_build/
 build_wasm/
 letsencrypt/
-web/js/cpu_wasm.js
+web/node_modules/
+web/dist/
+web/src/wasm/generated/cpu_wasm.js
+web/src/wasm/generated/cpu_wasm.wasm
+web/*.tsbuildinfo
+web/vite.config.js
+web/vite.config.d.ts
 compile_commands.json
 .cache
 .clang-format
 *.wasm
 .env
+test_detail.json
+test_detail.xml
+
+# ROM images are copyrighted; never commit them. (The small, freely-distributable
+# test-roms/checkerboard.nes is already tracked and unaffected by this rule.)
+*.nes
+# Exception: the bundled homebrew games in web/public/roms are freely licensed
+# (CC0 / CC BY) and shipped with the app. See web/public/roms/LICENSES.md.
+!web/public/roms/*.nes
+
+# Python env package artifacts
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.venv/
+python/build/
+python/dist/
+
+# Recorded movies embed a ROM and are generated, not committed.
+*.nesmovie
+
+# Runtime logs (e.g. mprocs)
+*.log
