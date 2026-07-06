@@ -1,0 +1,25 @@
+# syntax=docker/dockerfile:1
+
+# 1) Compile C++ -> WASM. CMake POST_BUILD copies cpu_wasm.{js,wasm}
+#    into web/src/wasm/generated/. WASM is arch-neutral, so build native.
+FROM --platform=$BUILDPLATFORM emscripten/emsdk:latest AS wasm
+WORKDIR /src
+COPY . .
+RUN mkdir -p wasm_build \
+ && cd wasm_build \
+ && emcmake cmake .. -DCMAKE_BUILD_TYPE=Release \
+ && make -j"$(nproc)"
+
+# 2) Build the Vite/React front-end (needs the generated glue from stage 1).
+FROM --platform=$BUILDPLATFORM node:20-bookworm-slim AS web
+WORKDIR /src
+RUN npm install -g pnpm@9
+COPY --from=wasm /src /src
+WORKDIR /src/web
+RUN pnpm install --frozen-lockfile && pnpm build
+
+# 3) Serve the static dist. Runtime stage is the target arch (arm64).
+FROM nginx:alpine AS runtime
+COPY --from=web /src/web/dist /usr/share/nginx/html
+COPY deploy/nginx.conf /etc/nginx/conf.d/default.conf
+EXPOSE 80

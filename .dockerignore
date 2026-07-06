@@ -1,0 +1,10 @@
+build
+native_build
+wasm_build
+web/node_modules
+web/dist
+.git
+.cache
+imgs
+docs
+test-roms
